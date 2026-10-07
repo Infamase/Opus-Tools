@@ -71,6 +71,10 @@ is paired with a *perceive* tool and a rubric, so Claude iterates
   Skills, subagents and MCP servers are then available in every project. The plugin's
   `userConfig` asks once for the Blender and Godot executable paths, the library folder,
   and any API keys (stored as sensitive).
+- **Where it runs.** Full support (skills + local MCP servers that launch `blender.exe` /
+  `godot.exe`) is in the **Claude Code CLI** and the **desktop app's Code tab**; Cowork only
+  when the session runs locally. Plain chat surfaces load the skills but ignore local MCP
+  servers, so the hands-and-senses half is unavailable there.
 - **Skills** carry the craft: workflows, rubrics, recipes, Godot conventions. They load on
   demand (SKILL.md under ~500 lines, details in reference files), so a big library is cheap.
 - **MCP servers** (Python, stdio, launched with `uv`) are the hands and senses for Blender,

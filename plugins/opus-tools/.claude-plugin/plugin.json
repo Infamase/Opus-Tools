@@ -1,0 +1,32 @@
+{
+  "name": "opus-tools",
+  "displayName": "Opus Tools",
+  "version": "0.1.0",
+  "description": "Gives Claude eyes for game assets: inspect and clean pixel art, lock palettes, render 3D models from every side, and lint meshes for game-readiness (Blender + Godot)",
+  "author": {
+    "name": "Infamase"
+  },
+  "repository": "https://github.com/Infamase/Opus-Tools",
+  "license": "GPL-3.0-or-later",
+  "keywords": ["gamedev", "godot", "blender", "pixel-art", "3d-modeling", "mcp"],
+  "userConfig": {
+    "blender_path": {
+      "type": "string",
+      "title": "Blender executable",
+      "description": "Full path to blender.exe (Blender 5.1+). Leave empty to auto-detect from the standard install folders.",
+      "default": ""
+    },
+    "godot_path": {
+      "type": "string",
+      "title": "Godot executable",
+      "description": "Full path to the Godot 4.7 executable. Leave empty to auto-detect.",
+      "default": ""
+    },
+    "library_dir": {
+      "type": "string",
+      "title": "Asset library folder",
+      "description": "Folder for downloaded asset, sound and motion libraries (see DOWNLOADS.md). Can be left empty for now.",
+      "default": ""
+    }
+  }
+}

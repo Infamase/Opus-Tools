@@ -1,0 +1,14 @@
+{
+  "name": "opus-tools",
+  "description": "Game-dev tools that give Claude eyes for 3D models, pixel art, animation and sound (Blender + Godot)",
+  "owner": {
+    "name": "Infamase"
+  },
+  "plugins": [
+    {
+      "name": "opus-tools",
+      "source": "./plugins/opus-tools",
+      "description": "Sprite Inspector, Pixel Cleanup, Palette Lab, Look Dev Sheet and Mesh Lint, with skills for pixel art and 3D modeling"
+    }
+  ]
+}

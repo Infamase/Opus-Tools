@@ -1,0 +1,30 @@
+[project]
+name = "opus-tools"
+version = "0.1.0"
+description = "Senses and building blocks that help Claude make game assets for Blender + Godot"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "GPL-3.0-or-later"
+dependencies = [
+    "mcp>=1.10",
+    "numpy>=1.26",
+    "pillow>=10.0",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+opus = "opus.cli:main"
+opus-mcp = "opus.mcp_server:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/opus"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

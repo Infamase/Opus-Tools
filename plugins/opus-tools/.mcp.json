@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "opus": {
+      "command": "uv",
+      "args": ["run", "--project", "${CLAUDE_PLUGIN_ROOT}/python", "--frozen", "--no-dev", "--quiet", "opus-mcp"],
+      "env": {
+        "UV_PROJECT_ENVIRONMENT": "${CLAUDE_PLUGIN_DATA}/venv",
+        "OPUS_CACHE_DIR": "${CLAUDE_PLUGIN_DATA}/cache",
+        "OPUS_PROJECT_DIR": "${CLAUDE_PROJECT_DIR}",
+        "OPUS_BLENDER": "${user_config.blender_path}",
+        "OPUS_GODOT": "${user_config.godot_path}",
+        "OPUS_LIBRARY_DIR": "${user_config.library_dir}"
+      },
+      "timeout": 900000
+    }
+  }
+}

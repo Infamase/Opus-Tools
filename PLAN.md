@@ -5,7 +5,8 @@ needs to produce good **3D models**, **pixel art**, **animation** and **sound** 
 Blender + Godot 4 games, packaged as one small install on the game-dev PC that works in
 every project.
 
-Status: planning draft v0.2 (2026-10-07). Nothing is built yet.
+Status: plan v0.3 (2026-10-07). **v0.1 of the toolkit is built:** the Phase 0 core plus the
+Phase 1 "see it" tools for pixel art and 3D (see §7).
 
 ---
 
@@ -115,28 +116,23 @@ is paired with a *perceive* tool and a rubric, so Claude iterates
 - **License:** GPL-3.0 by default. Blender add-on code must be GPL-compatible anyway, and
   the best audio libraries are GPL. The assets the tools produce are unaffected.
 
-Proposed repo layout (code only):
+Repo layout (code only; items marked * are planned):
 
 ```
 Opus-Tools/
 ├── .claude-plugin/marketplace.json
 ├── plugins/
 │   ├── opus-tools/                  # main plugin: works on any PC, no GPU needed
-│   │   ├── .claude-plugin/plugin.json   # userConfig: paths, library dir, API keys
-│   │   ├── .mcp.json                # opus-blender, opus-pixel, opus-godot,
-│   │   │                            # opus-audio, opus-assets servers
-│   │   ├── skills/                  # project-bible, modeling, materials, pixel-art,
-│   │   │                            # tilesets, animation, rigging, sound-design,
-│   │   │                            # godot-pipeline, critique
-│   │   ├── agents/                  # art / animation / audio director critics
-│   │   ├── python/                  # opus core package, CLI, MCP servers
-│   │   ├── blender/                 # in-Blender modules (bpy + numpy only)
-│   │   └── godot/addons/opus/       # copied into a game by `opus godot init`
-│   └── opus-gen/                    # optional plugin: local AI backends + paid APIs
-├── extensions/                      # .mcpb manifests (bundles are built by CI)
-├── evals/                           # benchmark task specs and scores (no big files)
-├── tests/                           # headless tests, small golden images
-├── install/                         # Windows setup + `opus doctor`
+│   │   ├── .claude-plugin/plugin.json   # userConfig: Blender/Godot paths, library dir
+│   │   ├── .mcp.json                # the `opus` MCP server, run with uv
+│   │   ├── skills/                  # pixel-art, 3d-modeling, project-bible (+ more later)
+│   │   ├── agents/                  # art-director critic (+ animation/audio later)
+│   │   ├── python/                  # opus core package, CLI, MCP server, tests
+│   │   ├── blender/opus_bl/         # in-Blender modules (bpy + bmesh + numpy only)
+│   │   └── godot/addons/opus/ *     # copied into a game by `opus godot init`
+│   └── opus-gen/ *                  # optional plugin: local AI backends + paid APIs
+├── extensions/ *                    # .mcpb manifests for chat mode (bundles built by CI)
+├── evals/ *                         # benchmark task specs and scores (no big files)
 └── DOWNLOADS.md                     # every big download: link, size, license, target
 ```
 
@@ -251,35 +247,55 @@ they don't cover making a game, even a free one), **Tencent's territory exclusio
 models can't be used in the EU, UK or South Korea), and anything that would need replacing
 if a game ever went public. The Provenance Ledger tracks all three.
 
-_Being revised for the 16 GB GPU and the relaxed licensing; pixel-art tools are being
-researched._
+**One local AI hub: ComfyUI.** By late 2026 most models worth running locally either ship
+in ComfyUI core (TRELLIS.2, Pixal3D, Stable Audio 3, ACE-Step, SAM 3D Body) or have nodes
+for it (HY-Motion, Kimodo, Woosh, SkinTokens). It runs on Windows, streams large weights
+to fit 16 GB, and has a plain HTTP API (`/prompt`, `/history`, `/view`, `/upload/image`).
+So `opus-gen` drives one ComfyUI install with saved workflows instead of a dozen separate
+Python environments. Each backend sits behind the same interface and has to pass the same
+inspectors and lint as hand-made assets.
+
+"Fits 16 GB" below refers to the RTX 4070 Ti Super.
 
 ### 6.1 3D
 
 | Need | Recommended | Notes and licenses |
 |---|---|---|
-| Live Blender control | The Blender MCP already on the PC. The official **Blender Lab MCP** (v1.0.3, GPL-3.0, needs Blender 5.1+) is the reference choice. | Don't run the community `mcp-for-blender` alongside it: both use port 9876, and the community one has telemetry on by default. |
+| Live Blender control | The Blender MCP already on the PC; Opus's own Blender work runs headless and doesn't depend on which one. The official **Blender Lab MCP** (v1.0.3, GPL-3.0, needs Blender 5.1+) is the reference choice. | Don't run the community `mcp-for-blender` alongside it: both use port 9876, and the community one has telemetry on by default. |
 | Blender version | **5.2 LTS** (supported until Jul 2028) | Scripts must follow the 5.x API: `use_nodes` is deprecated, the EEVEE engine id is `BLENDER_EEVEE`, and 5.2 moved Geometry Nodes modifier inputs to `mod.properties.inputs`. |
 | Retopology | QuadriFlow (built in) → Instant Meshes (permissive, batch CLI, Windows binaries) → QRemeshify (GPL-3 Blender extension, cleanest quads) | Machine-learning retopology is still research-grade. |
 | CC0 models and textures | Poly Haven (free API), ambientCG (API v3), Kenney, Quaternius and KayKit (bulk downloads), Poly Pizza (needs an API key) | All CC0 except Poly Pizza, which mixes CC0 and CC-BY, so the ledger stores attribution per model. The Poly Haven API requires a unique User-Agent. |
-| Image-to-3D, local | **TripoSG** (MIT, ~8 GB, untextured; our bake pipeline adds textures); **TRELLIS.2** (MIT, PBR output, 24 GB at full size); Hunyuan3D 2.x (shape from 6–10 GB). The Modly desktop app runs several of these on Windows. | TRELLIS's GLB export uses nvdiffrast, which is research-only. Hunyuan3D carries Tencent's territory exclusion. SAM 3D needs 32 GB and Linux and outputs splats. |
+| Image-to-3D, local | **TRELLIS.2** via **trellis.cpp** (MIT, Windows CUDA builds; its 1024 cascade fits 16 GB, about 3–7 min per textured GLB, includes quad retopology) or ComfyUI's native INT8 TRELLIS.2. **Pixal3D** (MIT, same stack) for characters drawn as turnaround sheets. Hunyuan3D 2.0 fits (6 GB shape, 16 GB with plain-color texture). | Raw output is dense triangles; the cleanup stage (remesh/decimate to budget, UVs, re-bake) is required. Hunyuan3D 2.1 PBR needs ~21 GB. Hunyuan3D carries Tencent's EU/UK/South Korea exclusion. SAM 3D needs 32 GB and outputs splats. |
+| Low-poly mesh generators | **MeshAnything V2** (≤1,600 faces with artist-like topology, ~8 GB; NC license, fine here) for stylized low-poly; then retexture. | Linux, so WSL2/Docker on Windows. DeepMesh and Mesh-Silksong are research-grade. |
+| Texture an existing mesh | TRELLIS.2's mesh-texturing mode; Hunyuan3D-2.0 Paint (fits 16 GB) | For texturing models built procedurally with Shape Kit. MV-Adapter's SD2.1 variant fits but produces no PBR. |
 | Image-to-3D, paid | **Meshy**: API from $20/mo; smart topology (100–15k faces), quads, PBR, rigging. **Tripo**: face limits, quad and low-poly modes, auto-rig with Mixamo bone names, official Godot plugin. **Rodin Gen-2.5**: quads, PBR; API needs the $120/mo plan. | Meshy's free-plan output is CC BY 4.0. |
 
 ### 6.2 Pixel art
 
-_Research in progress._
+| Need | Recommended | Notes and licenses |
+|---|---|---|
+| Local image models | **Z-Image-Turbo** (6B, Apache-2.0, fits 16 GB, 8 steps) or **FLUX.2 [klein] 4B** (Apache-2.0, ~13 GB, multi-reference editing for keeping characters on-model), each with a pixel-art LoRA (Apache-2.0); run through ComfyUI | Every output still goes through Pixel Cleanup. FLUX.2 klein 9B is FLUX Non-Commercial (fine here, with output review). Qwen-Image-2.1 makes native transparent PNGs but is research-only and needs CPU offload. |
+| Sprite-sheet LoRAs | 4-direction walk sheets (32×32) for klein-4B; walk/attack/hurt sheets (32×48) for Qwen-Image-Edit | Quality unverified; test in the eval suite before relying on them. |
+| Paid pixel-art services | **PixelLab** ($5–50/mo; API + hosted MCP; 4/8-direction characters, animation, inpainting, Wang/side-scroller/isometric tiles, about $0.06 per 8-direction character). Retro Diffusion (prepaid API + MCP; its Pixel Fixer endpoint is free). | No independent benchmark of animation consistency exists; vendors' own docs say frames often need cleanup. PixelLab caps reference images at 256 px. |
+| Fake → true pixel art | **Pixel Cleanup** (ours; tested against degraded sprites, see §7). Fallbacks: proper-pixel-art (MIT; video mode keeps one grid and palette across frames), unfake (MIT), Pixel Snapper (MIT CLI). | On our test set, proper-pixel-art with defaults got 5/54 exact versus 39/54 for ours, and it pulls in OpenCV + PyAV. Revisit its video mode for animation frames. |
+| 3D → pixel sprites | Our renderer in headless Blender: orthographic N-direction cameras, EEVEE film filter 0, Shader-to-RGB → color-ramp toon shading, outlines, palette lock. Reference implementations: BlenderSpriteGenerator (MIT), Godot Pixel Renderer (MIT, GUI). | For real-time 3D pixel art in Godot: Godot-3d-pixelart-demo (MIT) outline shader in a low-res SubViewport; Godot 4.7 has nearest-neighbor 3D scaling. |
+| Pixel editors | Aseprite ($20; CLI `--batch` + Lua; compiling from source is allowed for personal use) with **aseprite-mcp** (MIT, 104 tools); Pixelorama (MIT; CLI export only) | Only matters if you hand-edit; the Pixel Editor Bridge is a late phase. |
+| Tilesets and autotiling | Godot TileSet terrains (47-tile blob for corners + sides, 16 tiles for corners-only or sides-only), peering bits set by a headless `godot --script`; **TileMapDual** (MIT, dual-grid, 15 tiles instead of 47); Better Terrain (public domain) | Tileset Builder generates tiles plus a ready TileSet resource. |
+| Godot pixel setup | Stretch mode `viewport` + integer scaling + Nearest filter for pixel-perfect games, `canvas_items` for hi-res sprites with smooth motion; PixelPerfectSmoother (MIT) for camera jitter; Sprite3D with Nearest + alpha cut for HD-2D | Normal maps for 2D lighting: Laigter (GPL-3, CLI) into a CanvasTexture. |
+| Palettes | Lospec `.hex` downloads (the `palette_apply` tool accepts `lospec:<slug>`); our `palette_ramp` for hue-shifted ramps | Lospec has no official API; `.hex` URLs work. |
+| Sprite animation from AI | Wan 2.2 image-to-video + a pixel-animate LoRA (Apache-2.0), then Pixel Cleanup frame by frame | The 14B model needs CPU offload on 16 GB (speed unverified). The 3D → pixel route is the most consistent for many directions. |
 
 ### 6.3 Animation
 
 | Need | Recommended | Notes and licenses |
 |---|---|---|
-| Motion libraries | **Quaternius Universal Animation Library 1 and 2** (CC0; free editions ~45 clips each, paid editions 120–130+), **Kenney** (CC0), **CMU mocap** (free to use; the data itself can't be resold), **100STYLE** (CC BY 4.0), **Bandai Namco** motion datasets (CC BY-NC), Mixamo (free in games, manual download only) | **BONES-SEED** has 142k mocap clips, free with attribution for anyone under $1M annual revenue. LAFAN1 is CC BY-NC-ND (no adapted versions may be shared). |
+| Motion libraries | **Quaternius Universal Animation Library 1 and 2** (CC0; free editions ~45 clips each, paid editions 120–130+), **Kenney** (CC0), **CMU mocap** (free to use; the data itself can't be resold), **100STYLE** (CC BY 4.0), **Bandai Namco** motion datasets (CC BY-NC: retarget, edit and ship in a free game with attribution), Mixamo (free in games, manual download only) | **BONES-SEED** has 142k mocap clips, free with attribution for anyone under $1M annual revenue. LAFAN1 is CC BY-NC-ND: fine for private prototyping, but retargeted clips can't be shared, so keep it out of builds. |
 | Godot animation | Target **Godot 4.7**: BoneMap + `SkeletonProfileHumanoid` retargeting; AnimationTree; root motion; the `SkeletonModifier3D` family — `LookAtModifier3D` and `SpringBoneSimulator3D` (4.4), aim/copy constraints (4.5), the IK family `TwoBoneIK3D` / `FABRIK3D` / `CCDIK3D` / … with joint limits (4.6); `PhysicalBoneSimulator3D` ragdolls | Every runtime procedural layer in the plan is built into the engine; no plugins needed. |
 | Blender animation API | Slotted Actions (since 4.4); `action.fcurves` was removed in 5.0 | Keyframe Director writes through channelbags. Many older scripts and add-ons break on 5.x. |
 | Rigging and retargeting | Our own game-rig templates (deform bones in one hierarchy, Godot humanoid names); **GameRig** (GPL-2.0) to make Rigify rigs game-ready; **Retarget** extension (GPL-3.0, maintained Expy Kit fork, Blender 5.0+); Robust Weight Transfer (GPL-3.0); Auto-Rig Pro (paid; has Godot humanoid naming) | Rigify alone doesn't export the clean deform hierarchy Godot needs. The Rokoko add-on likely breaks on Blender 5.x and requires a sign-in. |
-| Auto-rig models | **UniRig** (MIT, ≥8 GB), **SkinTokens** (MIT, ≥14 GB; UniRig's successor), **Puppeteer** (Apache-2.0; skeleton, skinning and video-guided animation) | RigAnything is non-commercial. |
-| Text-to-motion | **NVIDIA Kimodo-SOMA** (clips up to 10 s; text plus pose and path constraints; BVH export; under 3 GB VRAM with the text encoder on CPU; Linux-first, Windows via Docker) | Needs the gated Llama 3 8B text encoder. Its model card admits foot skating, which our foot-lock cleanup targets. HY-Motion needs 24 GB+ and carries Tencent's territory exclusion. |
-| Video-to-motion | **SAM 3D Body** (outputs Meta's Apache-2.0 MHR body model, no SMPL) + SAM-Body4D (MIT) for video; FreeMoCap (AGPL, multi-webcam); QuickMagic (paid) | Pipelines that need SMPL/SMPL-X model files (GVHMR, WHAM, PromptHMR) depend on those licenses' terms. |
+| Auto-rig models | **SkinTokens** (MIT, ≥14 GB, fits; UniRig's successor, has a ComfyUI node), UniRig (MIT, ≥8 GB), Puppeteer (Apache-2.0; ~4.6 GB; Linux, so WSL2) | RigAnything is non-commercial. |
+| Text-to-motion | **NVIDIA Kimodo-SOMA** (clips up to 10 s; text plus pose and path constraints; BVH export; under 3 GB VRAM with the text encoder on CPU; ComfyUI bridge node exports BVH and Mixamo FBX). **HY-Motion** fits 16 GB through its ComfyUI node with a quantized or CPU text encoder (~8 GB for the motion model) and exports Mixamo FBX. MoMask (MIT code; runs on CPU). | Kimodo needs the gated Llama 3 8B text encoder, and its card admits foot skating, which our foot-lock cleanup targets. HY-Motion carries Tencent's territory exclusion. MoMask is trained on AMASS, whose license allows non-commercial artistic projects like these games. |
+| Video-to-motion | **SAM 3D Body**, native in ComfyUI with smoothing and BVH/GLB export: the easiest Windows path. SAM-Body4D (MIT; peaks ~14.5 GB for 100 frames) for longer video; FreeMoCap (AGPL, multi-webcam); QuickMagic (paid) | SMPL and SMPL-X licenses allow non-commercial artistic projects but forbid sharing the body models themselves, so ship retargeted motion, never SMPL meshes. GVHMR allows non-profit use. |
 
 ### 6.4 Sound
 
@@ -289,9 +305,9 @@ _Research in progress._
 | Synths and instruments | Surge XT (GPL-3) and Vital (via the Vita Python bindings) hosted headlessly; **VSCO-2-CE** and **VCSL** (CC0 sample libraries); GeneralUser GS (SF2) rendered with FluidSynth | Vital's factory presets can't be redistributed, so we ship our own presets. |
 | Sound libraries | **Sonniss GDC bundles** (royalty-free, no attribution; 2026 bundle is 7.5 GB), **Kenney** audio (CC0), **Freesound** (its API is free for non-commercial use like this; CC0, CC-BY and CC-BY-NC sounds are all fine here) | Sonniss license v2.0 bans using its sounds to develop, train or enhance AI, so they never go into generative models. Pixabay bans bulk downloads, so it can't be indexed. |
 | Reverb impulse responses | Voxengo, EchoThief, OpenAIR (Creative Commons license per recording) | Real spaces for convolution reverb. |
-| Critique models ("ears") | LAION-CLAP (CC0) or MS-CLAP (MIT) for text–audio match; **Meta Audiobox Aesthetics** (CC-BY-4.0) for production-quality scores; **MiDashengLM-7B** (Apache-2.0) to describe sounds in words | The Qwen3-Omni captioner is ~60 GB, too big for 16 GB. |
-| SFX generation, local | **Stable Audio 3 Small-SFX** (~2 GB VRAM, up to 2 min, 44.1 kHz stereo; free under $1M revenue, registration required); **MOSS-SoundEffect v2** (Apache-2.0, 48 kHz, up to 30 s) | Non-commercial alternatives (MMAudio, Woosh, AudioX) are now allowed; to be compared. TangoFlux is research-only. |
-| Music generation, local | **ACE-Step 1.5** (MIT, 4–20 GB VRAM, Windows package); Magenta RealTime (instrumental, CC-BY-4.0 weights) | No local model produces seamless loops, so Music Studio loops them with DSP. |
+| Critique models ("ears") | LAION-CLAP (CC0) or MS-CLAP (MIT) for text–audio match; **Meta Audiobox Aesthetics** (CC-BY-4.0) for production-quality scores; **MiDashengLM-7B** (Apache-2.0, 8-bit to fit) to describe sounds in words | Audio Flamingo 3 / AF-Next caption slightly better but are research-only and need 4–8-bit quantization. These benchmarks test recognizing sounds, not judging sound design. The Qwen3-Omni captioner is ~60 GB. |
+| SFX generation, local | **Stable Audio 3 Medium** (≤6.5 GB; best listener scores for SFX in the only head-to-head, which Stability ran itself; native in ComfyUI); Stable Audio 3 Small-SFX (~2 GB) for quick drafts; **Woosh** (Sony, CC-BY-NC, rated above Small-SFX) as the runner-up; MOSS-SoundEffect v2 (Apache-2.0) | MMAudio (CC-BY-NC) is only worth it for syncing sound to video. TangoFlux is research-only and scored lowest. |
+| Music generation, local | **ACE-Step 1.5** (MIT, Windows portable build, native in ComfyUI; on 16 GB use the 2B turbo model with the 0.6–1.7B language model); Magenta RealTime (instrumental, CC-BY-4.0 weights) | No local model produces seamless loops, so Music Studio loops them with DSP. YuE2 needs 24 GB; MusicGen is older. |
 | Voice (TTS) | **Qwen3-TTS** (Apache-2.0: design a voice from a text description, emotion instructions, cloning from 3 s); Chatterbox (MIT, watermarked), Dia (Apache-2.0, English only), Kokoro (Apache-2.0, no emotion control) | |
 | Paid APIs | ElevenLabs Sound Effects (up to 30 s, loop option, from the $6 plan) | |
 | Godot audio | Target **Godot 4.7** | `AudioStreamRandomizer` (pitch in semitones since 4.6); `AudioStreamInteractive` / `AudioStreamPlaylist` / `AudioStreamSynchronized` since 4.3, with beat- and bar-synced transitions; WAV and Ogg loop settings at import. |
@@ -310,6 +326,48 @@ them).
 | **3 · Animation** | Motion Inspector, Motion Library + Retargeter, Godot Animation Wiring + game feel, Rig Doctor, Sprite Animator, Keyframe Director, Animation Events, mocap from video/text. | Animation eval tasks pass the motion checks, with a blind-rated improvement. |
 | **4 · Sound** | Audio Inspector, SFX Library + Sound Forge, Godot Audio Packager, Gen Audio, Synth recipes. | Sound eval tasks pass loudness and loop checks, with a blind-rated improvement. |
 | **5 · Depth** | Music Studio, Mix Check, Lip Sync, Sim Bake, Blueprint & Match, Lineup Render, recipe memory, Pixel Editor Bridge. | — |
+
+### Progress
+
+**v0.1: built and tested in the cloud (2026-10-07)**
+
+- **Phase 0 core.** Plugin + marketplace (pass `claude plugin validate`); `userConfig` for
+  Blender and Godot paths; the `opus` MCP server launched by uv from a lockfile (checked
+  with the exact plugin launch command); project bible; provenance ledger + CREDITS.md;
+  `opus doctor`; downloads manifest.
+- **Phase 1, pixel art.**
+  - Sprite Inspector.
+  - Pixel Cleanup. On 54 deliberately degraded test sprites (non-integer upscales, blur,
+    noise, JPEG, opaque backgrounds) it recovers 39 exactly. That includes every typical
+    AI-art case (cells of 5.5–16 px, mild blur). Heavily blurred tiny cells safely report
+    "no grid", and clean native art is never touched.
+  - Palette Lab: ramps, apply (including `lospec:` palettes), swap.
+- **Phase 1, 3D.** Look Dev Sheet: 13 renders in about 3 s with Workbench; EEVEE and
+  Cycles are optional. Mesh Lint caught every planted defect in its test asset.
+- **Skills and agents.** `pixel-art`, `3d-modeling` and `project-bible` skills, plus the
+  `art-director` reviewer subagent.
+- **Tests.** 36 tests covering:
+  - pixel tools on synthetic sprites, including degraded "AI-style" ones;
+  - Blender 5.2 integration;
+  - the MCP server end to end over stdio.
+
+**Not done yet:**
+
+- Godot-side pieces: headless import and frame capture. This environment can't download
+  Godot, so they need testing on the PC.
+- The Audition Board.
+- The eval baseline run.
+- `.mcpb` desktop extensions for chat mode.
+- Install testing on the real Windows PC.
+
+**Next (Sprint 2 proposal):**
+
+1. Install and smoke-test on the PC.
+2. Record the eval baseline.
+3. Build the Godot bridge pieces and Godot Pixel Setup.
+4. Build the Audition Board.
+5. Start Phase 2 with the **3D → Pixel Renderer** and **Tileset Builder**, which serve both
+   top priorities at once.
 
 ## 8. Honest limits
 
@@ -336,9 +394,9 @@ them).
 1. Which MCP servers are connected for Blender and Godot (names or links)? Blender has an
    official one from Blender Lab and a popular community one; Godot has several community
    ones.
-2. In the desktop app, do you work in regular chat or the Code tab? The Code tab gives
-   Claude file access, a terminal and subagents, which most of these tools assume. Chat
-   works too if every tool ships as a desktop extension.
+2. In the desktop app, do you work in regular chat or the Code tab? v0.1 installs as a
+   plugin in the Code tab, which also gives Claude file access, a terminal and subagents.
+   If you mostly use chat, the desktop-extension (`.mcpb`) build moves up the list.
 3. What does "hi-res" pixel art mean for you: roughly how tall are characters (32, 64,
    128 px?), and are there games whose look you're aiming for?
 4. Do you use a pixel editor (Aseprite, Pixelorama, LibreSprite, …)?

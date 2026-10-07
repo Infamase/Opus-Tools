@@ -151,14 +151,14 @@ Priority: **P0** foundation · **P1** biggest quality wins · **P2** strong upgr
 
 | Tool | Fixes | What it does | Pri |
 |---|---|---|---|
-| **Audio Inspector** ("ears") | can't hear it | Image of waveform + log-frequency spectrogram + loudness curve; report of duration, peak/true peak, LUFS, crest factor, DC offset, clipping, head/tail silence, attack/decay, spectral centroid/rolloff/flatness, pitch, onsets, stereo phase, noise floor, clicks and **loop-seam** continuity. A-vs-B and vs-reference comparison. Optional ML listeners: text-audio similarity ("how much does this sound like *heavy wooden door slam*?") and a captioner that describes the sound in words. | P1 |
+| **Audio Inspector** ("ears") | can't hear it | Image of waveform + log-frequency spectrogram + loudness curve; report of duration, peak/true peak, LUFS, crest factor, DC offset, clipping, head/tail silence, attack/decay, spectral centroid/rolloff/flatness, pitch, onsets, stereo phase, noise floor, clicks and **loop-seam** continuity. A-vs-B and vs-reference comparison. Optional ML listeners: a text–audio match score ("how much does this sound like *heavy wooden door slam*?"), a production-quality score, and a captioner that describes the sound in words. | P1 |
 | **SFX Library** | synthetic-only sound | Indexes royalty-free libraries and the user's own recordings with metadata + audio embeddings; text search; candidates with spectrograms; license tracking. | P1 |
 | **Sound Forge** | thin, unprocessed sound | Declarative sound recipes: layers (library sample, synth or generated), each with trim/pitch/stretch/reverse/fades/EQ/saturation/transient shaping; bus processing (glue compression, convolution reverb with real impulse responses, limiter); normalized to the bible's category loudness. This is how sound designers work: layer and process real sources. | P1 |
 | **Godot Audio Packager** | machine-gun repetition; uneven levels | Renders N variations; picks WAV vs Ogg Vorbis; writes loop settings with zero-crossing-snapped loop points; generates `AudioStreamRandomizer` resources; bus layout (Master/Music/SFX/UI/Ambience/Voice) with per-zone reverb buses; 3D attenuation presets. | P1 |
 | **Synth Engine + Recipe Book** | beeps and white noise | For what synthesis does well — UI, retro, sci-fi, magic, whooshes, engines, weather/ambience beds — and impacts via **modal synthesis** (wood/metal/glass resonances). Backed by a real synth hosted headlessly + DSP; the recipe book stores known-good parameter ranges per category. | P2 |
 | **Mix Check** | inconsistent mix | Project-wide loudness consistency per category, outliers, frequency masking between sounds that commonly play together. | P2 |
 | **Music Studio** | simplistic music | Structured score (sections, chord progressions, parts, drum patterns) → MIDI → rendered with good free instruments → mix/master chain → loop-perfect export (render two passes, keep the second so reverb tails wrap) → stems for adaptive music in Godot (`AudioStreamInteractive` / `AudioStreamSynchronized`). Theory lint (ranges, voice leading). | P2 |
-| **Gen Audio** | complex natural SFX; voices | Text-to-SFX model as one more *source* for the Forge (generate → layer/process → inspect); TTS for character barks + voice processing (radio, robot, monster). | P3 |
+| **Gen Audio** | complex natural SFX; voices | Text-to-SFX model as one more *source* for the Forge (generate → layer/process → inspect); TTS for character barks with emotion control + voice processing (radio, robot, monster). Current SFX models need only ~2 GB of VRAM, so this runs on almost any gaming GPU. | P2 |
 
 ### 4.3 Animation
 
@@ -211,17 +211,36 @@ if the games will be sold.
 | Image-to-3D, local | 8 GB GPU: **TripoSG** (MIT, untextured; our bake pipeline adds textures). 24 GB+: **TRELLIS.2** (MIT, PBR output). The Modly desktop app runs both on Windows. | ⚠ License traps. The default background removers (RMBG-1.4 and 2.0) are non-commercial. TRELLIS's GLB export uses nvdiffrast, which is research-only. Both have to be swapped out. Hunyuan3D 2.x forbids use in the EU, UK and South Korea. SAM 3D needs 32 GB and Linux, and outputs splats rather than game meshes. |
 | Image-to-3D, paid | **Meshy**: API from $20/mo; smart topology (100–15k faces), quads, PBR, rigging. **Tripo**: face limits, quad and low-poly modes, auto-rig with Mixamo bone names, official Godot plugin. **Rodin Gen-2.5**: quads, PBR; API needs the $120/mo plan. | Check the output license for your plan; Meshy's free-plan output is CC BY 4.0. |
 
-_Sound and animation sections pending: that research is still running._
+### 6.2 Sound
+
+| Need | Recommended | Notes and licenses |
+|---|---|---|
+| Analysis and processing | librosa (ISC), pyloudnorm (MIT), numpy/scipy; **pedalboard** or **DawDreamer** (both GPL-3) for effects, VST3 hosting and MIDI rendering | The GPL covers the tools, not the audio they render. Importing them in-process means this toolkit should be GPL-3.0 too (open decision, see §9). |
+| Synths and instruments | Surge XT (GPL-3) and Vital (via the Vita Python bindings) hosted headlessly; **VSCO-2-CE** and **VCSL** (CC0 sample libraries); GeneralUser GS (SF2, free for commercial use) rendered with FluidSynth | Vital's factory presets can't be redistributed, so we ship our own presets. |
+| Sound libraries | **Sonniss GDC bundles** (royalty-free, no attribution; 2026 bundle is 7.5 GB), **Kenney** audio (CC0), Freesound (manual downloads, CC0/CC-BY only) | ⚠ Sonniss license v2.0 bans using its sounds to develop, train or enhance AI, so they never go into generative models. Freesound's API is free only for non-commercial use, and its NC-licensed sounds must be filtered out. Pixabay bans bulk downloads, so it can't be indexed. |
+| Reverb impulse responses | Voxengo (commercial use OK), EchoThief, OpenAIR (Creative Commons license per recording) | Real spaces for convolution reverb. |
+| Critique models ("ears") | LAION-CLAP (CC0) or MS-CLAP (MIT) for text–audio match; **Meta Audiobox Aesthetics** (CC-BY-4.0) for production-quality scores; **MiDashengLM-7B** (Apache-2.0) to describe sounds in words | Audio Flamingo is non-commercial. The Qwen3-Omni captioner is ~60 GB, too big for most PCs. |
+| SFX generation, local | **Stable Audio 3 Small-SFX** (~2 GB VRAM, up to 2 min, 44.1 kHz stereo; free commercial use under $1M annual revenue, registration required); **MOSS-SoundEffect v2** (Apache-2.0, 48 kHz, up to 30 s) | ⚠ Non-commercial, so avoid: MMAudio, TangoFlux, AudioX, ThinkSound, Woosh. HunyuanVideo-Foley carries Tencent's EU/UK/South Korea exclusion. |
+| Music generation, local | **ACE-Step 1.5** (MIT, outputs usable commercially, 4–20 GB VRAM, Windows package); Magenta RealTime (instrumental, CC-BY-4.0 weights) | No local model produces seamless loops, so Music Studio loops them with DSP. MusicGen and YuE2 are non-commercial. |
+| Voice (TTS) | **Qwen3-TTS** (Apache-2.0: design a voice from a text description, emotion instructions, cloning from 3 s); Chatterbox (MIT, watermarked), Dia (Apache-2.0, English only), Kokoro (Apache-2.0, no emotion control) | |
+| Paid APIs | ElevenLabs Sound Effects (up to 30 s, loop option; commercial use from the $6 plan) | ⚠ Eleven Music's self-serve plans exclude monetized games, which need an Enterprise plan. |
+| Godot audio | Target **Godot 4.7** (current stable) | `AudioStreamRandomizer` (pitch in semitones since 4.6); `AudioStreamInteractive` / `AudioStreamPlaylist` / `AudioStreamSynchronized` since 4.3, with beat- and bar-synced transitions; WAV and Ogg loop settings at import. |
+
+_Animation section pending: that research is still running._
 
 ## 7. Roadmap
+
+Phases follow dependencies, not just priority. The senses come first because every later
+tool is tested with them, so a few P1 tools (Shape Kit, Material Lab, Rig Doctor) land in
+Phase 3.
 
 | Phase | Builds | Exit criteria |
 |---|---|---|
 | **0 · Foundation** | Plugin + marketplace skeleton, `userConfig`, Blender Bridge, Godot Bridge, Project Bible, Provenance Ledger, installer, eval baseline. | From any Godot project on the PC, Claude runs a Blender script (headless and live), imports the result into Godot and gets an in-engine capture back. Baseline eval outputs recorded. |
 | **1 · Senses** | Look Dev Sheet, Mesh Lint, Audio Inspector, Motion Inspector, Audition Board, critic subagents. | Every asset type has a perceive step with numeric checks; eval tasks re-run with the loop. |
-| **2 · Quick wins** | Asset Librarian, SFX Library + basic Forge, Motion Library + humanoid retarget, Godot Import Pipeline, Audio Packager, Animation Wiring + game-feel library. | Eval tasks show a clear blind-rated improvement in all three domains. |
-| **3 · Craft** | Shape Kit, Material Lab + Bake, full Sound Forge + Synth Recipe Book, Rig Doctor, Keyframe Director, Animation Events. | Procedural props/environments and stylized animation pass lint and critic review without hand fixes. |
-| **4 · Generative** | `opus-gen`: Gen3D + cleanup, Gen Audio, auto-rig and mocap models — sized to the PC's GPU or to paid APIs. | Each backend sits behind the common interface and passes the same gates. |
+| **2 · Quick wins** | Asset Librarian, SFX Library + basic Forge, Motion Library + humanoid retarget, Godot Import Pipeline, Godot Look Presets, Audio Packager, Animation Wiring + game-feel library. | Eval tasks show a clear blind-rated improvement in all three domains. |
+| **3 · Craft** | Shape Kit, Material Lab + Bake, full Sound Forge + Synth Recipe Book, Gen Audio (SFX + voice; cheap to run), Rig Doctor, Keyframe Director, Animation Events. | Procedural props/environments and stylized animation pass lint and critic review without hand fixes. |
+| **4 · Generative** | `opus-gen`: Gen3D + cleanup, Gen Texture, auto-rig and mocap models — sized to the PC's GPU or to paid APIs. | Each backend sits behind the common interface and passes the same gates. |
 | **5 · Depth** | Music Studio, Mix Check, Lip Sync, Sim Bake, recipe memory, Blueprint & Match, Lineup Render. | — |
 
 ## 8. Honest limits
@@ -243,10 +262,14 @@ _Sound and animation sections pending: that research is still running._
 ## 9. Open questions
 
 1. PC specs: OS, GPU and VRAM, RAM, free disk space.
-2. Blender and Godot versions; Godot renderer (Forward+ / Mobile / Compatibility).
+2. Blender and Godot versions (the plan targets Blender 5.2 LTS and Godot 4.7); Godot
+   renderer (Forward+ / Mobile / Compatibility).
 3. Usual art styles and camera (first-person, third-person, top-down, …).
 4. Will the games be sold? (Rules out non-commercial models and data.)
 5. Budget for paid APIs, or local-only?
 6. Which Claude surface on the PC: Claude Code CLI, the desktop app's Code tab, or desktop chat?
 7. How much in the loop the user wants to be (audition checkpoints per asset vs per batch).
 8. Which domain hurts most — where to start.
+9. License for this toolkit: GPL-3.0 (simplest, since the best audio libraries are GPL),
+   or MIT with every GPL tool kept in a separate process. Either way, the assets it
+   produces are unaffected.

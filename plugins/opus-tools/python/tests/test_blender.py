@@ -32,7 +32,7 @@ def test_lookdev_sheet(tmp_path):
     assert sheet.exists()
     assert rep["totals"]["objects"] == 3 and rep["totals"]["tris"] == 340
     assert rep["dimensions_m"] == pytest.approx([0.64, 0.64, 0.9], abs=0.01)
-    assert len(list(Path(rep["tiles_dir"]).glob("*.png"))) == 13
+    assert len(list(Path(rep["tiles_dir"]).glob("*.png"))) == 14
 
 
 def test_mesh_lint_finds_planted_defects(tmp_path):

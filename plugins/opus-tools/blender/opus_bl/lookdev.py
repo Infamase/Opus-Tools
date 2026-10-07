@@ -30,12 +30,13 @@ ORTHO = {
     "top": (Vector((0, 0, 1)), (0.0, 0.0, 0.0), ("x", "y")),
 }
 THREE_QUARTER = Vector((1.0, -1.25, 0.8))
+THREE_QUARTER_BACK = Vector((-1.0, 1.25, 0.8))
 
 DEFAULT_PLAN = [
     ("shaded", ["front", "right", "back", "top", "three_quarter"]),
     ("clay_wire", ["front", "right", "three_quarter"]),
     ("silhouette", ["front", "right"]),
-    ("normals", ["three_quarter"]),
+    ("normals", ["three_quarter", "three_quarter_back"]),
     ("uv", ["three_quarter"]),
     ("scale", ["front"]),
 ]
@@ -61,12 +62,13 @@ def _aim(cam, view, lo, hi, margin=1.15):
     center = (lo + hi) / 2
     size = hi - lo
     radius = max(size.length / 2, 1e-4)
-    if view == "three_quarter":
+    if view in ("three_quarter", "three_quarter_back"):
         cam.data.type = "PERSP"
         cam.data.sensor_width = 36.0
         cam.data.lens = 50.0
         half_fov = math.atan(18.0 / 50.0)
-        loc = center + THREE_QUARTER.normalized() * (radius / math.sin(half_fov) * 1.08)
+        direction = THREE_QUARTER if view == "three_quarter" else THREE_QUARTER_BACK
+        loc = center + direction.normalized() * (radius / math.sin(half_fov) * 1.08)
         cam.location = loc
         cam.rotation_euler = (center - loc).to_track_quat("-Z", "Y").to_euler()
         dist = (loc - center).length

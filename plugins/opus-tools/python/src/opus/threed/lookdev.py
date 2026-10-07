@@ -18,10 +18,11 @@ ROWS = [
     ("Shaded", "shaded", ["front", "right", "back", "top", "three_quarter"]),
     ("Form: clay + wireframe", "clay_wire", ["front", "right", "three_quarter"]),
     ("Diagnostics", None, [("silhouette", "front"), ("silhouette", "right"), ("normals", "three_quarter"),
-                           ("uv", "three_quarter"), ("scale", "front")]),
+                           ("normals", "three_quarter_back"), ("uv", "three_quarter"), ("scale", "front")]),
 ]
 NOTES = {
     ("normals", "three_quarter"): "faces: blue out, red flipped",
+    ("normals", "three_quarter_back"): "faces from behind",
     ("uv", "three_quarter"): "UV checker (even squares = even density)",
     ("silhouette", "front"): "silhouette front",
     ("silhouette", "right"): "silhouette side",

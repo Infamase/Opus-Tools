@@ -342,7 +342,7 @@ them).
     AI-art case (cells of 5.5–16 px, mild blur). Heavily blurred tiny cells safely report
     "no grid", and clean native art is never touched.
   - Palette Lab: ramps, apply (including `lospec:` palettes), swap.
-- **Phase 1, 3D.** Look Dev Sheet: 13 renders in about 3 s with Workbench; EEVEE and
+- **Phase 1, 3D.** Look Dev Sheet: 14 renders in about 2–3 s with Workbench, including face orientation from front and back; EEVEE and
   Cycles are optional. Mesh Lint caught every planted defect in its test asset.
 - **Skills and agents.** `pixel-art`, `3d-modeling` and `project-bible` skills, plus the
   `art-director` reviewer subagent.

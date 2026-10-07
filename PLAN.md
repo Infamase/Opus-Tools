@@ -82,9 +82,10 @@ is paired with a *perceive* tool and a rubric, so Claude iterates
   back to Claude. Long renders need a raised per-server tool timeout.
 - **`opus` CLI** exposes the same functions for batch work and CI; Claude Code's Read tool
   can view the PNGs it writes.
-- **Blender side:** a small addon for the live bridge (local socket) plus modules that run
-  under headless `blender -b`. Anything that runs *inside* Blender depends only on `bpy` +
-  `numpy` (Blender's bundled Python); everything else lives in the uv environment.
+- **Blender side:** the official Blender Lab MCP server (add-on + stdio server; needs
+  Blender 5.1+, target **5.2 LTS**) provides the live connection; our modules run inside
+  Blender through it or under headless `blender -b`. Anything that runs *inside* Blender
+  depends only on `bpy` + `numpy` (Blender's bundled Python) and follows the 5.x API.
 - **Godot side:** `addons/opus/` — editor plugin (live bridge, import post-processors,
   AnimationTree builder) plus runtime helpers (game feel, procedural animation, audio).
   Headless import/validation; Movie Maker mode for deterministic in-engine frame captures.
@@ -99,12 +100,14 @@ Opus-Tools/
 ├── plugins/
 │   ├── opus-tools/                  # main plugin — works on any PC, no GPU needed
 │   │   ├── .claude-plugin/plugin.json   # userConfig: blender/godot paths, library dir
-│   │   ├── .mcp.json                # opus-blender, opus-godot, opus-audio servers
+│   │   ├── .mcp.json                # opus-blender (headless render/lint/bake),
+│   │   │                            # opus-godot, opus-audio, opus-assets servers;
+│   │   │                            # live Blender control = official Blender MCP
 │   │   ├── skills/                  # project-bible, modeling, materials, sound-design,
 │   │   │                            # music, animation, rigging, godot-pipeline, critique
 │   │   ├── agents/                  # art / audio / animation director critics
 │   │   ├── python/                  # opus core package, CLI, MCP servers
-│   │   ├── blender/                 # addon + in-Blender modules (bpy + numpy only)
+│   │   ├── blender/                 # in-Blender modules (bpy + numpy only)
 │   │   └── godot/addons/opus/       # copied into a game by `opus godot init`
 │   └── opus-gen/                    # optional plugin: GPU/API generative backends
 ├── evals/                           # benchmark tasks, baseline + scored results
@@ -121,8 +124,8 @@ Priority: **P0** foundation · **P1** biggest quality wins · **P2** strong upgr
 
 | Tool | What it does | Pri |
 |---|---|---|
-| **Blender Bridge** | Run scripts headless or in the user's open Blender; query the scene (objects, dimensions, tri counts, modifiers, materials, rigs); checkpoints; versioned `.blend` saves; `.glb` export. | P0 |
-| **Godot Bridge** | Headless import and run; read errors/logs; inspect and edit scenes; write `.import` options; capture frames from a running scene for in-engine checks. | P0 |
+| **Blender Bridge** | **Adopt the official Blender Lab MCP server** for live control (Python execution, scene/object summaries, screenshots, viewport renders, headless CLI tools, search over the bundled API docs). Add our own thin layer on top: checkpoints and versioned `.blend` saves (the official server runs generated code unguarded), loading our in-Blender modules, `.glb` export presets, and a plain `blender -b` runner for batch jobs and CI. | P0 |
+| **Godot Bridge** | No official Godot MCP exists; community ones (e.g. Coding-Solo/godot-mcp, MIT: launch, run, debug output, scene edits — but no screenshots) are evaluated in Phase 0 and adopted for generic editor control if solid. We build the parts nobody covers: headless `--import`, `.import` option writers, scene inspection, and deterministic frame capture (Movie Maker mode) for in-engine checks. | P0 |
 | **Project Bible** | `opus.project.yaml`: art style, palette, shape language, reference board, tri/texture/bone budgets, texel density, loudness targets per sound category, animation fps and "feel", naming rules. Created by a short interview skill; read by every tool. | P0 |
 | **Provenance Ledger** | Sidecar record per asset (source, license, author, generator + model version); generates `CREDITS.md`; blocks non-commercial material in commercial projects. | P0 |
 | **Installer + `opus doctor`** | Windows setup (uv env, Blender addon, optional library downloads) and a health check of every integration. | P0 |
@@ -193,7 +196,22 @@ automated metrics and "iterations to acceptable" are tracked alongside.
 
 ## 6. Third-party building blocks
 
-_Pending: research on current models, libraries and licenses (late 2026) is in progress._
+Snapshot as of October 2026, checked against repos, license files and official docs.
+This field moves monthly, so re-verify before building on any of it. License notes matter
+if the games will be sold.
+
+### 6.1 3D
+
+| Need | Recommended | Notes and licenses |
+|---|---|---|
+| Live Blender control | Official **Blender Lab MCP** (v1.0.3) | GPL-3.0. That's fine because it runs as a separate process and our code doesn't link to it. Needs Blender 5.1+. Don't run the community `mcp-for-blender` alongside it: both use port 9876, and the community one has telemetry on by default. |
+| Blender version | **5.2 LTS** (supported until Jul 2028) | Scripts must follow the 5.x API: `use_nodes` is deprecated, the EEVEE engine id is `BLENDER_EEVEE`, and 5.2 moved Geometry Nodes modifier inputs to `mod.properties.inputs`. |
+| Retopology | QuadriFlow (built in) → Instant Meshes (permissive, batch CLI, Windows binaries) → QRemeshify (GPL-3 Blender extension, cleanest quads) | Machine-learning retopology is still research-grade. |
+| CC0 models and textures | Poly Haven (free API), ambientCG (API v3), Kenney, Quaternius and KayKit (bulk downloads), Poly Pizza (needs an API key) | All CC0 except Poly Pizza, which mixes CC0 and CC-BY, so the ledger stores attribution per model. The Poly Haven API requires a unique User-Agent. |
+| Image-to-3D, local | 8 GB GPU: **TripoSG** (MIT, untextured; our bake pipeline adds textures). 24 GB+: **TRELLIS.2** (MIT, PBR output). The Modly desktop app runs both on Windows. | ⚠ License traps. The default background removers (RMBG-1.4 and 2.0) are non-commercial. TRELLIS's GLB export uses nvdiffrast, which is research-only. Both have to be swapped out. Hunyuan3D 2.x forbids use in the EU, UK and South Korea. SAM 3D needs 32 GB and Linux, and outputs splats rather than game meshes. |
+| Image-to-3D, paid | **Meshy**: API from $20/mo; smart topology (100–15k faces), quads, PBR, rigging. **Tripo**: face limits, quad and low-poly modes, auto-rig with Mixamo bone names, official Godot plugin. **Rodin Gen-2.5**: quads, PBR; API needs the $120/mo plan. | Check the output license for your plan; Meshy's free-plan output is CC BY 4.0. |
+
+_Sound and animation sections pending: that research is still running._
 
 ## 7. Roadmap
 

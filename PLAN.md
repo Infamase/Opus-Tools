@@ -170,6 +170,44 @@ user's priorities.
 | **Blueprint & Match** | wrong proportions | Reference images or the user's sketches behind orthographic cameras; silhouette-overlap score (IoU) per view between render and reference. | P2 |
 | **Lineup Render** | style drift | Renders the new asset next to already-approved assets at the same scale and lighting to catch scale, style and detail-density mismatches. | P3 |
 
+### 4.1b 3D upgrades after testing v0.1
+
+v0.1's Look Dev Sheet is a fixed set of views, and Shape Kit doesn't exist yet. These
+additions target the two remaining gaps: *understanding* (Claude can't look closer, can't
+tell which part is which, and judges depth and distance by eye) and *generation* (numbers
+placed by hand, nothing for organic or HD shapes).
+
+| Tool | Gap | What it does | Pri |
+|---|---|---|---|
+| **Look At** | fixed views | Render any part from any angle or distance on request (orbit, zoom, close-up of a named object), in the same lighting, so a doubt gets checked instead of guessed. | P1 |
+| **Part Map** | can't tell parts apart | ID pass that paints each object or part a distinct color, with a legend of names, sizes and tri counts, linking the image to the scene graph. | P1 |
+| **Dimensions & Measure** | distance by eye | Orthographic views with technical-drawing dimension lines, plus a measure tool for distances, clearances, angles and raycasts ("seat height?", "does a 1.8 m character fit through the door?"). | P1 |
+| **Structure Report** | 3D read from 2D pictures | Text description of the model: part tree, a primitive fitted to each part (box, cylinder, sphere, capsule) with its fit error, which parts touch where, mirror-symmetry deviation, and center of mass vs footprint (will it tip?). Claude reasons best in text and numbers. | P1 |
+| **Cross-sections** | hidden insides | Slice outlines at several heights and planes, like a CT scan: profiles, wall thickness, hollow interiors, buried geometry. | P2 |
+| **Surface maps** | can't see edge quality | Curvature (are edges beveled?), thickness (paper-thin walls?) and depth renders. | P2 |
+| **Iteration Diff** | "what changed?" | Previous and current version side by side, with changed regions highlighted. | P2 |
+| **Shape Kit with sockets** | numbers placed by hand | Parts attach to named sockets ("handle on body.side at 60% height") instead of coordinates, so pieces can't float. Mirroring and default bevels are built in. | P1 |
+| **Fit to Reference** | proportions guessed | Claude writes the structure as a parametric recipe; an optimizer tunes its numbers until the front and side silhouettes match the reference (IoU). Claude is good at structure, worse at exact numbers. | P1 |
+| **Concept-first 3D** | organic and HD shapes | Generate a concept image or turnaround sheet locally, iterate in 2D where judging is easy, get approval, then image-to-3D (TRELLIS.2, Pixal3D for turnarounds) with automatic cleanup to budget, UVs, bakes, scale and origin, then Look Dev and Lint. | P1 |
+| **AI texturing of clean meshes** | clean shape, flat look | Model the shape in code (good topology), paint it with TRELLIS.2's texturing mode or Hunyuan3D-2.0 Paint, then bake to UVs. | P2 |
+
+**Unity and Unreal (both now available with MCPs).** Blender stays the modeling hub, since
+glTF and FBX go to every engine. The engines add eyes and ecosystems:
+
+- **Engine Bridge.** The Godot Bridge becomes an Engine Bridge with Godot, Unity and Unreal
+  adapters behind one contract: import with correct settings, capture in-engine frames,
+  report errors. Games made in any of the three get the same checks.
+- **Unreal** (Epic's in-editor Unreal MCP plugin, or community servers using Python remote
+  execution):
+  - Lumen "beauty" renders for HD assets.
+  - Geometry Script from Python for simplify, UVs and bakes (AO, curvature, normals, and
+    baking from render captures), as a second cleanup path.
+  - MetaHuman for HD humans. Whether the license allows use outside Unreal is reported both
+    ways; verify before relying on it.
+- **Unity** (official Unity MCP in the AI Assistant package, open beta): its Generators as
+  another asset source (what they make in 3D is unverified), ProBuilder for quick blockouts,
+  and the Asset Store.
+
 ### 4.2 Pixel art
 
 | Tool | Fixes | What it does | Pri |
@@ -360,7 +398,13 @@ them).
 - `.mcpb` desktop extensions for chat mode.
 - Install testing on the real Windows PC.
 
-**Next (Sprint 2 proposal):**
+**Next (Sprint 2 proposal, revised after v0.1 testing):**
+
+1. The 3D understanding upgrades from §4.1b: Look At, Part Map, Dimensions & Measure,
+   Structure Report. They're cheap, run in the existing headless Blender, and help every
+   later 3D tool. Then Shape Kit with sockets and Fit to Reference.
+
+Then, as before:
 
 1. Install and smoke-test on the PC.
 2. Record the eval baseline.

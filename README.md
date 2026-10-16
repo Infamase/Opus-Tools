@@ -50,6 +50,22 @@ subagent.
 The first start installs the Python dependencies into the plugin's data folder, which
 takes a few seconds. If the `opus` server shows as failed in `/mcp`, reconnect it there.
 
+## Updating
+
+Refreshing the marketplace only downloads the new catalog; the installed plugin stays on
+its old version until you update it, then restart. In a terminal (PowerShell):
+
+```
+claude plugin marketplace update opus-tools
+claude plugin update opus-tools@opus-tools
+```
+
+Then fully quit and reopen the desktop app (or start a new session) so the new version
+and its MCP tools load. `claude plugin list` shows the installed version. If an update
+still won't apply, reinstall: `claude plugin uninstall opus-tools@opus-tools`, then
+`claude plugin install opus-tools@opus-tools`. Reinstalling clears the plugin's settings,
+so set the Blender path again afterwards.
+
 Chat mode in the desktop app loads the skills but not plugin MCP servers. A desktop
 extension (`.mcpb`) build for chat is planned.
 

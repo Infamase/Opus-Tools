@@ -1,8 +1,9 @@
 # Opus Tools
 
 A toolkit that makes Claude better at the things it's weakest at in game development:
-**3D models, pixel art, animation and sound**. It targets Blender + Godot 4 projects and
-installs once on the game-dev PC as a Claude Code plugin, so every project can use it.
+**3D models, pixel art, animation and sound**. It targets Blender with Unreal, Godot or
+Unity, and installs once on the game-dev PC as a Claude Code plugin, so every project can
+use it.
 
 The core idea is to give Claude ways to see what it makes. Every tool that creates
 something is paired with one that renders or analyzes the result, so Claude can check and
@@ -11,10 +12,16 @@ fix its own work before handing it over.
 See [PLAN.md](PLAN.md) for the full game plan and [DOWNLOADS.md](DOWNLOADS.md) for
 optional large downloads. The repo holds code only.
 
-## What's in v0.1
+## What's in v0.2
 
 | Tool | What it does |
 |---|---|
+| `body_blockout` | Rigged, canon-proportioned starting bodies: humanoid (realistic, heroic, stylized, chibi), quadruped (dog, horse, cat), western dragon. Unreal mannequin bone names; reports landmark heights and limb lengths to model to |
+| `proportion_check` | Overlays a model's front and side silhouettes on canon bodies built at its height; reports leg length, heads tall, shoulder/waist/hip widths and limb bone ratios |
+| `reference_match` | Silhouette match against a concept or reference image: IoU plus where the model is too wide or narrow |
+| `look_at` | Any angle, zoom and render pass, framed on an object or a bone region such as `hand_l` |
+| `model_report` | Labeled part map plus measurements: shapes, contacts, floating parts, symmetry, balance, rig style |
+| `blind_read_sheet` | Unlabeled silhouettes for a fresh reviewer to identify, to test whether a model reads as what it should be |
 | `sprite_inspect` | Zoomed pixels with grid, issue overlay, 1x readability on light/mid/dark, silhouette, value, palette ramps, tile and animation views, plus a critique (strays, jaggies, partial alpha, off-palette colors, pillow shading, seams, flicker) |
 | `pixel_cleanup` | Turns AI or painted "fake pixel art" into true pixel art: finds the real grid, removes the background, locks the palette, removes noise |
 | `palette_ramp` / `palette_apply` / `palette_swap` | Hue-shifted ramps, palette locking (incl. Lospec palettes), recolors |
@@ -53,6 +60,9 @@ extension (`.mcpb`) build for chat is planned.
 - "Make a 5-step hue-shifted ramp from #3a7d44 and save it as `palettes/grass.hex`."
 - "Save the Blender file and show me a look-dev sheet of the barrel, then lint it as a
   prop_small."
+- "Make a heroic knight for Unreal: start from a body blockout, check proportions, and do a
+  blind read before showing me."
+- "Compare `dragon.blend` with `concept/dragon_side.png` from the side."
 
 ## Development
 

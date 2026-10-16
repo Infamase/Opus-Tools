@@ -49,6 +49,43 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--budget", type=int, default=0)
     s.add_argument("--deforming", choices=["auto", "true", "false"], default="auto")
 
+    s = sub.add_parser("body", help="canon-proportioned, rigged body blockout")
+    s.add_argument("archetype", choices=["humanoid", "quadruped", "dragon"])
+    s.add_argument("--preset", default="")
+    s.add_argument("--height", type=float, default=0.0)
+    s.add_argument("--pose", default="A", choices=["A", "T"])
+    s.add_argument("--tris", type=int, default=10000)
+    s.add_argument("--glb", action="store_true")
+    s.add_argument("-o", "--out", default="")
+
+    s = sub.add_parser("look", help="look at an asset or part from any angle")
+    s.add_argument("path")
+    s.add_argument("--views", default="three_quarter", help='names, or "az,el;az,el"')
+    s.add_argument("--pass", dest="render_pass", default="clay")
+    s.add_argument("--target", default="")
+    s.add_argument("--zoom", type=float, default=1.0)
+    s.add_argument("--isolate", action="store_true")
+    s.add_argument("--ortho", action="store_true")
+
+    s = sub.add_parser("report", help="structure report with a labeled part map")
+    s.add_argument("path")
+    s.add_argument("--objects", default="")
+
+    s = sub.add_parser("proportion", help="compare proportions with canon bodies")
+    s.add_argument("path")
+    s.add_argument("--archetype", default="humanoid", choices=["humanoid", "quadruped", "dragon"])
+    s.add_argument("--preset", default="auto")
+    s.add_argument("--pose", default="auto")
+
+    s = sub.add_parser("refmatch", help="compare a silhouette with a reference image")
+    s.add_argument("path")
+    s.add_argument("reference")
+    s.add_argument("--view", default="front", choices=["front", "back", "right", "left"])
+    s.add_argument("--humanoid", action="store_true")
+
+    s = sub.add_parser("blind", help="unlabeled sheet for a blind recognizability test")
+    s.add_argument("path")
+
     s = sub.add_parser("bible", help="show or create opus.project.yaml")
     s.add_argument("action", choices=["show", "init"])
     s.add_argument("--dir", default=".")
@@ -89,6 +126,39 @@ def main(argv: list[str] | None = None) -> int:
         rep = mesh_lint(a.path, objects=names, budget_tris=a.budget, deforming=flag)
         _print(rep["text"])
         return 0 if rep["game_ready"] else 1
+    elif a.cmd == "body":
+        from opus.threed.body import body_blockout
+
+        _, rep = body_blockout(a.archetype, a.preset, a.height, a.pose, a.tris, out=a.out or None, glb=a.glb)
+        _print(rep)
+    elif a.cmd == "look":
+        from opus.threed.understand import look_at
+
+        sep = ";" if (";" in a.views or a.views.split(",")[0].strip().lstrip("-").replace(".", "").isdigit()) else ","
+        sheet, rep = look_at(a.path, views=[v.strip() for v in a.views.split(sep) if v.strip()], pass_=a.render_pass,
+                             target=a.target, zoom=a.zoom, isolate=a.isolate, ortho=a.ortho)
+        _print(rep)
+    elif a.cmd == "report":
+        from opus.threed.understand import model_report
+
+        names = [x.strip() for x in a.objects.split(",") if x.strip()] or None
+        sheet, rep = model_report(a.path, objects=names)
+        _print(rep["text"] + f"\n\nsheet: {sheet}")
+    elif a.cmd == "proportion":
+        from opus.threed.proportion import proportion_check
+
+        sheet, rep = proportion_check(a.path, archetype=a.archetype, preset=a.preset, pose=a.pose)
+        _print(rep["text"] + f"\n\nsheet: {sheet}")
+    elif a.cmd == "refmatch":
+        from opus.threed.proportion import reference_match
+
+        sheet, rep = reference_match(a.path, a.reference, view=a.view, humanoid=a.humanoid)
+        _print(rep["text"] + f"\n\nsheet: {sheet}")
+    elif a.cmd == "blind":
+        from opus.threed.understand import blind_read_sheet
+
+        sheet, prompt = blind_read_sheet(a.path)
+        _print(prompt)
     elif a.cmd == "bible":
         from opus.bible import init_bible, load_bible
 

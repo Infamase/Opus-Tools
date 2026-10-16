@@ -2,11 +2,12 @@
 
 **Mission:** give Claude the senses, building blocks, raw material and quality gates it
 needs to produce good **3D models**, **pixel art**, **animation** and **sound** for
-Blender + Godot 4 games, packaged as one small install on the game-dev PC that works in
-every project.
+games made with Blender and Unreal, Godot or Unity, packaged as one small install on the
+game-dev PC that works in every project.
 
-Status: plan v0.3 (2026-10-07). **v0.1 of the toolkit is built:** the Phase 0 core plus the
-Phase 1 "see it" tools for pixel art and 3D (see §7).
+Status: plan v0.4 (2026-10-16). **v0.2 of the toolkit is built:** the Phase 0 core, the
+Phase 1 "see it" tools for pixel art and 3D, and Sprint 2's proportion and
+recognizability tools for characters and creatures (see §7).
 
 ---
 
@@ -15,7 +16,7 @@ Phase 1 "see it" tools for pixel art and 3D (see §7).
 | | |
 |---|---|
 | **PC** | Windows 10 · RTX 4070 Ti Super (16 GB VRAM) · 64 GB RAM · ~100 GB free disk |
-| **Apps** | Blender 5.2 · Godot 4.7.2 · MCP servers for both already connected to the Claude desktop app |
+| **Apps** | Blender 5.2 · Unreal (preferred engine) · Godot 4.7.2 · Unity, all with MCP servers connected to the Claude desktop app. The engine is picked per project. |
 | **Art styles** | Hi-res pixel art, low-poly 3D, HD 3D |
 | **Camera views** | First-person, third-person, top-down, side-scroller |
 | **Licensing** | Personal games shared free with friends, never sold, so non-commercial licenses are fine |
@@ -147,7 +148,7 @@ user's priorities.
 | Tool | What it does | Pri |
 |---|---|---|
 | **Blender Bridge** | Uses the Blender MCP already on the PC for live control; our in-Blender modules run through its Python execution. Adds checkpoints and versioned `.blend` saves (MCP servers run generated code unguarded), `.glb` export presets, and a plain `blender -b` runner for batch jobs and CI. | P0 |
-| **Godot Bridge** | Uses the Godot MCP already on the PC for editor control. Adds the parts it probably lacks: headless `--import`, `.import` option writers, scene inspection, and deterministic frame capture (Movie Maker mode) for in-engine checks. | P0 |
+| **Engine Bridge** (was Godot Bridge; Unreal adapter first since v0.4) | Uses the engine MCPs already on the PC for editor control. For Godot: Adds the parts it probably lacks: headless `--import`, `.import` option writers, scene inspection, and deterministic frame capture (Movie Maker mode) for in-engine checks. | P0 |
 | **Project Bible** | `opus.project.yaml`: art style, palette, pixel scale, shape language, reference board, tri/texture/bone budgets, texel density, loudness targets, animation fps and "feel", naming rules. Created by a short interview skill; read by every tool. | P0 |
 | **Provenance Ledger** | Sidecar record per asset (source, license, author, generator + model version); generates `CREDITS.md`; flags anything that would block a public release. | P0 |
 | **Downloads manifest** | `DOWNLOADS.md` lists every large optional download (model weights, asset and sound libraries, apps) with purpose, size, license, link and target folder. `opus doctor` checks what's installed and what's missing. | P0 |
@@ -191,12 +192,29 @@ placed by hand, nothing for organic or HD shapes).
 | **Concept-first 3D** | organic and HD shapes | Generate a concept image or turnaround sheet locally, iterate in 2D where judging is easy, get approval, then image-to-3D (TRELLIS.2, Pixal3D for turnarounds) with automatic cleanup to budget, UVs, bakes, scale and origin, then Look Dev and Lint. | P1 |
 | **AI texturing of clean meshes** | clean shape, flat look | Model the shape in code (good topology), paint it with TRELLIS.2's texturing mode or Hunyuan3D-2.0 Paint, then bake to UVs. | P2 |
 
-**Unity and Unreal (both now available with MCPs).** Blender stays the modeling hub, since
-glTF and FBX go to every engine. The engines add eyes and ecosystems:
+**Feedback from using v0.1 (drives Sprint 2).** Proportions of HD humanoids, creatures
+and dragons were often wrong, which meant guessing and re-guessing. Blocky models came
+out better but generic: not very artistic, and not always recognizable as what they were
+meant to be. Two causes: proportions were invented each time instead of taken from a
+canon, and nothing tested whether the result *reads*. Sprint 2 (built, v0.2) answers both:
 
-- **Engine Bridge.** The Godot Bridge becomes an Engine Bridge with Godot, Unity and Unreal
-  adapters behind one contract: import with correct settings, capture in-engine frames,
-  report errors. Games made in any of the three get the same checks.
+| Tool | What it does | Status |
+|---|---|---|
+| **Body Blockout** | Rigged, watertight starting bodies from proportion canons: humanoid realistic (7.5 heads), heroic (8), stylized (6), chibi (3); quadruped dog, horse, cat; western dragon with folding wings. Joints come from data, primitives are fused by voxel remesh, and the rig uses Unreal mannequin bone names. Reports landmark heights and limb lengths in meters to model to. | built |
+| **Proportion Check** | Builds the canon bodies at the model's height and overlays silhouettes front and side (red = sticks out, blue = missing). Humanoids get landmark ratios (leg length, heads tall, shoulders, waist, hips) and limb bone ratios when rigged. `auto` says which canon the model actually resembles. | built |
+| **Reference Match** | Silhouette IoU and per-height-band width differences against a concept or reference image, with background removal and automatic mirroring. This is the measuring half of Blueprint & Match and Fit to Reference. | built |
+| **Look At** | Any angle, distance and render pass, framed on an object, collection or bone region (`hand_l`), with a focus pass that highlights it. | built |
+| **Part Map + Structure Report** | Labeled part map (objects, or bone regions of a skinned body), and per part: size, shape class, long axis, bone length and girth; contacts and floating gaps; mirror symmetry; center of mass vs footprint; rig naming style. | built |
+| **Blind Read** | Unlabeled silhouettes and clay views under a neutral file name, plus a prompt for a fresh reviewer subagent that must identify the model without being told what it is. | built |
+| **Feature brief** (workflow) | The 3d-modeling skill now starts every model with 5–7 defining features, a proportion intent and a shape language, and ends with the blind read. | built |
+
+**Unreal, Godot and Unity (all available with MCPs; Unreal preferred).** Blender stays the
+modeling hub, since FBX and glTF go to every engine. The engines add eyes and ecosystems:
+
+- **Engine Bridge, Unreal first.** One contract (import with correct settings, capture
+  in-engine frames, report errors) with an Unreal adapter first, then Godot and Unity, so
+  games in any of the three get the same checks. Blockout rigs already use Unreal
+  mannequin names, so they retarget to UE animations.
 - **Unreal** (Epic's in-editor Unreal MCP plugin, or community servers using Python remote
   execution):
   - Lumen "beauty" renders for HD assets.
@@ -398,29 +416,43 @@ them).
 - `.mcpb` desktop extensions for chat mode.
 - Install testing on the real Windows PC.
 
-**Next (Sprint 2 proposal, revised after v0.1 testing):**
+**v0.2 (Sprint 2): proportions and recognizability (2026-10-16)**
 
-1. The 3D understanding upgrades from §4.1b: Look At, Part Map, Dimensions & Measure,
-   Structure Report. They're cheap, run in the existing headless Blender, and help every
-   later 3D tool. Then Shape Kit with sockets and Fit to Reference.
+- Body Blockout, Proportion Check, Reference Match, Look At, Part Map + Structure Report
+  (`model_report`) and Blind Read, as MCP tools and `opus` CLI commands (see §4.1b).
+- All eight blockout presets bind with heat weights; posing a bone moves only its side,
+  and dragon wings fold with their finger bones.
+- Proportion Check finds the right canon for each preset (silhouette IoU 0.98–1.0) and
+  flags a deliberately distorted body: legs 15% short, head too big, about 5.6 heads tall
+  instead of 7.5. Reference Match recovers a mirrored side view (IoU 0.97).
+- The `3d-modeling` skill now runs a canon-first workflow with a feature brief and blind
+  read, plus per-engine export notes (Unreal first). The `art-director` agent has a blind
+  read mode.
+- 61 tests (Blender integration included).
 
-Then, as before:
+**Next:**
 
-1. Install and smoke-test on the PC.
-2. Record the eval baseline.
-3. Build the Godot bridge pieces and Godot Pixel Setup.
-4. Build the Audition Board.
-5. Start Phase 2 with the **3D → Pixel Renderer** and **Tileset Builder**, which serve both
-   top priorities at once.
+1. Install and smoke-test on the PC, then record the eval baseline (now including
+   "make a recognizable dragon / knight / wolf" tasks scored by blind read).
+2. **Engine Bridge, Unreal adapter:** FBX import with the right settings through the
+   Unreal MCP, a Lumen frame capture, retarget check against the UE mannequin.
+3. **Fit to Reference:** tune a blockout's canon numbers until its silhouettes match a
+   concept image, using Reference Match as the score.
+4. **More archetypes:** bird, serpent, insectoid/spider, fish, and custom canons in the
+   project bible.
+5. **Shape Kit with sockets** for props and kitbashing onto blockouts; Dimensions &
+   Measure.
+6. Then, as before: Godot and Unity adapters, Audition Board, and Phase 2 starting with
+   the **3D → Pixel Renderer** and **Tileset Builder**.
 
 ## 8. Honest limits
 
 - **Claude will never hear.** Spectrograms, metrics and ML listeners catch technical faults
   and gross mismatches; the final taste call on audio stays with the user. The Audition
   Board makes that a 30-second job.
-- **Organic sculpting purely in code stays limited.** For HD characters and creatures the
-  realistic paths are library bases + kitbashing, image-to-3D + cleanup, or a quick user
-  blockout with Claude doing the technical pipeline. Hard-surface props, architecture,
+- **Organic sculpting purely in code stays limited.** Canon blockouts now get proportions
+  and the rig right, but surface detail (faces, hands, musculature, scales) still comes
+  from library bases + kitbashing, image-to-3D + cleanup, or sculpting over the blockout. Hard-surface props, architecture,
   environments and low-poly are where procedural code gets genuinely good.
 - **Hi-res pixel characters are hard to draw in code.** The realistic routes are 3D → pixel
   renders, AI generation + cleanup, or the user's sketches cleaned up by the pipeline.

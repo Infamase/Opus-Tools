@@ -502,7 +502,9 @@ def _deselect_all():
 
 def _armature(name: str, joints: dict, bones: list, root_height: float):
     arm_data = bpy.data.armatures.new(name + "_rig")
-    arm = bpy.data.objects.new(name + "_rig", arm_data)
+    # Unreal's FBX importer treats a top node named "Armature" as Blender's armature, not as
+    # an extra root bone
+    arm = bpy.data.objects.new("Armature", arm_data)
     bpy.context.scene.collection.objects.link(arm)
     _deselect_all()
     bpy.context.view_layer.objects.active = arm

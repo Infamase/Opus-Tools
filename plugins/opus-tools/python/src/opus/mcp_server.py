@@ -24,7 +24,11 @@ Opus Tools give you eyes for game assets. Use them in a loop: make or edit an as
 it with an inspector, fix what the report and image show, and repeat before showing the user.
 - Pixel art: sprite_inspect after every change; pixel_cleanup for AI or painted images;
   palette_apply / palette_ramp / palette_swap to keep colors on the project palette.
-- 3D: lookdev_sheet to see a model from every side; mesh_lint before calling it game-ready.
+- 3D: start characters and creatures from body_blockout (canon proportions + rig), not from
+  guesses. Check bodies with proportion_check, concept fidelity with reference_match, and
+  recognizability with blind_read_sheet. look_at shows any angle or part up close;
+  model_report labels parts and measures them; lookdev_sheet shows every side; mesh_lint
+  before calling anything game-ready.
 - project_bible holds the project's style rules and budgets; read it before making assets.
 Paths may be absolute or relative to the project folder.
 """
@@ -240,6 +244,136 @@ def mesh_lint(path: str, objects: str = "", category: str = "", budget_tris: int
     rep = run(p, objects=names or None, budget_tris=budget, deforming=flag)
     text = rep.pop("text")
     return text + "\n\n" + _json(rep)
+
+
+def _names(objects: str) -> list[str] | None:
+    return [s.strip() for s in objects.split(",") if s.strip()] or None
+
+
+@server.tool(structured_output=False)
+def body_blockout(
+    archetype: str = "humanoid",
+    preset: str = "",
+    height: float = 0.0,
+    pose: str = "A",
+    target_tris: int = 10000,
+    out_path: str = "",
+    glb: bool = False,
+) -> list:
+    """Build a rigged, canon-proportioned body to model on, instead of guessing proportions.
+
+    archetype/preset: humanoid realistic (7.5 heads) | heroic (8) | stylized (6) | chibi (3);
+    quadruped dog | horse | cat; dragon western. height in meters (default 1.8 m humanoid,
+    1.0 m chibi, the animal's real size). pose: A or T. Returns a Look Dev Sheet and a report
+    with landmarks_m (chin, shoulder, waist, crotch, knee heights, limb lengths, widths) and
+    joints_m. The rig uses Unreal mannequin bone names (pelvis, spine_01, upperarm_l, thigh_l)
+    so it retargets in Unreal's IK Retargeter and maps to Godot/Unity humanoid profiles.
+    Sculpt, kitbash or shrinkwrap the final model over it, then run proportion_check.
+    """
+    from opus.threed.body import body_blockout as run
+
+    dest = None
+    if out_path:
+        dest = Path(out_path).expanduser()
+        if not dest.is_absolute():
+            dest = Path(os.environ.get("OPUS_PROJECT_DIR") or os.getcwd()) / dest
+    sheet, rep = run(archetype, preset, height, pose, target_tris, out=dest, glb=glb)
+    return [Image(path=sheet), _json(rep)]
+
+
+@server.tool(structured_output=False)
+def look_at(
+    path: str,
+    views: str = "three_quarter",
+    render_pass: str = "clay",
+    target: str = "",
+    zoom: float = 1.0,
+    isolate: bool = False,
+    ortho: bool = False,
+    objects: str = "",
+) -> list:
+    """Look at a 3D asset (or one part of it) from any angle, on demand.
+
+    views: comma-separated names (front, right, back, left, top, bottom, three_quarter,
+    three_quarter_back) or "azimuth,elevation" pairs separated by ";" (e.g. "30,15; 200,40";
+    azimuth 0 = front, 90 = right side). render_pass: clay | shaded | wire | silhouette |
+    normals | parts (labeled part map) | focus (target in orange, rest gray). target: an
+    object, collection, or bone name (a skinned body splits into bone regions such as hand_l)
+    to frame; zoom > 1 moves closer; isolate hides everything else.
+    """
+    from opus.threed.understand import look_at as run
+
+    if ";" in views or any(ch.isdigit() for ch in views.split(",")[0]):
+        parsed = [v.strip() for v in views.split(";") if v.strip()]
+    else:
+        parsed = [v.strip() for v in views.split(",") if v.strip()]
+    sheet, rep = run(_path(path), views=parsed, pass_=render_pass, target=target, zoom=zoom, isolate=isolate,
+                     ortho=ortho, objects=_names(objects))
+    return [Image(path=sheet), _json(rep)]
+
+
+@server.tool(structured_output=False)
+def model_report(path: str, objects: str = "") -> list:
+    """Understand a 3D asset's structure: a labeled part map plus measurements.
+
+    Parts are objects, or bone regions of a skinned body. Per part: size, shape class
+    (rod/limb, slab, box, sphere-like...), long axis, bone length and girth. Also contacts and
+    floating gaps between parts, mirror symmetry (and which parts break it), whether the
+    center of mass sits over the footprint, and the rig's naming style.
+    """
+    from opus.threed.understand import model_report as run
+
+    sheet, rep = run(_path(path), objects=_names(objects))
+    text = rep.pop("text")
+    return [Image(path=sheet), text + "\n\n" + _json(rep)]
+
+
+@server.tool(structured_output=False)
+def proportion_check(path: str, archetype: str = "humanoid", preset: str = "auto", pose: str = "auto", objects: str = "") -> list:
+    """Measure a character's or creature's proportions against canon bodies at its height.
+
+    Builds the canon blockouts (preset auto = all presets of the archetype, closest wins, or
+    name one: realistic, heroic, stylized, chibi; dog, horse, cat; western) and overlays
+    silhouettes front and side: red = the model sticks out, blue = the canon has volume the
+    model lacks. Humanoids also get landmark ratios (leg length, head size and heads-tall,
+    shoulders, waist, hips) and limb bone ratios when rigged. Use after every major change to
+    a body until there are no findings you didn't intend (stylization is a choice, not an error).
+    """
+    from opus.threed.proportion import proportion_check as run
+
+    sheet, rep = run(_path(path), archetype=archetype, preset=preset, pose=pose, objects=_names(objects))
+    text = rep.pop("text")
+    return [Image(path=sheet), text + "\n\n" + _json(rep)]
+
+
+@server.tool(structured_output=False)
+def reference_match(path: str, reference: str, view: str = "front", humanoid: bool = False, objects: str = "") -> list:
+    """Compare the model's silhouette with a concept or reference image (front/side/back).
+
+    Removes the image background (alpha, or the border color), scales both to the same
+    height with feet aligned, mirrors the reference if that fits better, and reports IoU and
+    the height bands where the model is wider or narrower. humanoid=true adds landmark
+    comparisons (legs, head, shoulders...). view: front | back | right | left.
+    """
+    from opus.threed.proportion import reference_match as run
+
+    sheet, rep = run(_path(path), _path(reference), view=view, humanoid=humanoid, objects=_names(objects))
+    text = rep.pop("text")
+    return [Image(path=sheet), text + "\n\n" + _json(rep)]
+
+
+@server.tool(structured_output=False)
+def blind_read_sheet(path: str, objects: str = "") -> str:
+    """Make an unlabeled silhouette + clay sheet for a blind recognizability test.
+
+    Hand the returned prompt to a fresh subagent (e.g. the art-director agent) WITHOUT saying
+    what the model is supposed to be. If its top guess isn't the intended subject, the
+    defining features aren't reading yet. Compare its feature list with your feature brief.
+    """
+    from opus.threed.understand import blind_read_sheet as run
+
+    sheet, prompt = run(_path(path), objects=_names(objects))
+    return f"Blind-read sheet: {sheet}\n\nPrompt for a fresh reviewer (do not add what the model is):\n{prompt}"
 
 
 # ---------------------------------------------------------------- project

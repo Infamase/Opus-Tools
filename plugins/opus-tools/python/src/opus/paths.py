@@ -41,12 +41,8 @@ def _slug(text: str) -> str:
     return s[:60] or "out"
 
 
-def output_path(tool: str, stem: str, suffix: str = ".png", near: str | os.PathLike | None = None) -> Path:
-    """A fresh, timestamped output path for ``tool``.
-
-    Lives in the project's ``.opus/out/<tool>/`` when ``near`` is inside a project,
-    otherwise in a ``.opus/out/<tool>/`` folder next to ``near`` (or the cwd).
-    """
+def _base(near: str | os.PathLike | None) -> Path:
+    """The project root, else the folder of ``near``, else the cwd."""
     root = find_project_root(near)
     if root is None:
         if near is not None:
@@ -54,7 +50,16 @@ def output_path(tool: str, stem: str, suffix: str = ".png", near: str | os.PathL
             root = n.parent if (n.is_file() or not n.exists()) else n
         else:
             root = Path.cwd()
-    out_dir = opus_dir(root) / "out" / tool
+    return root
+
+
+def output_path(tool: str, stem: str, suffix: str = ".png", near: str | os.PathLike | None = None) -> Path:
+    """A fresh, timestamped output path for ``tool``.
+
+    Lives in the project's ``.opus/out/<tool>/`` when ``near`` is inside a project,
+    otherwise in a ``.opus/out/<tool>/`` folder next to ``near`` (or the cwd).
+    """
+    out_dir = opus_dir(_base(near)) / "out" / tool
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
     path = out_dir / f"{_slug(stem)}_{stamp}{suffix}"
@@ -66,7 +71,6 @@ def output_path(tool: str, stem: str, suffix: str = ".png", near: str | os.PathL
 
 
 def cache_dir(name: str, near: str | os.PathLike | None = None) -> Path:
-    root = find_project_root(near) or Path.cwd()
-    d = opus_dir(root) / "cache" / name
+    d = opus_dir(_base(near)) / "cache" / name
     d.mkdir(parents=True, exist_ok=True)
     return d

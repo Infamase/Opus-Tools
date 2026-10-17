@@ -5,9 +5,9 @@ needs to produce good **3D models**, **pixel art**, **animation** and **sound** 
 games made with Blender and Unreal, Godot or Unity, packaged as one small install on the
 game-dev PC that works in every project.
 
-Status: plan v0.4 (2026-10-16). **v0.2 of the toolkit is built:** the Phase 0 core, the
-Phase 1 "see it" tools for pixel art and 3D, and Sprint 2's proportion and
-recognizability tools for characters and creatures (see §7).
+Status: plan v0.5 (2026-10-17). **v0.3 of the toolkit is built:** the Phase 0 core, the
+Phase 1 "see it" tools for pixel art and 3D, Sprint 2's proportion and recognizability
+tools, and hands that hold things properly (see §7).
 
 ---
 
@@ -430,6 +430,29 @@ them).
   read mode.
 - 61 tests (Blender integration included).
 
+**v0.3: hands that hold things (2026-10-17)**
+
+Feedback: in first-person work, held objects sat inside the palm or floated beside it.
+
+- Blockout humans now have hands: palm, thumb ball and 15 finger bones per hand (Unreal
+  names), meshed at finger resolution and skinned so no finger drags its neighbor.
+- `grip_define` marks a grip on an object (handle axis fitted to a part, palm side, thumb
+  end, trigger point; pistol-style grips get their palm side from the barrel axis and the
+  hand). Saved as a `SOCKET_grip_*` empty, which Unreal imports as a socket.
+- `grip_hold` seats the handle on the palm's skin (found by ray casting the skinned hand),
+  then closes the fingers GraspIt-style: a finger's joints close together, each stops
+  when the part it moves touches, the rest keep wrapping, and a last pass closes on the
+  real skin. The thumb is solved last with its skin simulated as the rig would skin it,
+  wrapping over the fingers. Index fingers curl, stay extended, or find the trigger.
+  First-person hip and sights poses use two-bone IK with the elbow placed for the least
+  wrist bend; a second hand can reach a second grip. Adds a `weapon_r`/`weapon_l` bone and
+  a `Grip_*` action.
+- `grip_check` grades any scene: palm and each finger touching, gap or depth in mm, body
+  clipping, with contact-colored close-ups and the first-person view.
+- Tested: club and pistol grips are "good grip" with every contact within about half a
+  millimeter on four body presets and both hands; a handle pushed through the palm and one
+  floating off it are both caught; the pistol's index lands on the trigger.
+
 **Next:**
 
 1. Install and smoke-test on the PC, then record the eval baseline (now including
@@ -442,7 +465,10 @@ them).
    project bible.
 5. **Shape Kit with sockets** for props and kitbashing onto blockouts; Dimensions &
    Measure.
-6. Then, as before: Godot and Unity adapters, Audition Board, and Phase 2 starting with
+6. **Holding, continued:** long guns placed by the stock against the shoulder, sights
+   lined up with the eye automatically, a hand-pose library (fist, point, open, pinch) on
+   the same contact solver, and the grip pose exported as Unreal pose assets.
+7. Then, as before: Godot and Unity adapters, Audition Board, and Phase 2 starting with
    the **3D → Pixel Renderer** and **Tileset Builder**.
 
 ## 8. Honest limits

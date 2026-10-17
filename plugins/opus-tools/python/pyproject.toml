@@ -1,6 +1,6 @@
 [project]
 name = "opus-tools"
-version = "0.2.0"
+version = "0.3.0"
 description = "Senses and building blocks that help Claude make game assets for Blender + Godot"
 readme = "README.md"
 requires-python = ">=3.11"

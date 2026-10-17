@@ -51,8 +51,10 @@ def test_humanoid_landmarks_follow_the_canon(tmp_path):
     assert lm["knee"] == pytest.approx(2.05 * hu, rel=0.02)
     assert rep["joints_m"]["knee_l"][2] == pytest.approx(lm["knee"], abs=0.01)
     # left is +X; the rig is symmetric
-    assert rep["joints_m"]["hand_l"][0] == pytest.approx(-rep["joints_m"]["hand_r"][0], abs=1e-3)
-    assert rep["joints_m"]["hand_l"][0] > 0.4
+    assert rep["joints_m"]["knuckles_l"][0] == pytest.approx(-rep["joints_m"]["knuckles_r"][0], abs=1e-3)
+    assert rep["joints_m"]["knuckles_l"][0] > 0.4
+    fingers = {f"{f}_0{i}_{s}" for f in ("thumb", "index", "middle", "ring", "pinky") for i in (1, 2, 3) for s in "lr"}
+    assert fingers <= set(rep["bones"])
 
 
 def test_posing_a_bone_moves_only_that_side(tmp_path):

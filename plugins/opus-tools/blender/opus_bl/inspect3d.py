@@ -60,10 +60,12 @@ def _armature_of(obj):
 
 
 def parts_of(targets) -> tuple[str, list[dict]]:
-    """("objects", parts) for multi-object assets, ("bones", parts) for one skinned mesh."""
+    """Parts to label and measure: the regions each bone dominates on skinned meshes, and
+    every other mesh object whole. Mode is "bones", "objects" or "bones+objects"."""
     meshes = [o for o in targets if o.type == "MESH"]
-    if len(meshes) == 1 and meshes[0].vertex_groups and _armature_of(meshes[0]) is not None:
-        obj = meshes[0]
+    skinned = [o for o in meshes if o.vertex_groups and _armature_of(o) is not None]
+    parts = []
+    for obj in skinned:
         arm = _armature_of(obj)
         deform = {b.name for b in arm.data.bones if b.use_deform}
         names = {g.index: g.name for g in obj.vertex_groups if g.name in deform}
@@ -72,19 +74,21 @@ def parts_of(targets) -> tuple[str, list[dict]]:
             best = max((g for g in v.groups if g.group in names), key=lambda g: g.weight, default=None)
             if best is not None and best.weight > 0.05:
                 dominant[v.index] = best.group
-        co = np.array([obj.matrix_world @ v.co for v in obj.data.vertices])
-        parts = []
+        co, _ = _world_mesh(obj)  # posed
+        if len(co) != len(dominant):
+            co = np.array([obj.matrix_world @ v.co for v in obj.data.vertices])
         for gi, name in sorted(names.items()):
             idx = np.nonzero(dominant == gi)[0]
             if len(idx):
-                parts.append({"name": name, "object": obj, "indices": idx, "co": co[idx]})
-        return "bones", parts
-    parts = []
+                parts.append({"name": name, "kind": "bone", "object": obj, "indices": idx, "co": co[idx]})
     for o in meshes:
+        if o in skinned:
+            continue
         co, _ = _world_mesh(o)
         if len(co):
-            parts.append({"name": o.name, "object": o, "indices": None, "co": co})
-    return "objects", parts
+            parts.append({"name": o.name, "kind": "object", "object": o, "indices": None, "co": co})
+    mode = "objects" if not skinned else ("bones" if len(skinned) == len(meshes) else "bones+objects")
+    return mode, parts
 
 
 def _bounds(points: np.ndarray) -> tuple[Vector, Vector]:
@@ -115,12 +119,19 @@ def aim(cam, azimuth: float, elevation: float, points: np.ndarray, zoom: float =
     the front (camera on -Y), 90 from the +X side (Blender's Right view), 180 the back."""
     az, el = math.radians(azimuth), math.radians(elevation)
     d = Vector((math.sin(az) * math.cos(el), -math.cos(az) * math.cos(el), math.sin(el)))
+    return aim_direction(cam, d, points, zoom, ortho, margin)
+
+
+def aim_direction(cam, d: Vector, points: np.ndarray, zoom: float = 1.0, ortho: bool = False, margin: float = 1.12):
+    """Point the camera at ``points`` from direction ``d`` (from the points toward the camera)."""
+    d = Vector(d).normalized()
     lo, hi = _bounds(points)
     center = (lo + hi) / 2
     radius = max((hi - lo).length / 2, 1e-4)
-    up = Vector((0, 0, 1)) if abs(el) < 89.0 else Vector((0, 1, 0))
-    right = d.cross(up).normalized() * -1 if abs(el) < 89.0 else Vector((1, 0, 0))
-    up_v = right.cross(-d).normalized() if abs(el) < 89.0 else up
+    vertical = abs(d.z) > 0.999
+    up = Vector((0, 1, 0)) if vertical else Vector((0, 0, 1))
+    right = (-d).cross(up).normalized()
+    up_v = right.cross(-d).normalized()
     rel = points - np.array(center)
     span = max(np.ptp(rel @ np.array(right)), np.ptp(rel @ np.array(up_v)), 1e-4)
     if ortho:
@@ -129,16 +140,15 @@ def aim(cam, azimuth: float, elevation: float, points: np.ndarray, zoom: float =
         dist = radius * 4 + 1.0
     else:
         cam.data.type = "PERSP"
+        cam.data.sensor_fit = "AUTO"
         cam.data.sensor_width = 36.0
         cam.data.lens = 50.0
         half_fov = math.atan(18.0 / 50.0)
         depth = float(np.ptp(rel @ np.array(d))) / 2  # how far the asset reaches toward the camera
         dist = (span / 2 * margin) / math.tan(half_fov) / max(zoom, 1e-3) + depth
     cam.location = center + d * dist
-    if abs(el) >= 89.0:
-        cam.rotation_euler = (0.0, 0.0, 0.0) if el > 0 else (math.pi, 0.0, 0.0)
-    else:
-        cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
+    cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler() if not vertical else (
+        (0.0, 0.0, 0.0) if d.z > 0 else (math.pi, 0.0, 0.0))
     cam.data.clip_start = max(dist * 0.001, 1e-5)
     cam.data.clip_end = dist + radius * 4 + 10
     bpy.context.view_layer.update()
@@ -155,32 +165,30 @@ def _paint_parts(mode: str, parts: list[dict], highlight: set | None = None):
             colors[p["name"]] = PALETTE[i % len(PALETTE)]
         else:
             colors[p["name"]] = HIGHLIGHT if p["name"] in highlight else DIM
-    if mode == "objects":
-        for p in parts:
-            p["object"].color = (*colors[p["name"]], 1.0)
-        return colors, "OBJECT"
-    # one flat color per face (face corners), from the part most of its vertices belong to
-    obj = parts[0]["object"]
-    me = obj.data
-    vpart = np.full(len(me.vertices), -1)
-    for i, p in enumerate(parts):
-        vpart[p["indices"]] = i
+    # one flat color per face (face corners); skinned meshes by the bone most of its vertices follow
     table = np.array([(*colors[p["name"]], 1.0) for p in parts] + [(*DIM, 1.0)])
-    loop_vert = np.empty(len(me.loops), dtype=np.int64)
-    me.loops.foreach_get("vertex_index", loop_vert)
-    starts = np.empty(len(me.polygons), dtype=np.int64)
-    counts = np.empty(len(me.polygons), dtype=np.int64)
-    me.polygons.foreach_get("loop_start", starts)
-    me.polygons.foreach_get("loop_total", counts)
-    data = np.empty((len(me.loops), 4))
-    for s, n in zip(starts, counts):
-        ids = vpart[loop_vert[s : s + n]]
-        ids = ids[ids >= 0]
-        k = np.bincount(ids).argmax() if len(ids) else -1
-        data[s : s + n] = table[k]
-    attr = me.color_attributes.get("opus_parts") or me.color_attributes.new("opus_parts", "FLOAT_COLOR", "CORNER")
-    attr.data.foreach_set("color", data.ravel())
-    me.color_attributes.active_color = attr
+    by_object = {}
+    for i, p in enumerate(parts):
+        by_object.setdefault(p["object"], []).append((i, p))
+    for obj, plist in by_object.items():
+        me = obj.data
+        vpart = np.full(len(me.vertices), -1)
+        for i, p in plist:
+            vpart[slice(None) if p["indices"] is None else p["indices"]] = i
+        loop_vert = np.empty(len(me.loops), dtype=np.int64)
+        me.loops.foreach_get("vertex_index", loop_vert)
+        starts = np.empty(len(me.polygons), dtype=np.int64)
+        counts = np.empty(len(me.polygons), dtype=np.int64)
+        me.polygons.foreach_get("loop_start", starts)
+        me.polygons.foreach_get("loop_total", counts)
+        data = np.empty((len(me.loops), 4))
+        for st, n in zip(starts, counts):
+            ids = vpart[loop_vert[st : st + n]]
+            ids = ids[ids >= 0]
+            data[st : st + n] = table[np.bincount(ids).argmax() if len(ids) else -1]
+        attr = me.color_attributes.get("opus_parts") or me.color_attributes.new("opus_parts", "FLOAT_COLOR", "CORNER")
+        attr.data.foreach_set("color", data.ravel())
+        me.color_attributes.active_color = attr
     return colors, "VERTEX"
 
 
@@ -250,9 +258,9 @@ def views(
         if not focus:
             raise ValueError(f"no part named {target!r}; parts: {[p['name'] for p in parts][:60]}")
         frame_pts = np.concatenate([p["co"] for p in parts if p["name"] in focus])
-        if isolate and mode == "objects":
+        if isolate:
             for p in parts:
-                if p["name"] not in focus:
+                if p["kind"] == "object" and p["name"] not in focus:
                     p["object"].hide_render = True
                     p["object"].hide_set(True)
     lo, hi = _bounds(all_pts)
@@ -280,7 +288,7 @@ def views(
             _workbench(light="STUDIO", color_type="OBJECT", cavity=True, outline=True)
             if pass_name == "wire":
                 if not wires:
-                    wires = _wire_copies([p["object"] for p in parts if not (isolate and focus and p["name"] not in focus)] if mode == "objects" else targets, size_m * 0.6)
+                    wires = _wire_copies(list({p["object"] for p in parts if not (isolate and focus and p["kind"] == "object" and p["name"] not in focus)}), size_m * 0.6)
                 for w in wires:
                     w.hide_render = False
                     w.hide_set(False)
@@ -397,7 +405,7 @@ def report(path: str, objects: list[str] | None = None) -> dict:
             info["extents_m"] = [round(x, 4) for x in lengths]
             info["main_axis"] = _direction_label(axes[0])
             fill = None
-            if mode == "objects":
+            if p["kind"] == "object":
                 wco, polys = _world_mesh(p["object"])
                 meshes[p["name"]] = (wco, polys)
                 vol = _volume(wco, polys)
@@ -405,7 +413,7 @@ def report(path: str, objects: list[str] | None = None) -> dict:
                     info["volume_m3"] = round(vol, 6)
                     fill = vol / max(lengths[0] * lengths[1] * lengths[2], 1e-12)
             info["shape"] = _shape(lengths, fill)
-        if mode == "bones":
+        if p["kind"] == "bone":
             arm = _armature_of(p["object"])
             b = arm.data.bones[p["name"]]
             mw = arm.matrix_world
@@ -416,7 +424,7 @@ def report(path: str, objects: list[str] | None = None) -> dict:
 
     # contacts and floating parts between objects
     contacts, gaps = [], []
-    if mode == "objects" and 1 < len(meshes) <= 60:
+    if 1 < len(meshes) <= 60:
         trees = {n: BVHTree.FromPolygons([tuple(v) for v in co], polys) for n, (co, polys) in meshes.items() if polys}
         names = list(trees)
         tol = size * 0.004

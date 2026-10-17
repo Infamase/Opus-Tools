@@ -23,11 +23,12 @@ def main() -> None:
         with open(args_path, encoding="utf-8") as f:
             args = json.load(f)
         task = args.pop("task")
-        from opus_bl import assets, body, inspect3d, lint, lookdev
+        from opus_bl import assets, body, grip, inspect3d, lint, lookdev
 
         tasks = {
             "lookdev": lookdev.run, "lint": lint.run, "stats": assets.stats_task, "body": body.build,
             "views": inspect3d.views, "report": inspect3d.report, "silhouettes": inspect3d.silhouettes,
+            "grip_define": grip.define, "grip_hold": grip.hold, "grip_check": grip.check,
         }
         if task not in tasks:
             raise ValueError(f"unknown task {task!r}; known: {sorted(tasks)}")

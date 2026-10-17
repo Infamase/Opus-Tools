@@ -14,6 +14,7 @@ EXPECTED = {
     "sprite_inspect", "pixel_cleanup", "palette_ramp", "palette_apply", "palette_swap",
     "lookdev_sheet", "mesh_lint", "project_bible", "ledger_record", "make_credits", "opus_doctor",
     "body_blockout", "look_at", "model_report", "proportion_check", "reference_match", "blind_read_sheet",
+    "grip_define", "grip_hold", "grip_check",
 }
 
 

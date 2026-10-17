@@ -129,7 +129,8 @@ def summarize(rep: dict, max_parts: int = 40) -> str:
     lines = [
         f"Asset {_fmt_size(b['size'])} (W x D x H) · {'on the floor' if rep['on_floor'] else 'NOT on the floor (lowest z %.3f m)' % b['min'][2]}"
         f" · {'centered' if rep['centered_x'] else 'off-center in X'}",
-        f"Parts ({len(rep['parts'])}, one per {'object' if rep['mode'] == 'objects' else 'bone region'}):",
+        f"Parts ({len(rep['parts'])}, one per "
+        f"{ {'objects': 'object', 'bones': 'bone region'}.get(rep['mode'], 'bone region or object') }):",
     ]
     for p in rep["parts"][:max_parts]:
         bits = [f"  - {p['name']}: {_fmt_size(p['size_m'])}"]

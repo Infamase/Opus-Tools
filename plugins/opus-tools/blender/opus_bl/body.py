@@ -55,6 +55,20 @@ HUMANOID = {
     ),
 }
 
+# Hands, as fractions: knuckle position across the palm (x palm width, - = thumb side),
+# knuckle distance from the wrist (x palm length), finger length (x hand length), splay
+# away from the middle finger (degrees), and finger radius (x palm width).
+FINGER_LAYOUT = [
+    ("index", -0.37, 0.97, 0.40, -6.0, 0.112),
+    ("middle", -0.12, 1.0, 0.45, 0.0, 0.116),
+    ("ring", 0.13, 0.97, 0.425, 6.0, 0.108),
+    ("pinky", 0.36, 0.9, 0.335, 13.0, 0.094),
+]
+PHALANX = (0.45, 0.30, 0.25)  # proximal, middle, distal share of a finger
+PALM = 0.52  # wrist to knuckles, share of the hand length
+THUMB = (0.24, 0.17, 0.15)  # metacarpal, proximal, distal, x hand length
+FINGERS = ("thumb", "index", "middle", "ring", "pinky")
+
 # Animals: joint coordinates for a reference animal, (x, y, z) in meters with the
 # creature facing -Y, plus (side to side, vertical) radius. Left limbs only; mirrored.
 QUADRUPED = {
@@ -196,6 +210,75 @@ def _mirror(nodes: dict, edges: list, bones: list):
     return nodes, edges, bones
 
 
+def _hand(c: dict, wrist: Vector, a: Vector, n: Vector):
+    """Left hand: palm, four fingers and a thumb with three bones each (Unreal names).
+
+    a points from the wrist to the knuckles, n out of the palm. Returns primitives, joints,
+    bones and the roll vector per bone (its local Z), so fingers curl about local X.
+    """
+    L, W, T = c["hand"], 2 * c["hand_r"][0], 2 * c["hand_r"][1]
+    k = a.cross(n)  # across the knuckles, toward the pinky
+    palm = L * PALM
+    frame = (tuple(k), tuple(n), tuple(a))
+    P = [
+        ("ellipsoid_frame", tuple(wrist + a * (palm * 0.45)), (W * 0.48, T * 0.5, palm * 0.55), *frame),
+        ("ellipsoid_frame", tuple(wrist + a * (palm * 0.8)), (W * 0.52, T * 0.42, palm * 0.3), *frame),
+        # thenar (the thumb's ball) ends around mid-palm, so handles lie across the palm past it
+        ("ellipsoid_frame", tuple(wrist + a * (L * 0.17) - k * (W * 0.3) + n * (T * 0.18)), (W * 0.22, T * 0.42, L * 0.12), *frame),
+    ]
+    joints = {"knuckles_l": wrist + a * palm}
+    bones = [("hand_l", "wrist_l", "knuckles_l", "lowerarm_l")]
+    rolls = {"hand_l": n}
+    for name, across, height, length, splay, rad in FINGER_LAYOUT:
+        sp = math.radians(splay)
+        d = (a * math.cos(sp) + k * math.sin(sp)).normalized()
+        pts = [wrist + a * (palm * height) + k * (W * across)]
+        for f in PHALANX:
+            pts.append(pts[-1] + d * (L * length * f))
+        radii = [W * rad * f for f in (1.0, 0.93, 0.86, 0.78)]
+        for i in range(3):
+            end = pts[i + 1] if i < 2 else pts[3] - d * (radii[3] * 0.9)  # rounded tip ends at the tip
+            P.append(("capsule", tuple(pts[i]), tuple(end), radii[i], radii[i + 1]))
+            bone = f"{name}_0{i + 1}_l"
+            bones.append((bone, f"{name}_j{i}_l", f"{name}_j{i + 1}_l", "hand_l" if i == 0 else f"{name}_0{i}_l"))
+            rolls[bone] = n
+        joints.update({f"{name}_j{i}_l": p for i, p in enumerate(pts)})
+    # thumb: angled away from the index finger and out toward the palm side
+    t = (a * 0.67 - k * 0.55 + n * 0.5).normalized()
+    pts = [wrist + a * (L * 0.1) - k * (W * 0.27) + n * (T * 0.22)]
+    for f in THUMB:
+        pts.append(pts[-1] + t * (L * f))
+    radii = [W * f for f in (0.135, 0.125, 0.115, 0.1)]
+    flex = (k + n) - t * (k + n).dot(t)
+    for i in range(3):
+        end = pts[i + 1] if i < 2 else pts[3] - t * (radii[3] * 0.9)
+        P.append(("capsule", tuple(pts[i]), tuple(end), radii[i], radii[i + 1]))
+        bone = f"thumb_0{i + 1}_l"
+        bones.append((bone, f"thumb_j{i}_l", f"thumb_j{i + 1}_l", "hand_l" if i == 0 else f"thumb_0{i}_l"))
+        rolls[bone] = flex.normalized()
+    joints.update({f"thumb_j{i}_l": p for i, p in enumerate(pts)})
+    return P, joints, bones, rolls
+
+
+def _mirror_prims(prims: list) -> list:
+    """Right-side copies (x -> -x) of the primitives that lie entirely on the left."""
+    out = []
+    for prim in prims:
+        if prim[0] == "loft":
+            continue  # centered on the body
+        pts = [Vector(v) for v in prim[1:3]] if prim[0] == "capsule" else [Vector(prim[1])]
+        if not all(v.x > 1e-6 for v in pts):
+            continue
+        mx = lambda v: (-v[0], v[1], v[2])  # noqa: E731
+        if prim[0] == "capsule":
+            out.append(("capsule", mx(prim[1]), mx(prim[2]), prim[3], prim[4]))
+        elif prim[0] == "ellipsoid_frame":
+            out.append(("ellipsoid_frame", mx(prim[1]), prim[2], mx(prim[3]), mx(prim[4]), mx(prim[5])))
+        else:
+            out.append(("ellipsoid", mx(prim[1]), prim[2], prim[3] and mx(prim[3])))
+    return out
+
+
 def _humanoid(c: dict, pose: str):
     """Primitives, joints and bones for a humanoid canon, in head units."""
     a = math.radians(0 if pose == "T" else 45)
@@ -203,7 +286,9 @@ def _humanoid(c: dict, pose: str):
     sh = Vector((c["shoulder_x"], 0.0, c["shoulder"]))
     elbow = sh + arm * c["upper_arm"]
     wrist = elbow + arm * c["forearm"]
-    hand = wrist + arm * c["hand"]
+    # palms face down and in (toward the thighs), thumbs forward
+    palm_n = Vector((-math.sin(a), 0, -math.cos(a)))
+    hand_P, hand_joints, hand_bones, rolls = _hand(c, wrist, arm, palm_n)
     hip_l = Vector((c["hip_x"], 0.0, c["hip"] - 0.15))
     knee = Vector((c["hip_x"] * 0.85, -0.03, c["knee"]))
     ankle = Vector((c["hip_x"] * 0.8, 0.04, c["ankle"]))
@@ -244,7 +329,6 @@ def _humanoid(c: dict, pose: str):
     P.append(("capsule", tuple(sh), tuple(elbow), c["upper_arm_r"], c["elbow_r"]))
     P.append(("capsule", tuple(elbow), tuple(wrist), c["elbow_r"] * 1.08, c["wrist_r"]))
     P.append(("ellipsoid", tuple(elbow + arm * c["forearm"] * 0.3), (c["elbow_r"] * 1.15, c["elbow_r"] * 1.05, c["forearm"] * 0.3), tuple(arm)))
-    P.append(("ellipsoid", tuple(wrist + arm * c["hand"] * 0.45), (c["hand_r"][0], c["hand_r"][1], c["hand"] * 0.5), tuple(arm)))
     # legs: thigh, quad bulge, knee, calf muscle, foot and heel
     leg_up = (knee - hip_l).normalized()
     P.append(("capsule", tuple(hip_l), tuple(knee), c["thigh_r"], c["knee_r"]))
@@ -255,25 +339,14 @@ def _humanoid(c: dict, pose: str):
     foot_c = Vector((ankle.x, ankle.y - c["foot"] * 0.3, c["foot_r"][1] * 0.95))
     P.append(("ellipsoid", tuple(foot_c), (c["foot_r"][0], c["foot_r"][1], c["foot"] * 0.52), (0, -1, 0)))
     P.append(("ellipsoid", (ankle.x, ankle.y + 0.04, c["ankle_r"] * 1.05), (c["ankle_r"] * 1.1, c["ankle_r"] * 1.2, c["ankle_r"] * 1.1), None))
-    # mirror the left-side primitives (x > 0) to the right
-    mirrored = []
-    for prim in P:
-        if prim[0] == "loft":
-            continue  # centered on the body
-        pts = [Vector(v) for v in prim[1:3]] if prim[0] == "capsule" else [Vector(prim[1])]
-        if all(v.x > 1e-6 for v in pts):
-            if prim[0] == "capsule":
-                mirrored.append(("capsule", (-prim[1][0], prim[1][1], prim[1][2]), (-prim[2][0], prim[2][1], prim[2][2]), prim[3], prim[4]))
-            else:
-                axis = prim[3] and (-prim[3][0], prim[3][1], prim[3][2])
-                mirrored.append(("ellipsoid", (-prim[1][0], prim[1][1], prim[1][2]), prim[2], axis))
-    P += mirrored
+    P += _mirror_prims(P)
+    hand_P += _mirror_prims(hand_P)
     joints = {
         "hips": Vector((0, 0, c["hip"])), "pelvis_top": Vector((0, 0, c["hip"] + 0.25)),
         "waist": Vector((0, 0, c["waist"])), "chest": Vector((0, 0, c["chest"])),
         "neck_base": Vector((0, 0.02, c["shoulder"] + 0.12)), "neck_top": Vector((0, 0.02, chin + 0.1)),
         "top": Vector((0, 0, top)), "clav_l": Vector((0.15, 0.02, c["shoulder"] + 0.02)),
-        "shoulder_l": sh, "elbow_l": elbow, "wrist_l": wrist, "hand_l": hand,
+        "shoulder_l": sh, "elbow_l": elbow, "wrist_l": wrist, **hand_joints,
         "hip_l": hip_l, "knee_l": knee, "ankle_l": ankle, "ball_l": ankle.lerp(toe, 0.7), "toe_l": toe,
     }
     for n in list(joints):
@@ -290,13 +363,14 @@ def _humanoid(c: dict, pose: str):
             (f"clavicle_{s}", f"clav_{s}", f"shoulder_{s}", "spine_03"),
             (f"upperarm_{s}", f"shoulder_{s}", f"elbow_{s}", f"clavicle_{s}"),
             (f"lowerarm_{s}", f"elbow_{s}", f"wrist_{s}", f"upperarm_{s}"),
-            (f"hand_{s}", f"wrist_{s}", f"hand_{s}", f"lowerarm_{s}"),
             (f"thigh_{s}", f"hip_{s}", f"knee_{s}", "pelvis"),
             (f"calf_{s}", f"knee_{s}", f"ankle_{s}", f"thigh_{s}"),
             (f"foot_{s}", f"ankle_{s}", f"ball_{s}", f"calf_{s}"),
             (f"ball_{s}", f"ball_{s}", f"toe_{s}", f"foot_{s}"),
         ]
-    return P, joints, bones
+        bones += [tuple(x[:-2] + "_" + s if x.endswith("_l") else x for x in b) for b in hand_bones]
+    rolls.update({_mirror_name(b): Vector((-v.x, v.y, v.z)) for b, v in list(rolls.items())})
+    return P, joints, bones, hand_P, rolls
 
 
 TORSO_NODES = ("rump", "back", "chest")
@@ -342,6 +416,15 @@ def _add_ellipsoid(bm, center, radii, axis=None):
     rot = Vector(axis).to_track_quat("Z", "Y").to_matrix().to_4x4() if axis else Matrix.Identity(4)
     scale = Matrix.Diagonal((radii[0], radii[1], radii[2], 1.0))
     bmesh.ops.create_uvsphere(bm, u_segments=24, v_segments=12, radius=1.0, matrix=Matrix.Translation(center) @ rot @ scale)
+
+
+def _add_ellipsoid_frame(bm, center, radii, x, y, z):
+    """Ellipsoid whose radii run along the given axes (x, y, z need not be right-handed)."""
+    basis = Matrix((Vector(x).normalized(), Vector(y).normalized(), Vector(z).normalized())).transposed()
+    if basis.determinant() < 0:
+        basis.col[0] *= -1  # a mirrored frame: flip one axis, the ellipsoid is symmetric
+    m = Matrix.Translation(center) @ basis.to_4x4() @ Matrix.Diagonal((*radii, 1.0))
+    bmesh.ops.create_uvsphere(bm, u_segments=20, v_segments=10, radius=1.0, matrix=m)
 
 
 def _add_loft(bm, sections, plane: str = "xy", segments: int = 24):
@@ -413,6 +496,8 @@ def _fuse(name: str, prims: list, voxel: float, target_tris: int):
             _add_capsule(bm, *prim[1:])
         elif kind == "ellipsoid":
             _add_ellipsoid(bm, *prim[1:])
+        elif kind == "ellipsoid_frame":
+            _add_ellipsoid_frame(bm, *prim[1:])
         elif kind == "cone":
             _add_cone(bm, *prim[1:])
         elif kind == "loft":
@@ -444,6 +529,19 @@ def _fuse(name: str, prims: list, voxel: float, target_tris: int):
         bpy.data.meshes.remove(fused)
         fused = reduced
     return fused
+
+
+def _join_mesh(mesh, other) -> range:
+    """Append ``other``'s geometry to ``mesh``, keeping existing vertex weights; returns the
+    new vertex indices."""
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    first = len(bm.verts)
+    bm.from_mesh(other)
+    count = len(bm.verts)
+    bm.to_mesh(mesh)
+    bm.free()
+    return range(first, count)
 
 
 def _drop_debris(mesh, keep: float = 0.01):
@@ -500,7 +598,7 @@ def _deselect_all():
             o.select_set(False)
 
 
-def _armature(name: str, joints: dict, bones: list, root_height: float):
+def _armature(name: str, joints: dict, bones: list, root_height: float, rolls: dict | None = None):
     arm_data = bpy.data.armatures.new(name + "_rig")
     # Unreal's FBX importer treats a top node named "Armature" as Blender's armature, not as
     # an extra root bone
@@ -520,6 +618,8 @@ def _armature(name: str, joints: dict, bones: list, root_height: float):
         if (b.tail - b.head).length < 1e-4:
             b.tail = b.head + Vector((0, 0, 0.05))
         b.parent = eb[parent]
+        if rolls and bname in rolls:
+            b.align_roll(rolls[bname])
     bpy.ops.object.mode_set(mode="OBJECT")
     return arm
 
@@ -530,17 +630,54 @@ def _segment_distance(p, a, b) -> float:
     return (a + ab * t - p).length
 
 
-def _nearest_bone_weights(mesh_obj, arm, indices, only=None, k: int = 2) -> int:
-    """Weight vertices by inverse squared distance to their k nearest bone segments.
-    Covers what heat weighting can't reach (thin membranes, unweighted islands)."""
+def _segment_distance_ends(p, a, b, overhang: float) -> float:
+    """Distance to segment ab, counting ``overhang`` times extra for the part of p that lies
+    behind a or past b along the bone (so a bone barely reaches skin beyond its joints)."""
+    ab = b - a
+    L2 = max(ab.length_squared, 1e-12)
+    t = (p - a).dot(ab) / L2
+    d = (a + ab * max(0.0, min(1.0, t)) - p).length
+    return d + overhang * (max(0.0, -t) + max(0.0, t - 1.0)) * math.sqrt(L2)
+
+
+def _nearest_bone_weights(mesh_obj, arm, indices, only=None, k: int = 2, power: float = 2.0, overhang: float = 0.0) -> int:
+    """Weight vertices by inverse distance to their k nearest bone segments. Covers what heat
+    weighting can't reach (thin membranes, unweighted islands) or gets wrong (fingers)."""
     segs = [(b.name, b.head_local, b.tail_local) for b in arm.data.bones
             if b.name != "root" and (only is None or b.name in only)]
     groups = {n: mesh_obj.vertex_groups.get(n) or mesh_obj.vertex_groups.new(name=n) for n, _, _ in segs}
     verts = mesh_obj.data.vertices
     for i in indices:
         p = verts[i].co
-        near = sorted((_segment_distance(p, h, t), n) for n, h, t in segs)[:k]
-        w = [1.0 / max(d, 1e-4) ** 2 for d, _ in near]
+        near = sorted((_segment_distance_ends(p, h, t, overhang), n) for n, h, t in segs)[:k]
+        w = [1.0 / max(d, 1e-4) ** power for d, _ in near]
+        for (_, n), wi in zip(near, w):
+            groups[n].add([i], wi / sum(w), "REPLACE")
+    return len(indices)
+
+
+def _hand_weights(mesh_obj, arm, indices, k: int = 3, power: float = 1.5, overhang: float = 3.0) -> int:
+    """Hand skin weights without finger bleed: skin nearest a finger follows only that
+    finger's bones and the hand; palm skin follows the hand, the forearm and the bases of
+    the nearest fingers."""
+    names = [b.name for b in arm.data.bones if b.name.split("_")[0] in FINGERS + ("hand", "lowerarm")]
+    segs = {b.name: (b.head_local, b.tail_local) for b in arm.data.bones if b.name in names}
+    groups = {n: mesh_obj.vertex_groups.get(n) or mesh_obj.vertex_groups.new(name=n) for n in names}
+    verts = mesh_obj.data.vertices
+    for i in indices:
+        p = verts[i].co
+        dist = {n: _segment_distance_ends(p, h, t, overhang) for n, (h, t) in segs.items()}
+        nearest = min(dist, key=dist.get)
+        kind, side = nearest.split("_")[0], nearest[-1]
+        if kind in FINGERS:
+            allowed = [n for n in names if n.startswith(kind + "_") and n.endswith(side)] + [f"hand_{side}"]
+        elif kind == "hand":  # palm: the hand, the forearm and the nearest finger's base only
+            bases = [f"{f}_01_{side}" for f in FINGERS if f"{f}_01_{side}" in dist]
+            allowed = [f"hand_{side}", f"lowerarm_{side}"] + ([min(bases, key=dist.get)] if bases else [])
+        else:
+            allowed = [f"lowerarm_{side}", f"hand_{side}"]
+        near = sorted((dist[n], n) for n in allowed if n in dist)[:k]
+        w = [1.0 / max(d, 1e-4) ** power for d, _ in near]
         for (_, n), wi in zip(near, w):
             groups[n].add([i], wi / sum(w), "REPLACE")
     return len(indices)
@@ -580,12 +717,12 @@ def build(
 ) -> dict:
     """Build a rigged blockout. ``height`` is total height in meters (default: the canon's)."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    membranes = []
+    membranes, hand_prims, rolls = [], [], {}
     if archetype == "humanoid":
         if preset not in HUMANOID:
             raise ValueError(f"humanoid presets: {sorted(HUMANOID)}")
         c = HUMANOID[preset]
-        prims, joints, bones = _humanoid(c, pose.upper())
+        prims, joints, bones, hand_prims, rolls = _humanoid(c, pose.upper())
         default_height = 1.0 if preset == "chibi" else 1.8
         span = c["heads"]
     elif archetype in ("quadruped", "dragon"):
@@ -608,7 +745,15 @@ def build(
     label = name or f"{archetype}_{preset}"
 
     # dragons have thin wing spars: a finer voxel keeps them in one piece
-    mesh = _fuse(label, prims, voxel=span / (240.0 if archetype == "dragon" else 170.0), target_tris=target_tris)
+    # hands get their own finer voxel pass (fingers are thinner than a body voxel) and a
+    # share of the triangle budget
+    hand_budget = int(min(3000, max(600, target_tris * 0.1))) if hand_prims else 0
+    body_budget = max(1000, target_tris - 2 * hand_budget) if target_tris else 0
+    mesh = _fuse(label, prims, voxel=span / (240.0 if archetype == "dragon" else 170.0), target_tris=body_budget)
+    hands = None
+    if hand_prims:
+        hands = _fuse(label + "_hands", hand_prims, voxel=2 * HUMANOID[preset]["hand_r"][0] / 30.0,
+                      target_tris=2 * hand_budget if target_tris else 0)
     body = bpy.data.objects.new(label, mesh)
     bpy.context.scene.collection.objects.link(body)
     for p in mesh.polygons:
@@ -621,6 +766,8 @@ def build(
     s = target / max(z1 - z0, 1e-6)
     to_floor = Matrix.Scale(s, 4) @ Matrix.Translation((0, 0, -z0))
     mesh.transform(to_floor)
+    if hands:
+        hands.transform(to_floor)
     joints = {n: to_floor @ Vector(v) for n, v in joints.items()}
     landmarks = None
     if archetype == "humanoid":
@@ -644,8 +791,17 @@ def build(
 
     binding, filled = None, 0
     if rig:
-        arm = _armature(label, joints, bones, target)
+        arm = _armature(label, joints, bones, target, rolls)
         binding, filled = _bind(body, arm)
+    if hands:
+        # joined after binding: fingers take their weights from the nearest hand and finger
+        # bones, so curling one finger doesn't drag its neighbors
+        new_verts = _join_mesh(mesh, hands)
+        bpy.data.meshes.remove(hands)
+        if rig:
+            filled += _hand_weights(body, arm, new_verts)
+        for p in mesh.polygons:
+            p.use_smooth = True
     if membranes:
         # added after binding: heat weighting can't solve paper-thin sheets, so the
         # membranes take their weights from the nearest wing, finger and spine bones

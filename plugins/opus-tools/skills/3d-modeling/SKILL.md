@@ -1,6 +1,6 @@
 ---
 name: 3d-modeling
-description: Build, check and fix 3D models for games (Unreal, Godot, Unity) in Blender 5.x, low-poly and HD, with the Opus 3D tools. Characters and creatures start from canon-proportioned rigged blockouts (body_blockout) and are verified with proportion_check, reference_match and a blind read; look_at and model_report show any angle and the part structure; lookdev_sheet and mesh_lint check the result. Use whenever creating, editing, importing or reviewing 3D models, props, environments, characters or creatures.
+description: Build, check and fix 3D models for games (Unreal, Godot, Unity) in Blender 5.x, low-poly and HD, with the Opus 3D tools. Characters and creatures start from canon-proportioned rigged blockouts (body_blockout) and are verified with proportion_check, reference_match and a blind read; look_at and model_report show any angle and the part structure; grip_define, grip_hold and grip_check put weapons, tools and props in hands correctly (first-person views included); lookdev_sheet and mesh_lint check the result. Use whenever creating, editing, importing or reviewing 3D models, props, environments, characters, creatures, or anything a character holds.
 ---
 
 # 3D modeling with Opus Tools
@@ -56,6 +56,38 @@ size (see Conventions).
    subject, the defining features aren't reading: exaggerate them (bigger, clearer in
    silhouette, more contrast), then test again. Without subagents, skip this step and say so.
 8. **`lookdev_sheet`** and **`mesh_lint`** (category `character` or `hero_character`) last.
+
+## Hands that hold things (first person especially)
+
+Never place a held object by eye: it ends up inside the palm or floating beside it. Use the
+grip tools, which seat the handle on the palm's skin and close each finger until it touches.
+
+1. **Hands with fingers.** `body_blockout` humans have 15 finger bones per hand (Unreal
+   names). Your own rigs work if their finger bones use Unreal, Mixamo, Rigify or
+   Unity/Godot humanoid names.
+2. **`grip_define` on the object.** `part` = the handle mesh. `up` = toward the end the
+   thumb points to (blade, hammer head, slide). Round, symmetric handles: default palm side
+   is fine. Pistol-style grips are handed: give `point_axis` (the barrel or nozzle axis,
+   e.g. `-Y`) and `hand` instead of `palm_side`. `center` slides the hand along the handle
+   (pistols sit high, about 0.6). Triggers: `index: "trigger"` plus the trigger's front
+   point. Check the render: blue axis, red arrow toward the palm, green toward the thumb.
+3. **`grip_hold`.** `pose`: `rest`, `front`, `fp_hip` (first-person hip spot; long guns sit
+   closer: `offset` "0.05,0.12,0.25"), or `fp_ads` (needs a `SOCKET_sight` empty). For two
+   hands, hold with the main hand first, then run `grip_hold` on the saved file with
+   `move: "hand"`, `side: "l"` and the second grip (a handguard, a two-handed hilt).
+4. **Read the report**, not just the picture:
+   - verdict `good grip`: the palm and at least three fingers touch, nothing sinks in;
+   - `aim_vs_hand_deg` above ~15 on a pistol means the grip is defined for the wrong hand;
+   - `wrist_bend_deg` above ~50 looks broken: move the `offset`;
+   - "can't reach" or "passes through the body": move the object or change the pose.
+5. **`grip_check`** any scene after manual edits, imported animations or the user's own rigs.
+
+**In the engine:** the object is parented to a `weapon_r` / `weapon_l` bone at its origin.
+Attach the weapon to that bone with zero offset (Unreal: attach to the socket or bone
+`weapon_r`; Godot: `BoneAttachment3D`; Unity: parent to the bone's transform). The finger
+pose is the `Grip_<object>_<side>` action: layer it over locomotion on the hand and finger
+bones (Unreal: Layered blend per bone from `hand_r`; Godot: an AnimationTree blend with a
+bone filter; Unity: an Avatar Mask). Check one attach in the engine before doing a batch.
 
 ## Props and environments
 

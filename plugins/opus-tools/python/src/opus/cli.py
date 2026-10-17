@@ -86,6 +86,36 @@ def main(argv: list[str] | None = None) -> int:
     s = sub.add_parser("blind", help="unlabeled sheet for a blind recognizability test")
     s.add_argument("path")
 
+    s = sub.add_parser("grip-define", help="mark a grip on an object")
+    s.add_argument("path")
+    s.add_argument("object")
+    s.add_argument("--name", default="main")
+    s.add_argument("--part", default="")
+    s.add_argument("--up", default="")
+    s.add_argument("--palm-side", default="")
+    s.add_argument("--point-axis", default="")
+    s.add_argument("--hand", default="r", choices=["r", "l"])
+    s.add_argument("--center", type=float, default=0.5)
+    s.add_argument("--style", default="power", choices=["power", "pistol"])
+    s.add_argument("--index", default="curl", choices=["curl", "trigger", "extended"])
+    s.add_argument("--trigger", default="")
+
+    s = sub.add_parser("hold", help="put an object with a grip in a rigged hand")
+    s.add_argument("rig")
+    s.add_argument("object_path", nargs="?", default="")
+    s.add_argument("--grip", default="")
+    s.add_argument("--side", default="r", choices=["r", "l"])
+    s.add_argument("--pose", default="rest", choices=["rest", "front", "fp_hip", "fp_ads"])
+    s.add_argument("--move", default="object", choices=["object", "hand"])
+    s.add_argument("--offset", default="")
+    s.add_argument("-o", "--out", default="")
+
+    s = sub.add_parser("grip-check", help="measure how hands hold objects in a scene")
+    s.add_argument("path")
+    s.add_argument("--side", default="r", choices=["r", "l", "both"])
+    s.add_argument("--object", default="")
+    s.add_argument("--fp", action="store_true")
+
     s = sub.add_parser("bible", help="show or create opus.project.yaml")
     s.add_argument("action", choices=["show", "init"])
     s.add_argument("--dir", default=".")
@@ -159,6 +189,24 @@ def main(argv: list[str] | None = None) -> int:
 
         sheet, prompt = blind_read_sheet(a.path)
         _print(prompt)
+    elif a.cmd in ("grip-define", "hold", "grip-check"):
+        from opus.threed import grip
+
+        def floats(t):
+            return [float(x) for x in t.replace(";", ",").split(",")] if t else None
+
+        if a.cmd == "grip-define":
+            sheet, rep = grip.grip_define(a.path, a.object, a.name, a.part, up=floats(a.up), palm_side=floats(a.palm_side),
+                                          center=a.center, style=a.style, index=a.index, trigger=floats(a.trigger),
+                                          point_axis=a.point_axis, hand=a.hand)
+            _print(rep)
+        elif a.cmd == "hold":
+            sheet, rep = grip.grip_hold(a.rig, a.object_path or None, grip=a.grip, side=a.side, pose=a.pose, move=a.move,
+                                        offset=floats(a.offset), out_blend=a.out or None)
+            _print(rep["text"] + f"\n\nsheet: {sheet}\nfile: {rep['file']}")
+        else:
+            sheet, rep = grip.grip_check(a.path, a.side, a.object, a.fp)
+            _print(rep["text"] + f"\n\nsheet: {sheet}")
     elif a.cmd == "bible":
         from opus.bible import init_bible, load_bible
 

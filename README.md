@@ -12,7 +12,7 @@ fix its own work before handing it over.
 See [PLAN.md](PLAN.md) for the full game plan and [DOWNLOADS.md](DOWNLOADS.md) for
 optional large downloads. The repo holds code only.
 
-## What's in v0.2
+## What's in v0.3
 
 | Tool | What it does |
 |---|---|
@@ -22,6 +22,9 @@ optional large downloads. The repo holds code only.
 | `look_at` | Any angle, zoom and render pass, framed on an object or a bone region such as `hand_l` |
 | `model_report` | Labeled part map plus measurements: shapes, contacts, floating parts, symmetry, balance, rig style |
 | `blind_read_sheet` | Unlabeled silhouettes for a fresh reviewer to identify, to test whether a model reads as what it should be |
+| `grip_define` | Marks how an object is held: handle axis, palm side, thumb end, trigger point (a `SOCKET_grip_*` empty that becomes an Unreal socket) |
+| `grip_hold` | Puts the object in a rigged hand: handle seated on the palm skin, every finger closed until it touches, thumb wrapped, index on the trigger; first-person poses and two-handed holds; adds a `weapon_r` bone and a grip pose action |
+| `grip_check` | Measures any hand holding anything: palm and each finger touching, gap or depth inside in mm, and where the object clips the body |
 | `sprite_inspect` | Zoomed pixels with grid, issue overlay, 1x readability on light/mid/dark, silhouette, value, palette ramps, tile and animation views, plus a critique (strays, jaggies, partial alpha, off-palette colors, pillow shading, seams, flicker) |
 | `pixel_cleanup` | Turns AI or painted "fake pixel art" into true pixel art: finds the real grid, removes the background, locks the palette, removes noise |
 | `palette_ramp` / `palette_apply` / `palette_swap` | Hue-shifted ramps, palette locking (incl. Lospec palettes), recolors |
@@ -79,6 +82,8 @@ extension (`.mcpb`) build for chat is planned.
 - "Make a heroic knight for Unreal: start from a body blockout, check proportions, and do a
   blind read before showing me."
 - "Compare `dragon.blend` with `concept/dragon_side.png` from the side."
+- "Put `pistol.blend` in the hero's right hand for first person, index on the trigger, and
+  show me what the player sees."
 
 ## Development
 

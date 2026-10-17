@@ -29,6 +29,9 @@ it with an inspector, fix what the report and image show, and repeat before show
   recognizability with blind_read_sheet. look_at shows any angle or part up close;
   model_report labels parts and measures them; lookdev_sheet shows every side; mesh_lint
   before calling anything game-ready.
+- Hands holding things (first person especially): grip_define marks the handle, grip_hold
+  puts it in the hand and closes the fingers on it, grip_check measures any held object.
+  Never place held objects by eye.
 - project_bible holds the project's style rules and budgets; read it before making assets.
 Paths may be absolute or relative to the project folder.
 """
@@ -374,6 +377,107 @@ def blind_read_sheet(path: str, objects: str = "") -> str:
 
     sheet, prompt = run(_path(path), objects=_names(objects))
     return f"Blind-read sheet: {sheet}\n\nPrompt for a fresh reviewer (do not add what the model is):\n{prompt}"
+
+
+# ---------------------------------------------------------------- holding things
+
+def _floats(text: str) -> list | None:
+    return [float(x) for x in text.replace(";", ",").split(",") if x.strip()] if text.strip() else None
+
+
+@server.tool(structured_output=False)
+def grip_define(
+    path: str,
+    object: str,
+    name: str = "main",
+    part: str = "",
+    start: str = "",
+    end: str = "",
+    palm_side: str = "",
+    up: str = "",
+    center: float = 0.5,
+    style: str = "power",
+    index: str = "curl",
+    thumb: str = "wrap",
+    trigger: str = "",
+    point_axis: str = "",
+    hand: str = "r",
+) -> list:
+    """Mark where and how a hand holds an object: a grip saved as an empty named
+    SOCKET_grip_<name> on the object (Unreal's FBX import turns it into a socket; Godot and
+    Unity get a node). Saves into the .blend (a .glb/.fbx gets a <name>_grips.blend).
+
+    The handle axis is fitted to ``part`` (an object, e.g. the grip or handle mesh) or given
+    as world-space ``start``/``end`` points "x,y,z". ``up``: direction toward the end the
+    thumb points to (blade, slide, hammer head), default +Z. ``palm_side``: direction from
+    the handle toward the palm; for pistol-style grips give ``point_axis`` instead (the
+    object's local axis that points along the forearm, e.g. -Y for a barrel) and ``hand``.
+    ``center`` (0-1) slides the hand along the handle. style: power | pistol. index: curl |
+    trigger | extended; ``trigger`` is the trigger's front point "x,y,z". thumb: wrap | along.
+    Returns a render: blue axis, red arrow = palm side, green = thumb end, yellow = trigger.
+    """
+    from opus.threed.grip import grip_define as run
+
+    sheet, rep = run(_path(path), object, name, part, _floats(start), _floats(end), _floats(palm_side), _floats(up),
+                     center, style, index, thumb, _floats(trigger), point_axis, hand)
+    return [Image(path=sheet), _json(rep)]
+
+
+@server.tool(structured_output=False)
+def grip_hold(
+    rig: str,
+    object_path: str = "",
+    object: str = "",
+    grip: str = "",
+    side: str = "r",
+    pose: str = "rest",
+    move: str = "object",
+    aim_axis: str = "-Y",
+    offset: str = "",
+    index: str = "",
+    thumb: str = "",
+    out_path: str = "",
+) -> list:
+    """Put an object with a grip into a rigged hand so it sits right: the handle against the
+    palm's skin, every finger closed until it touches (never inside), the thumb wrapped, the
+    index on the trigger if the grip says so. Works on Unreal-, Mixamo-, Rigify- and
+    humanoid-named rigs with finger bones (body_blockout humans have them).
+
+    side: r | l. pose: rest (arm untouched) | front | fp_hip (first-person hip position; the
+    object's ``aim_axis`` points forward; ``offset`` "forward,right,down" in m from the eye,
+    default 0.5,0.2,0.18; long guns sit closer, e.g. 0.1,0.15,0.25) | fp_ads (needs an empty
+    named SOCKET_sight on the object). move: object (bring it to the hand; adds a
+    weapon_r/weapon_l bone and parents the object to it) | hand (reach this hand to an object
+    already placed, e.g. the support hand on a rifle's handguard: run it on the saved file
+    with object_path empty). Keys the pose as a Grip_* action and saves a new .blend.
+    Returns close-ups colored by contact plus a measured report: palm and each finger
+    touching / gap mm / inside mm, body clipping, aim_vs_hand_deg, wrist_bend_deg.
+    """
+    from opus.threed.grip import grip_hold as run
+
+    dest = None
+    if out_path:
+        dest = Path(out_path).expanduser()
+        if not dest.is_absolute():
+            dest = Path(os.environ.get("OPUS_PROJECT_DIR") or os.getcwd()) / dest
+    sheet, rep = run(_path(rig), _path(object_path) if object_path else None, object, grip, side, pose, move, aim_axis,
+                     _floats(offset), index, thumb, dest)
+    text = rep.pop("text")
+    return [Image(path=sheet), text + "\n\n" + _json(rep)]
+
+
+@server.tool(structured_output=False)
+def grip_check(path: str, side: str = "r", object: str = "", fp: bool = False) -> list:
+    """Check how hands hold things in any rigged scene, however it was made: for the palm and
+    each finger, touching, the gap in mm, or how deep it sinks into the object, plus any
+    place the object passes through the body. side: r | l | both. object: the held object
+    (default: the one nearest the palm). fp: also render the first-person view from the eyes.
+    """
+    from opus.threed.grip import grip_check as run
+
+    sheet, rep = run(_path(path), side, object, fp)
+    text = rep.pop("text")
+    return [Image(path=sheet), text + "\n\n" + _json(rep)]
 
 
 # ---------------------------------------------------------------- project

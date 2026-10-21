@@ -38,6 +38,12 @@ DEFAULTS: dict = {
         "origin": "bottom_center",
         "lookdev_engine": "workbench",  # eevee for PBR/HD materials
     },
+    "camera": {
+        "profile": "",  # "" = picked from the engine and `cameras`; else a preset or an override name
+        "distances": {},  # per profile: {close, typical, far} in meters from the camera
+        "overrides": {},  # the project's real settings: {name: {base: preset, fov_deg, res_h, ...}}
+        "viewmodel": {},  # first-person view-model camera: {fov_deg, fov_axis, near_m, scale}; never assumed
+    },
     "animation": {"fps": 30, "feel": ""},
     "audio": {"lufs": {"sfx": -18, "ui": -20, "music": -16, "ambience": -24, "voice": -18}},
     "taste_notes": [],  # short lessons learned from the user's ratings
@@ -70,6 +76,15 @@ pixel:
   texel_density_px_per_m: 512
   origin: bottom_center
   lookdev_engine: workbench # eevee for PBR/HD materials
+
+camera:                     # the game camera decides how much detail reads (opus.camera)
+  profile: ""               # "" = from the engine and cameras above; or ue_tp_1080, ue_fp_1080,
+                            # godot_tp, unity_tp, topdown, sidescroller, or a name under overrides
+  distances: {{}}             # meters, per profile: {{ue_tp_1080: {{close: 1.5, typical: 3.5, far: 15}}}}
+  overrides: {{}}             # your real settings: {{ue_tp_1080: {{fov_deg: 100, res_w: 2560, res_h: 1440}}}}
+                            # or a new profile: {{my_cam: {{base: godot_tp, fov_deg: 70}}}}
+  viewmodel: {{}}             # first-person arms/weapon camera, read from the project, e.g.
+                            # {{fov_deg: 90, fov_axis: horizontal, near_m: 0.1, scale: 1.0}}
 
 animation:
   fps: 30
@@ -113,6 +128,54 @@ def resolve_palette_spec(bible: dict) -> str:
         if p.exists():
             return str(p)
     return spec
+
+
+def detect_engine(bible: dict) -> str:
+    """unreal, godot or unity from the project's files; unreal when nothing says otherwise."""
+    root = Path(bible["_root"]) if bible.get("_root") else None
+    if root is not None:
+        if (root / "project.godot").exists():
+            return "godot"
+        if (root / "ProjectSettings" / "ProjectVersion.txt").exists():
+            return "unity"
+    return "unreal"
+
+
+def camera_profile(bible: dict, name: str = ""):
+    """The camera profile ``name`` (default: the bible's ``camera.profile``, else picked from the
+    engine and ``cameras``) with the bible's overrides and distances applied. ``viewmodel``
+    gives the first-person view-model camera, or a labeled fallback when the bible has none."""
+    from dataclasses import replace
+
+    from opus import camera
+
+    cam = bible.get("camera") or {}
+    overrides = cam.get("overrides") or {}
+    engine = detect_engine(bible)
+    default = {"unreal": "ue_tp_1080", "godot": "godot_tp", "unity": "unity_tp"}[engine]
+    name = name or cam.get("profile") or ""
+    note = ""
+    if name == "viewmodel":
+        world = camera_profile(bible, default if cam.get("profile") == "viewmodel" else "")
+        if world.projection != "persp":
+            world = camera_profile(bible, default)
+        return camera.viewmodel(cam.get("viewmodel"), world)
+    if not name:
+        view = (bible.get("cameras") or ["third-person"])[0]
+        name = {"top-down": "topdown", "side-scroller": "sidescroller"}.get(view, default)
+        if view == "first-person":
+            name = "ue_fp_1080" if engine == "unreal" else default
+        note = f"auto-picked from engine {engine} and camera {view}; set camera.profile in opus.project.yaml"
+    if name in overrides:
+        fields = overrides[name] or {}
+        base = fields.get("base") or (name if name in camera.PRESETS else default)
+        profile = camera.apply(camera.preset(base), fields, name=name)
+    else:
+        profile = camera.preset(name)
+    dist = (cam.get("distances") or {}).get(name)
+    if dist:
+        profile = camera.apply(profile, {"distances": dist})
+    return replace(profile, note=note) if note else profile
 
 
 def init_bible(root: str | Path, project: str = "", styles=(), cameras=()) -> Path:

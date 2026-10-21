@@ -85,6 +85,18 @@ def main(argv: list[str] | None = None) -> int:
 
     s = sub.add_parser("blind", help="unlabeled sheet for a blind recognizability test")
     s.add_argument("path")
+    s.add_argument("--game-size", action="store_true", help="add views at true game pixel size")
+    s.add_argument("--camera", default="", help="camera profile (default: the bible's)")
+    s.add_argument("--distances", default="", help="meters, comma-separated")
+
+    s = sub.add_parser("readability", help="part map and feature widths at true game pixel size")
+    s.add_argument("path")
+    s.add_argument("--camera", default="", help="camera profile (default: the bible's), or viewmodel")
+    s.add_argument("--distances", default="", help="meters, comma-separated (default: close, typical, far)")
+    s.add_argument("--defining", default="", help="defining parts, comma-separated")
+    s.add_argument("--view", default="", help='a named view or "azimuth,elevation"')
+    s.add_argument("--floor", type=float, default=2.0, help="min width floor in px (soft)")
+    s.add_argument("--objects", default="")
 
     s = sub.add_parser("grip-define", help="mark a grip on an object")
     s.add_argument("path")
@@ -187,8 +199,17 @@ def main(argv: list[str] | None = None) -> int:
     elif a.cmd == "blind":
         from opus.threed.understand import blind_read_sheet
 
-        sheet, prompt = blind_read_sheet(a.path)
+        dist = [float(x) for x in a.distances.split(",") if x.strip()] or None
+        sheet, prompt = blind_read_sheet(a.path, game_size=a.game_size, camera=a.camera, distances=dist)
         _print(prompt)
+    elif a.cmd == "readability":
+        from opus.threed.understand import readability_check
+
+        dist = [float(x) for x in a.distances.split(",") if x.strip()] or None
+        names = [x.strip() for x in a.objects.split(",") if x.strip()] or None
+        sheet, rep = readability_check(a.path, camera=a.camera, distances=dist, view=a.view, floor_px=a.floor, objects=names,
+                                       defining=[x.strip() for x in a.defining.split(",") if x.strip()] or None)
+        _print(rep["text"] + f"\n\nsheet: {sheet}\nall parts: {rep['all_parts']}")
     elif a.cmd in ("grip-define", "hold", "grip-check"):
         from opus.threed import grip
 

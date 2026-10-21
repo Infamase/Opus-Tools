@@ -139,12 +139,62 @@ def _workbench(light="STUDIO", color_type="OBJECT", single=(0.8, 0.8, 0.8), cavi
     sh.object_outline_color = (0.04, 0.04, 0.05)
     scene.display.render_aa = "8"
     scene.view_settings.view_transform = "Standard"
+    _soft_edges()
     _world(bg)
+
+
+def _soft_edges():
+    """Undo what ``mask_mode`` turns off, for shaded, clay and Cycles passes."""
+    r = bpy.context.scene.render
+    r.dither_intensity = 1.0
+    r.filter_size = 1.5
+    r.film_transparent = False
+    r.image_settings.color_mode = "RGB"
+
+
+def mask_mode(color_type="SINGLE", single=(0.0, 0.0, 0.0), bg=BG, transparent: bool = False):
+    """Workbench for masks: every pixel is exactly one part color or the background.
+
+    Every part-ID, silhouette and focus pass uses it: anti-aliasing off, FLAT light, Standard
+    view transform with no look, dither 0 and no filter blur. Shaded and clay passes keep
+    anti-aliasing (``_workbench``). ``transparent`` renders the background as alpha 0.
+    """
+    _workbench(light="FLAT", color_type=color_type, single=single, cavity=False, outline=False, bg=bg)
+    scene = bpy.context.scene
+    scene.display.render_aa = "OFF"
+    sh = scene.display.shading
+    sh.show_shadows = sh.show_xray = sh.use_dof = False
+    vs = scene.view_settings
+    vs.view_transform = "Standard"
+    try:
+        vs.look = "None"
+    except TypeError:
+        vs.look = "NONE"
+    vs.exposure, vs.gamma = 0.0, 1.0
+    vs.use_curve_mapping = False
+    if hasattr(vs, "use_white_balance"):
+        vs.use_white_balance = False
+    r = scene.render
+    r.dither_intensity = 0.0
+    r.filter_size = 0.0
+    r.film_transparent = transparent
+    r.image_settings.color_mode = "RGBA" if transparent else "RGB"
+
+
+def srgb8(color) -> tuple:
+    """The 8-bit value a linear color renders to under mask mode (Standard view transform)."""
+    out = []
+    for c in color[:3]:
+        c = min(max(float(c), 0.0), 1.0)
+        s = c * 12.92 if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
+        out.append(int(round(s * 255)))
+    return tuple(out)
 
 
 def _cycles(samples: int, denoise: bool):
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
+    _soft_edges()
     scene.cycles.device = "CPU"
     scene.cycles.samples = samples
     scene.cycles.use_denoising = denoise
@@ -321,7 +371,7 @@ def run(
             _workbench(light="STUDIO", color_type="OBJECT", cavity=True, outline=True)
             _show(wires, True)
         elif pass_name == "silhouette":
-            _workbench(light="FLAT", color_type="SINGLE", single=(0.0, 0.0, 0.0), cavity=False, outline=False, bg=(1, 1, 1))
+            mask_mode(single=(0.0, 0.0, 0.0), bg=(1, 1, 1))
         elif pass_name in ("normals", "uv"):
             _cycles(2, denoise=False)
             scene.view_settings.view_transform = "Standard"

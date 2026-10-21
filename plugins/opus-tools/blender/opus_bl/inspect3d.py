@@ -18,7 +18,8 @@ from mathutils.bvhtree import BVHTree
 from mathutils.kdtree import KDTree
 
 from opus_bl import assets, body
-from opus_bl.lookdev import BG, CLAY, _camera, _cycles, _diagnostic_material, _render_settings, _wire_copies, _workbench, _world
+from opus_bl.lookdev import (BG, CLAY, _camera, _cycles, _diagnostic_material, _render_settings, _wire_copies, _workbench,
+                             _world, mask_mode)
 
 # distinct, colorblind-aware part colors (Okabe-Ito first, then extras)
 PALETTE = [
@@ -157,11 +158,14 @@ def aim_direction(cam, d: Vector, points: np.ndarray, zoom: float = 1.0, ortho: 
 
 # ---------------------------------------------------------------- coloring
 
-def _paint_parts(mode: str, parts: list[dict], highlight: set | None = None):
-    """Color parts for a Workbench render; returns the color per part name."""
+def _paint_parts(mode: str, parts: list[dict], highlight: set | None = None, palette: list | None = None):
+    """Color parts for a Workbench render; returns the color per part name. ``palette`` gives
+    one color per part (unique ID colors); the default cycles through PALETTE."""
     colors = {}
     for i, p in enumerate(parts):
-        if highlight is None:
+        if palette is not None:
+            colors[p["name"]] = palette[i]
+        elif highlight is None:
             colors[p["name"]] = PALETTE[i % len(PALETTE)]
         else:
             colors[p["name"]] = HIGHLIGHT if p["name"] in highlight else DIM
@@ -293,7 +297,7 @@ def views(
                     w.hide_render = False
                     w.hide_set(False)
         elif pass_name == "silhouette":
-            _workbench(light="FLAT", color_type="SINGLE", single=(0, 0, 0), cavity=False, outline=False, bg=(1, 1, 1))
+            mask_mode(single=(0, 0, 0), bg=(1, 1, 1))
         elif pass_name == "normals":
             _cycles(2, denoise=False)
             scene.view_settings.view_transform = "Standard"
@@ -301,7 +305,7 @@ def views(
             bpy.context.view_layer.material_override = _diagnostic_material("normals")
         elif pass_name in ("parts", "focus"):
             colors, ctype = _paint_parts(mode, parts, focus if pass_name == "focus" else None)
-            _workbench(light="STUDIO", color_type=ctype, cavity=True, outline=True)
+            mask_mode(color_type=ctype)
         else:
             raise ValueError("pass must be shaded, clay, wire, silhouette, normals, parts or focus")
         aim(cam, az, el, frame_pts, zoom=float(shot.get("zoom", 1.0)), ortho=bool(shot.get("ortho", False)))
@@ -528,7 +532,7 @@ def _render_silhouettes(out_dir: str, prefix: str, targets, views_: list[str], s
     """Orthographic silhouettes with a known pixel scale (meters per pixel)."""
     scene = bpy.context.scene
     _render_settings(size)
-    _workbench(light="FLAT", color_type="SINGLE", single=(0, 0, 0), cavity=False, outline=False, bg=(1, 1, 1))
+    mask_mode(single=(0, 0, 0), bg=(1, 1, 1))
     cam = _camera()
     pts = _all_points(targets)
     out = {}

@@ -1,8 +1,10 @@
 """On-demand 3D understanding: views from any angle, part maps, a structure report, and
 calibrated silhouettes for proportion and reference checks.
 
-Parts are the asset's mesh objects, or, for a single skinned mesh, the regions each bone
-dominates (so a fused character body still splits into head, upperarm_l, thigh_r, ...).
+Parts are the asset's mesh objects, or, for a skinned mesh, the regions each bone dominates
+(so a fused character body still splits into head, upperarm_l, thigh_r, ...). A skinned mesh
+that one bone moves rigidly (a hood, a plate) and a mesh parented to a bone stay one object
+part each.
 """
 
 from __future__ import annotations
@@ -10,6 +12,7 @@ from __future__ import annotations
 import math
 import os
 
+import bmesh
 import bpy
 import numpy as np
 from bpy_extras.object_utils import world_to_camera_view
@@ -18,7 +21,7 @@ from mathutils.kdtree import KDTree
 
 from opus_bl import assets, body
 from opus_bl.lookdev import (BG, CLAY, _camera, _cycles, _diagnostic_material, _render_settings, _wire_copies, _workbench,
-                             _world, mask_mode)
+                             _world, mask_mode, shaded_color_type)
 
 # distinct, colorblind-aware part colors (Okabe-Ito first, then extras)
 PALETTE = [
@@ -29,6 +32,9 @@ PALETTE = [
 ]
 HIGHLIGHT = (1.0, 0.45, 0.05)
 DIM = (0.55, 0.55, 0.58)
+RIGID = 0.95  # a skinned mesh this much dominated by one bone moves as one piece: an object part
+MAX_PAIRS = 60  # objects compared pairwise for contacts and penetrations
+MAX_ISLANDS = 2000  # loose islands checked for floating
 NAMED_VIEWS = {
     "front": (0.0, 0.0), "right": (90.0, 0.0), "back": (180.0, 0.0), "left": (270.0, 0.0),
     "top": (0.0, 90.0), "bottom": (0.0, -90.0), "three_quarter": (38.66, 26.6), "three_quarter_back": (218.66, 26.6),
@@ -60,13 +66,21 @@ def _armature_of(obj):
 
 
 def parts_of(targets) -> tuple[str, list[dict]]:
-    """Parts to label and measure: the regions each bone dominates on skinned meshes, and
-    every other mesh object whole. Mode is "bones", "objects" or "bones+objects"."""
+    """Parts to label and measure, with unique names: the regions each deform bone dominates
+    on skinned meshes, and every other mesh object whole. Mode is "bones", "objects" or
+    "bones+objects".
+
+    Only an Armature modifier (or an armature parent of type ARMATURE) skins a mesh; one
+    parented to a bone moves rigidly and stays an object part, whatever its vertex groups. A
+    skinned mesh with RIGID of its vertices on one bone is an object part too, with that
+    ``bone``. Vertices no deform bone dominates form a "rest" part named after the object. A
+    bone region found on several meshes keeps the bare bone name on the largest mesh and
+    becomes "<object>:<bone>" on the others."""
     meshes = [o for o in targets if o.type == "MESH"]
-    skinned = [o for o in meshes if o.vertex_groups and _armature_of(o) is not None]
-    parts = []
+    skinned = [o for o in meshes if o.vertex_groups and o.find_armature() is not None]
+    parts, rigid = [], {}
     for obj in skinned:
-        arm = _armature_of(obj)
+        arm = obj.find_armature()
         deform = {b.name for b in arm.data.bones if b.use_deform}
         names = {g.index: g.name for g in obj.vertex_groups if g.name in deform}
         dominant = np.full(len(obj.data.vertices), -1)
@@ -74,20 +88,43 @@ def parts_of(targets) -> tuple[str, list[dict]]:
             best = max((g for g in v.groups if g.group in names), key=lambda g: g.weight, default=None)
             if best is not None and best.weight > 0.05:
                 dominant[v.index] = best.group
+        if not len(dominant):
+            continue
+        ids, counts = np.unique(dominant, return_counts=True)
+        if counts.max() >= RIGID * len(dominant):  # one bone (or none) moves it all: a hood, a staff
+            rigid[obj] = names.get(int(ids[np.argmax(counts)]))
+            continue
         co, _ = _world_mesh(obj)  # posed
         if len(co) != len(dominant):
             co = np.array([obj.matrix_world @ v.co for v in obj.data.vertices])
         for gi, name in sorted(names.items()):
             idx = np.nonzero(dominant == gi)[0]
             if len(idx):
-                parts.append({"name": name, "kind": "bone", "object": obj, "indices": idx, "co": co[idx]})
+                parts.append({"name": name, "kind": "bone", "bone": name, "object": obj, "indices": idx, "co": co[idx]})
+        rest = np.nonzero(dominant == -1)[0]
+        if len(rest):  # weighted to no deform bone: kept, so the part map colors every face
+            parts.append({"name": obj.name, "kind": "rest", "object": obj, "indices": rest, "co": co[rest]})
     for o in meshes:
-        if o in skinned:
+        if o in skinned and o not in rigid:
             continue
         co, _ = _world_mesh(o)
         if len(co):
             parts.append({"name": o.name, "kind": "object", "object": o, "indices": None, "co": co})
-    mode = "objects" if not skinned else ("bones" if len(skinned) == len(meshes) else "bones+objects")
+            if rigid.get(o):
+                parts[-1]["bone"] = rigid[o]
+    taken = {p["name"] for p in parts if p["kind"] != "bone"}  # object names
+    same = {}
+    for p in parts:
+        if p["kind"] == "bone":
+            same.setdefault(p["name"], []).append(p)
+    for name, group in same.items():
+        if len(group) > 1 or name in taken:
+            keep = None if name in taken else max(group, key=lambda p: len(p["object"].data.vertices))
+            for p in group:
+                if p is not keep:
+                    p["name"] = f"{p['object'].name}:{name}"
+    boned = {p["object"] for p in parts if p["kind"] == "bone"}
+    mode = "objects" if not boned else ("bones" if len(boned) == len(meshes) else "bones+objects")
     return mode, parts
 
 
@@ -157,48 +194,65 @@ def aim_direction(cam, d: Vector, points: np.ndarray, zoom: float = 1.0, ortho: 
 
 # ---------------------------------------------------------------- coloring
 
+def _by_object(parts: list[dict]) -> dict:
+    out = {}
+    for i, p in enumerate(parts):
+        out.setdefault(p["object"], []).append((i, p))
+    return out
+
+
+def _face_parts(me, plist) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Per polygon of ``me``, the index of the part most of its vertices belong to (-1 for
+    none), with the polygons' loop starts and counts."""
+    vpart = np.full(len(me.vertices), -1)
+    for i, p in plist:
+        vpart[slice(None) if p["indices"] is None else p["indices"]] = i
+    loop_vert = np.empty(len(me.loops), dtype=np.int64)
+    me.loops.foreach_get("vertex_index", loop_vert)
+    starts = np.empty(len(me.polygons), dtype=np.int64)
+    counts = np.empty(len(me.polygons), dtype=np.int64)
+    me.polygons.foreach_get("loop_start", starts)
+    me.polygons.foreach_get("loop_total", counts)
+    out = np.full(len(me.polygons), -1)
+    for k, (st, n) in enumerate(zip(starts, counts)):
+        ids = vpart[loop_vert[st : st + n]]
+        ids = ids[ids >= 0]
+        if len(ids):
+            out[k] = np.bincount(ids).argmax()
+    return out, starts, counts
+
+
 def _paint_parts(mode: str, parts: list[dict], highlight: set | None = None, palette: list | None = None):
     """Color parts for a Workbench render; returns the color per part name. ``palette`` gives
-    one color per part (unique ID colors); the default cycles through PALETTE."""
-    colors = {}
+    one color per part (unique ID colors); the default cycles through PALETTE. Colors are
+    kept per part index, so parts that share a name still get their own."""
+    colors = []
     for i, p in enumerate(parts):
         if palette is not None:
-            colors[p["name"]] = palette[i]
+            colors.append(palette[i])
         elif highlight is None:
-            colors[p["name"]] = PALETTE[i % len(PALETTE)]
+            colors.append(PALETTE[i % len(PALETTE)])
         else:
-            colors[p["name"]] = HIGHLIGHT if p["name"] in highlight else DIM
+            colors.append(HIGHLIGHT if p["name"] in highlight else DIM)
     # one flat color per face (face corners); skinned meshes by the bone most of its vertices follow
-    table = np.array([(*colors[p["name"]], 1.0) for p in parts] + [(*DIM, 1.0)])
-    by_object = {}
-    for i, p in enumerate(parts):
-        by_object.setdefault(p["object"], []).append((i, p))
-    for obj, plist in by_object.items():
+    table = np.array([(*c, 1.0) for c in colors] + [(*DIM, 1.0)])
+    for obj, plist in _by_object(parts).items():
         if obj.data.users > 1:  # linked duplicates share a mesh: give each its own colors
             obj.data = obj.data.copy()
         me = obj.data
-        vpart = np.full(len(me.vertices), -1)
-        for i, p in plist:
-            vpart[slice(None) if p["indices"] is None else p["indices"]] = i
-        loop_vert = np.empty(len(me.loops), dtype=np.int64)
-        me.loops.foreach_get("vertex_index", loop_vert)
-        starts = np.empty(len(me.polygons), dtype=np.int64)
-        counts = np.empty(len(me.polygons), dtype=np.int64)
-        me.polygons.foreach_get("loop_start", starts)
-        me.polygons.foreach_get("loop_total", counts)
+        face, starts, counts = _face_parts(me, plist)
         data = np.empty((len(me.loops), 4))
-        for st, n in zip(starts, counts):
-            ids = vpart[loop_vert[st : st + n]]
-            ids = ids[ids >= 0]
-            data[st : st + n] = table[np.bincount(ids).argmax() if len(ids) else -1]
+        for k, (st, n) in enumerate(zip(starts, counts)):
+            data[st : st + n] = table[face[k]]
         attr = me.color_attributes.get("opus_parts") or me.color_attributes.new("opus_parts", "FLOAT_COLOR", "CORNER")
         attr.data.foreach_set("color", data.ravel())
         me.color_attributes.active_color = attr
-    return colors, "VERTEX"
+    return {p["name"]: c for p, c in zip(parts, colors)}, "VERTEX"
 
 
-def _label_anchor(scene, cam, part: dict, size: float):
-    """A visible surface point of the part, in normalized image coordinates (x right, y down)."""
+def _label_anchor(scene, cam, part: dict, size: float, clip: float | None = None):
+    """A visible surface point of the part, in normalized image coordinates (x right, y down).
+    ``clip``: a cutaway's clip distance, where the visibility rays start."""
     co = part["co"]
     if len(co) > 1500:
         co = co[np.linspace(0, len(co) - 1, 1500).astype(int)]
@@ -216,11 +270,11 @@ def _label_anchor(scene, cam, part: dict, size: float):
     for k in order[:40]:
         v = Vector(co[k])
         if cam.data.type == "ORTHO":
-            origin = v - forward * (size * 10 + 1)
+            origin = v - forward * ((v - cam_loc).dot(forward) - clip if clip else size * 10 + 1)
             direction = forward
         else:
-            origin = cam_loc
             direction = (v - cam_loc).normalized()
+            origin = cam_loc + direction * (clip / max(direction.dot(forward), 1e-6) if clip else 0.0)
         hit, loc, *_ = scene.ray_cast(dg, origin, direction)
         if hit and (loc - v).length < tol:
             return {"x": float(proj[k, 0]), "y": float(1 - proj[k, 1]), "visible": True}
@@ -241,9 +295,13 @@ def views(
 ) -> dict:
     """Render ``shots`` (dicts with view or azimuth/elevation, pass, zoom, ortho).
 
-    ``target`` (an object, collection or bone name) frames the camera on that part; the rest
-    stays visible for context unless ``isolate``. Passes: shaded, clay, wire, silhouette,
-    normals, parts (labeled part map), focus (the target highlighted, the rest gray).
+    ``target`` (an object, collection, part or bone name) frames the camera on that part; a
+    bone brings its descendants' regions (hand_r: palm and fingers). The rest stays visible
+    for context unless ``isolate``, which renders only the target's faces. When something
+    else stands between the camera and the target, the near clip cuts it away (the tile's
+    view says "cutaway"). Passes: shaded, clay, wire, silhouette, normals (world normals as
+    colors, backfaces red), parts (labeled part map), focus (the target highlighted, the rest
+    gray).
     """
     targets = assets.load(path, objects)
     scene = bpy.context.scene
@@ -256,18 +314,12 @@ def views(
     all_pts = _all_points(targets)
     frame_pts, focus = all_pts, None
     if target:
-        focus = {p["name"] for p in parts if p["name"] == target}
-        if not focus:  # a collection or object name in bone mode
-            focus = {p["name"] for p in parts if p["object"].name == target or target in
-                     {c.name for c in p["object"].users_collection}}
+        focus = _focus(parts, target)
         if not focus:
             raise ValueError(f"no part named {target!r}; parts: {[p['name'] for p in parts][:60]}")
         frame_pts = np.concatenate([p["co"] for p in parts if p["name"] in focus])
         if isolate:
-            for p in parts:
-                if p["kind"] == "object" and p["name"] not in focus:
-                    p["object"].hide_render = True
-                    p["object"].hide_set(True)
+            _isolate(parts, focus)
     lo, hi = _bounds(all_pts)
     size_m = max((hi - lo).length, 1e-6)
     _render_settings(size)
@@ -286,14 +338,14 @@ def views(
             w.hide_set(True)  # hidden from label ray casts too
         labels = None
         if pass_name == "shaded":
-            _workbench(light="STUDIO", color_type="TEXTURE", cavity=True, outline=True)
+            _workbench(light="STUDIO", color_type=shaded_color_type(targets), cavity=True, outline=True)
         elif pass_name in ("clay", "wire"):
             for o in targets:
                 o.color = CLAY
             _workbench(light="STUDIO", color_type="OBJECT", cavity=True, outline=True)
             if pass_name == "wire":
                 if not wires:
-                    wires = _wire_copies(list({p["object"] for p in parts if not (isolate and focus and p["kind"] == "object" and p["name"] not in focus)}), size_m * 0.6)
+                    wires = _wire_copies([o for o in {p["object"] for p in parts} if not o.hide_render], size_m * 0.6)
                 for w in wires:
                     w.hide_render = False
                     w.hide_set(False)
@@ -303,26 +355,102 @@ def views(
             _cycles(2, denoise=False)
             scene.view_settings.view_transform = "Standard"
             _world(BG)
-            bpy.context.view_layer.material_override = _diagnostic_material("normals")
+            bpy.context.view_layer.material_override = _diagnostic_material("normal_rgb")
         elif pass_name in ("parts", "focus"):
             colors, ctype = _paint_parts(mode, parts, focus if pass_name == "focus" else None)
             mask_mode(color_type=ctype)
         else:
             raise ValueError("pass must be shaded, clay, wire, silhouette, normals, parts or focus")
         aim(cam, az, el, frame_pts, zoom=float(shot.get("zoom", 1.0)), ortho=bool(shot.get("ortho", False)))
+        clip = _cutaway(scene, cam, frame_pts) if focus and not isolate else None
+        if clip:
+            cam.data.clip_start = clip
         if pass_name == "parts":
             labels = []
             for p in parts:
-                a = _label_anchor(scene, cam, p, size_m)
+                if isolate and focus and p["name"] not in focus:
+                    continue
+                a = _label_anchor(scene, cam, p, size_m, clip)
                 if a:
                     labels.append({"name": p["name"], "color": colors[p["name"]], **a})
         fp = os.path.join(out_dir, f"shot{i:02d}_{pass_name}.png")
         scene.render.filepath = fp
         bpy.ops.render.render(write_still=True)
-        tiles.append({"path": fp, "pass": pass_name, "azimuth": az, "elevation": el,
-                      "view": view if isinstance(view, str) else None, "labels": labels})
+        tile = {"path": fp, "pass": pass_name, "azimuth": az, "elevation": el,
+                "view": view if isinstance(view, str) else None, "labels": labels}
+        if clip:  # say so in the tile's title
+            tile.update(cutaway=True, clip_start_m=round(clip, 4),
+                        view=f"{view if isinstance(view, str) else f'az {az:g}°, el {el:g}°'} · cutaway")
+        tiles.append(tile)
     return {"tiles": tiles, "mode": mode, "parts": [p["name"] for p in parts], "target": target or None,
-            "stats": assets.stats(targets)}
+            "focus": sorted(focus) if focus else [], "stats": assets.stats(targets)}
+
+
+def _subtree(bone) -> set[str]:
+    """Names of a bone's descendants, leaving out weapon_* subtrees (a held sword isn't the hand)."""
+    out, todo = set(), list(bone.children)
+    while todo:
+        b = todo.pop()
+        if not b.name.lower().startswith("weapon"):
+            out.add(b.name)
+            todo.extend(b.children)
+    return out
+
+
+def _focus(parts: list[dict], target: str) -> set[str]:
+    """Names of the parts ``target`` means: every part of an object or collection of that name,
+    else the part of that name plus, for a bone region, its descendant bones' regions on the
+    same mesh."""
+    focus = {p["name"] for p in parts if p["object"].name == target or target in {c.name for c in p["object"].users_collection}}
+    if focus:
+        return focus
+    for p in [p for p in parts if p["name"] == target]:
+        focus.add(p["name"])
+        if p["kind"] == "bone":
+            sub = _subtree(p["object"].find_armature().data.bones[p["bone"]])
+            focus |= {q["name"] for q in parts if q["kind"] == "bone" and q["object"] is p["object"] and q["bone"] in sub}
+    return focus
+
+
+def _isolate(parts: list[dict], focus: set[str]):
+    """Hide all but the focus parts: objects without one are hidden, and an object only partly
+    in focus (a skinned body's hand) loses its other faces. Vertices stay, so part indices
+    still hold."""
+    for obj, plist in _by_object(parts).items():
+        keep = [i for i, p in plist if p["name"] in focus]
+        if not keep:
+            obj.hide_render = True
+            obj.hide_set(True)
+        elif len(keep) < len(plist):
+            if obj.data.users > 1:
+                obj.data = obj.data.copy()
+            face, _, _ = _face_parts(obj.data, plist)
+            bm = bmesh.new()
+            bm.from_mesh(obj.data)
+            bm.faces.ensure_lookup_table()
+            bmesh.ops.delete(bm, geom=[bm.faces[k] for k in np.nonzero(~np.isin(face, keep))[0]], context="FACES_ONLY")
+            bm.to_mesh(obj.data)
+            bm.free()
+
+
+def _cutaway(scene, cam, pts: np.ndarray) -> float | None:
+    """The near clip distance that cuts away whatever stands between the camera and the
+    target's center (just in front of the target), or None when the line of sight is clear."""
+    mw = cam.matrix_world
+    loc = mw.translation
+    fwd = (mw.to_3x3() @ Vector((0, 0, -1))).normalized()
+    lo, hi = _bounds(pts)
+    center = (lo + hi) / 2
+    near = float(((pts - np.array(loc)) @ np.array(fwd)).min())
+    margin = max((hi - lo).length * 0.03, 1e-4)
+    if cam.data.type == "ORTHO":
+        origin, direction = center - fwd * (center - loc).dot(fwd), fwd
+    else:
+        origin, direction = loc, (center - loc).normalized()
+    hit, at, *_ = scene.ray_cast(bpy.context.evaluated_depsgraph_get(), origin, direction)
+    if not hit or (at - loc).dot(fwd) >= near - margin or near - margin <= cam.data.clip_start:
+        return None
+    return near - margin
 
 
 # ---------------------------------------------------------------- task: structure report
@@ -398,12 +526,13 @@ def report(path: str, objects: list[str] | None = None) -> dict:
     dims = hi - lo
     size = max(dims.length, 1e-6)
     out_parts = []
-    meshes, objs = {}, {}
     for p in parts:
         co = p["co"]
         c = co.mean(axis=0)
         info = {"name": p["name"], "verts": int(len(co)), "center_m": [round(float(x), 4) for x in c],
                 "size_m": [round(float(x), 4) for x in np.ptp(co, axis=0)]}
+        if p.get("bone"):
+            info["bone"] = p["bone"]
         if len(co) >= 4:
             evals, evecs = np.linalg.eigh(np.cov((co - c).T))
             order = np.argsort(evals)[::-1]
@@ -413,31 +542,36 @@ def report(path: str, objects: list[str] | None = None) -> dict:
             info["main_axis"] = _direction_label(axes[0])
             fill = None
             if p["kind"] == "object":
-                wco, polys = _world_mesh(p["object"])
-                meshes[p["name"]], objs[p["name"]] = (wco, polys), p["object"]
-                vol = _volume(wco, polys)
+                vol = _volume(*_world_mesh(p["object"]))
                 if vol is not None:
                     info["volume_m3"] = round(vol, 6)
                     fill = vol / max(lengths[0] * lengths[1] * lengths[2], 1e-12)
             info["shape"] = _shape(lengths, fill)
         if p["kind"] == "bone":
             arm = _armature_of(p["object"])
-            b = arm.data.bones[p["name"]]
+            b = arm.data.bones[p["bone"]]
             mw = arm.matrix_world
             h, t = np.array(mw @ b.head_local), np.array(mw @ b.tail_local)
             info["bone_length_m"] = round(float(np.linalg.norm(t - h)), 4)
             info["girth_radius_m"] = round(float(np.median(_segment_distances(co, h, t))), 4)
         out_parts.append(info)
 
-    # contacts, penetrations and floating parts between objects. Penetration is triangle
-    # overlap with a depth (geom.penetration), so faces that only touch stay contacts and a
-    # part pushed right through a thin plate is still caught.
+    # contacts, penetrations and floating parts between mesh objects, skinned ones included
+    # (posed, in world space). Penetration is triangle overlap with a depth (geom.penetration),
+    # so faces that only touch stay contacts and a part pushed right through a thin plate is
+    # still caught. Then each loose island of a mesh: a tusk or a planted sphere off a skinned
+    # body floats there too.
     contacts, gaps, penetrations = [], [], []
-    if 1 < len(meshes) <= 60:
-        solids = {n: geom.Solid.from_objects([objs[n]]) for n, (co, polys) in meshes.items() if polys}
+    mesh_objs = [o for o in targets if o.type == "MESH"]
+    solids = {}
+    if len(mesh_objs) <= MAX_ISLANDS:
+        solids = {o.name: geom.Solid.from_objects([o]) for o in mesh_objs}
         solids = {n: s for n, s in solids.items() if s is not None}
-        names = list(solids)
-        tol = size * 0.004
+    names = list(solids)
+    tol = min(size * 0.004, 0.003)
+    if 1 < len(names) <= MAX_PAIRS:
+        objs = {o.name: o for o in mesh_objs}
+        verts = {n: _world_mesh(objs[n])[0] for n in names}
         pen_tol = max(size * 1e-4, 1e-5)
         dist = {}
         for i, a in enumerate(names):
@@ -445,7 +579,7 @@ def report(path: str, objects: list[str] | None = None) -> dict:
                 pen = geom.penetration(solids[a], solids[b])
                 if pen is not None and pen["depth"] > pen_tol:
                     dist[a, b] = dist[b, a] = 0.0
-                    contacts.append({"a": a, "b": b, "kind": "intersecting"})
+                    contacts.append({"a": a, "b": b, "kind": "intersecting", "gap_mm": 0.0})
                     entry = {"a": a, "b": b, "kind": pen["kind"], "triangles": pen["triangles"],
                              "depth_mm": round(pen["depth"] * 1000, 2), "at_m": [round(float(x), 4) for x in pen["at"]]}
                     if "thin" in pen:
@@ -453,23 +587,27 @@ def report(path: str, objects: list[str] | None = None) -> dict:
                                      past_sheet_mm=round(pen["sheet"] * 1000, 2))
                     if "inside" in pen:
                         entry["inside"] = a if pen["inside"] == "a" else b
-                    # finding contract (docs/OVERHAUL.md 2.5); targets are objects until specs exist
-                    entry.update({"gate": "model_report", "check": "penetration", "class": "hard", "target": {"part": a, "other": b},
+                    # finding contract (docs/OVERHAUL.md 2.5); targets are objects until specs exist.
+                    # Report class: hidden joints on static props are fine, and no v0.4 spec gates them
+                    entry.update({"gate": "model_report", "check": "penetration", "class": "report", "target": {"part": a, "other": b},
                                   "value": round(pen["depth"], 6), "expected": f"<={pen_tol:.6f}", "unit": "m",
-                                  "noise_tol": round(pen_tol, 6), "pass": False})
+                                  "noise_tol": round(pen_tol, 6), "pass": False,
+                                  "note": "fine for hidden joints on static props; avoid on deforming meshes"})
                     penetrations.append(entry)
                     continue
                 if pen is not None:  # surfaces meet without depth: faces lying on each other
                     d = 0.0
                 else:
-                    d = min(_sampled_gap(meshes[a][0], solids[b].bvh), _sampled_gap(meshes[b][0], solids[a].bvh))
+                    d = min(_sampled_gap(verts[a], solids[b].bvh), _sampled_gap(verts[b], solids[a].bvh))
                 dist[a, b] = dist[b, a] = d
                 if d <= tol:
-                    contacts.append({"a": a, "b": b, "kind": "touching"})
+                    contacts.append({"a": a, "b": b, "kind": "touching", "gap_mm": round(d * 1000, 2)})
         for a in names:
             gap, nearest = min((dist[a, b], b) for b in names if b != a)
             if gap > tol:
-                gaps.append({"part": a, "nearest": nearest, "gap_m": round(gap, 4)})
+                gaps.append({"part": a, "nearest": nearest, "gap_m": round(gap, 4),
+                             "center_m": [round(float(x), 4) for x in verts[a].mean(axis=0)]})
+    gaps += _island_floaters(solids, min(size * 0.002, 0.002), lo.z, skip={g["part"] for g in gaps})
 
     # mirror symmetry across the asset's center plane (X)
     pts = all_pts[:: max(1, len(all_pts) // 6000)]
@@ -536,6 +674,65 @@ def report(path: str, objects: list[str] | None = None) -> dict:
 def _sampled_gap(co: np.ndarray, tree) -> float:
     sample = co[:: max(1, len(co) // 400)]
     return min((tree.find_nearest(Vector(v))[3] or float("inf")) for v in sample)
+
+
+def _island_gap(a: tuple, b: tuple, pts_a: np.ndarray, pts_b: np.ndarray) -> float:
+    """Distance between loose parts ``a`` and ``b`` ((Solid, part index) each) from their
+    sampled vertices ``pts_a``, ``pts_b`` to the other's surface; 0 when their triangles
+    cross or one lies wholly inside the other (an eye in a closed head)."""
+    (sa, ja), (sb, jb) = a, b
+    bvh_a, base_a = sa._comp_bvh(ja)
+    bvh_b, base_b = sb._comp_bvh(jb)
+    if bvh_a.overlap(bvh_b):
+        return 0.0
+    best = float("inf")
+    for s, bvh, base, pts in ((sb, bvh_b, base_b, pts_a), (sa, bvh_a, base_a, pts_b)):
+        d, q, t, f = s._nearest(pts, bvh, base)
+        if s._inside(pts, q, t, f).all():
+            return 0.0
+        best = min(best, float(d.min()))
+    return best
+
+
+def _island_floaters(solids: dict, tol: float, floor_z: float, skip: set) -> list[dict]:
+    """Loose islands of meshes with several, that touch nothing: farther than ``tol`` from
+    every other island of any object, not within ``tol`` of the floor and not inside another
+    island. Islands are numbered per object, largest first (island 0 is the main body).
+    Objects in ``skip`` already float whole."""
+    isl = []  # (object name, island number, solid, loose part index)
+    for name, s in solids.items():
+        isl += [(name, k, s, int(j)) for k, j in enumerate(np.argsort(-np.diff(s.start), kind="stable"))]
+    if len(isl) > MAX_ISLANDS or not any(s.ncomp > 1 and n not in skip for n, s in solids.items()):
+        return []
+    lo = np.array([s.lo[j] for _, _, s, j in isl])
+    hi = np.array([s.hi[j] for _, _, s, j in isl])
+    pts = {}
+
+    def points(c):
+        if c not in pts:
+            s, j = isl[c][2:]
+            used = np.unique(s.T[s.start[j] : s.start[j + 1]])
+            pts[c] = s.V[used[:: max(1, len(used) // 1500)]]
+        return pts[c]
+
+    out = []
+    for i, (name, k, s, j) in enumerate(isl):
+        if s.ncomp < 2 or name in skip or lo[i, 2] - floor_z <= tol:
+            continue
+        box = np.linalg.norm(np.maximum(0.0, np.maximum(lo - hi[i], lo[i] - hi)), axis=1)  # a lower bound
+        box[i] = np.inf
+        best, nearest = float("inf"), i
+        for c in np.argsort(box):
+            if box[c] >= best or best <= tol:
+                break
+            d = _island_gap((s, j), isl[c][2:], points(i), points(c))
+            if d < best:
+                best, nearest = d, int(c)
+        if best > tol:
+            used = np.unique(s.T[s.start[j] : s.start[j + 1]])
+            out.append({"part": f"{name} island {k}", "nearest": isl[nearest][0], "gap_m": round(best, 4),
+                        "center_m": [round(float(x), 4) for x in s.V[used].mean(axis=0)], "island": True})
+    return out
 
 
 def _point_in_polygon(p, poly) -> bool:

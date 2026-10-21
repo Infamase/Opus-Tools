@@ -18,7 +18,7 @@ from mathutils import Vector, geometry
 
 from opus_bl import assets
 from opus_bl.inspect3d import PALETTE, _all_points, _armature_of, _paint_parts, parts_of, view_angles
-from opus_bl.lookdev import BG, CLAY, _camera, _render_settings, _workbench, mask_mode, srgb8
+from opus_bl.lookdev import BG, CLAY, _camera, _render_settings, _workbench, mask_mode, shaded_color_type, srgb8
 
 MARGIN_PX = 2
 
@@ -125,14 +125,14 @@ def _border(scene, x0: int, y0: int, x1: int, y1: int, res_w: int, res_h: int):
     r.border_min_y, r.border_max_y = (res_h - y1 + 0.25) / res_h, (res_h - y0 + 0.25) / res_h
 
 
-def _set_pass(pass_name: str, mode: str, parts: list, colors: list):
+def _set_pass(pass_name: str, mode: str, parts: list, colors: list, targets=()):
     if pass_name == "parts":
         _paint_parts(mode, parts, palette=colors)
         mask_mode(color_type="VERTEX", transparent=True)
     elif pass_name == "silhouette":
         mask_mode(single=(0, 0, 0), bg=(1, 1, 1))
     elif pass_name == "shaded":  # as the game would show it: anti-aliased, no outline
-        _workbench(light="STUDIO", color_type="TEXTURE", cavity=False, outline=False, bg=BG)
+        _workbench(light="STUDIO", color_type=shaded_color_type(targets), cavity=False, outline=False, bg=BG)
     elif pass_name == "clay":
         _workbench(light="STUDIO", color_type="OBJECT", cavity=True, outline=True, bg=BG)
     else:
@@ -187,7 +187,7 @@ def render(
             if "parts" in shot["passes"]:  # how big each part would be if nothing hid it: [extent, hull area]
                 item["parts_projected"] = {p["name"]: _projected_size(cam, p["co"], res_w, res_h) for p in parts}
             for pass_name in shot["passes"]:
-                _set_pass(pass_name, mode, parts, colors)
+                _set_pass(pass_name, mode, parts, colors, targets)
                 fp = os.path.join(out_dir, f"{shot.get('key', 'shot')}_{name}_{pass_name}.png")
                 scene.render.filepath = fp
                 bpy.ops.render.render(write_still=True)

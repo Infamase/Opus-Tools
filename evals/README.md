@@ -67,10 +67,10 @@ Checks use only tools that exist in v0.4:
 | Tool | Metrics |
 |---|---|
 | `mesh_lint` | `errors` (error findings), `findings` (one code's count, `args.code`), `tris` |
-| `model_report` | `floating_parts`, `missing_contacts` (parts that should touch and don't), `penetrations` (entries in its penetrations list), `on_floor`, `com_over_footprint`, `symmetric`, `rig_style`, `width_m` (X), `length_m` (Y), `height_m` (Z), `longest_m` |
+| `model_report` | From `report["metrics"]`: `floating_parts`, `penetrations` (entries in its penetrations list), `on_floor`, `com_over_footprint`, `symmetric`, `rig_style`, `width_m` (X), `length_m` (Y), `height_m` (Z), `longest_m`. `missing_contacts` (parts that should touch and don't) is the number of pairs the check's `note` requires that are absent from `report["contacts"]` |
 | `proportion_check` | `closest_canon`, `unintended_findings` (findings the brief does not declare as stylization) |
 | `reference_match` | `iou`, against the task's first reference |
-| `readability_check` | `defining_under_floor` (defining parts under the pixel floor, or gone), `subject_px` |
+| `readability_check` | `defining_under_floor` (defining parts under the pixel floor, gone, or not found: any `defining` entry whose status is not `ok`, including names in `defining_not_found`), `subject_px` |
 | `blind_read_sheet` | `top1_names_subject`: a fresh judge's top guess is one of `names` |
 | `grip_check` | `verdict` (`good grip`), `body_clipping_verts` |
 | `sprite_inspect` | `semi_transparent_pixels`, `strays`, `off_palette_pixels`, `color_count`, `jaggy_elbows`, `colors_not_in_every_frame` |

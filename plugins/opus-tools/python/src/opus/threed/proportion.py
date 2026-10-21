@@ -22,6 +22,7 @@ from opus.pixel.color import rgb_to_oklab
 NORM_H = 480  # silhouettes are compared at this height in pixels
 BANDS = 20
 BOTH, MODEL_ONLY, REF_ONLY, BG = (205, 205, 212), (235, 80, 70), (70, 170, 255), (34, 35, 40)
+REF_BG = (236, 236, 240)  # what a transparent reference is shown on
 
 HUMANOID_REGIONS = [  # (top fraction of height from the floor, name); first match from the top wins
     (0.87, "head"), (0.81, "neck"), (0.72, "shoulders and chest"), (0.61, "waist"), (0.49, "hips"),
@@ -79,6 +80,16 @@ def image_mask(path: str | Path, threshold: float = 0.0, max_side: int = 700) ->
             break
         reach = grown
     return _largest_parts(~reach)
+
+
+def reference_image(path: str | Path) -> Image.Image:
+    """A reference as RGB for display. One with alpha (RGBA, LA, or a palette or tRNS
+    transparency) is laid over a light background, so a subject drawn only in alpha (a black
+    PhyloPic glyph with luminance 0 everywhere) shows instead of a solid black tile."""
+    img = Image.open(path)
+    if img.mode in ("RGBA", "LA", "PA", "RGBa", "La") or "transparency" in img.info:
+        return Image.fromarray(im.over(np.asarray(img.convert("RGBA")), REF_BG))
+    return img.convert("RGB")
 
 
 def _largest_parts(mask: np.ndarray, keep: float = 0.02) -> np.ndarray:
@@ -465,7 +476,7 @@ def reference_match(
         lm_m, lm_r = humanoid_landmarks(a), humanoid_landmarks(b)
         report["landmarks"] = {"model": lm_m, "reference": lm_r}
         report["findings"] += [{**f, "text": f["text"].replace("canon", "reference")} for f in compare_landmarks(lm_m, lm_r)]
-    ref_img = Image.open(reference).convert("RGB")
+    ref_img = reference_image(reference)
     ref_img.thumbnail((380, 390))
     sheet = im.Sheet(title=f"Reference Match · {path.name} vs {reference.name}",
                      subtitle=f"{view} view · silhouette IoU {report['iou']:.2f}" + (" · reference mirrored to match" if use_flip else ""))

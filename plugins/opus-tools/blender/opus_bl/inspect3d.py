@@ -388,6 +388,8 @@ def _bone_style(names) -> str:
 
 
 def report(path: str, objects: list[str] | None = None) -> dict:
+    from opus_bl import geom
+
     targets = assets.load(path, objects)
     mode, parts = parts_of(targets)
     all_pts = _all_points(targets)
@@ -395,7 +397,7 @@ def report(path: str, objects: list[str] | None = None) -> dict:
     dims = hi - lo
     size = max(dims.length, 1e-6)
     out_parts = []
-    meshes = {}
+    meshes, objs = {}, {}
     for p in parts:
         co = p["co"]
         c = co.mean(axis=0)
@@ -411,7 +413,7 @@ def report(path: str, objects: list[str] | None = None) -> dict:
             fill = None
             if p["kind"] == "object":
                 wco, polys = _world_mesh(p["object"])
-                meshes[p["name"]] = (wco, polys)
+                meshes[p["name"]], objs[p["name"]] = (wco, polys), p["object"]
                 vol = _volume(wco, polys)
                 if vol is not None:
                     info["volume_m3"] = round(vol, 6)
@@ -426,20 +428,40 @@ def report(path: str, objects: list[str] | None = None) -> dict:
             info["girth_radius_m"] = round(float(np.median(_segment_distances(co, h, t))), 4)
         out_parts.append(info)
 
-    # contacts and floating parts between objects
-    contacts, gaps = [], []
+    # contacts, penetrations and floating parts between objects. Penetration is triangle
+    # overlap with a depth (geom.penetration), so faces that only touch stay contacts and a
+    # part pushed right through a thin plate is still caught.
+    contacts, gaps, penetrations = [], [], []
     if 1 < len(meshes) <= 60:
-        trees = {n: BVHTree.FromPolygons([tuple(v) for v in co], polys) for n, (co, polys) in meshes.items() if polys}
-        names = list(trees)
+        solids = {n: geom.Solid.from_objects([objs[n]]) for n, (co, polys) in meshes.items() if polys}
+        solids = {n: s for n, s in solids.items() if s is not None}
+        names = list(solids)
         tol = size * 0.004
+        pen_tol = max(size * 1e-4, 1e-5)
         dist = {}
         for i, a in enumerate(names):
             for b in names[i + 1 :]:
-                if trees[a].overlap(trees[b]):
+                pen = geom.penetration(solids[a], solids[b])
+                if pen is not None and pen["depth"] > pen_tol:
                     dist[a, b] = dist[b, a] = 0.0
                     contacts.append({"a": a, "b": b, "kind": "intersecting"})
+                    entry = {"a": a, "b": b, "kind": pen["kind"], "triangles": pen["triangles"],
+                             "depth_mm": round(pen["depth"] * 1000, 2), "at_m": [round(float(x), 4) for x in pen["at"]]}
+                    if "thin" in pen:
+                        entry.update(thin_part=a if pen["thin"] == "a" else b, thickness_mm=round(pen["thickness"] * 1000, 2),
+                                     past_sheet_mm=round(pen["sheet"] * 1000, 2))
+                    if "inside" in pen:
+                        entry["inside"] = a if pen["inside"] == "a" else b
+                    # finding contract (docs/OVERHAUL.md 2.5); targets are objects until specs exist
+                    entry.update({"gate": "model_report", "check": "penetration", "class": "hard", "target": {"part": a, "other": b},
+                                  "value": round(pen["depth"], 6), "expected": f"<={pen_tol:.6f}", "unit": "m",
+                                  "noise_tol": round(pen_tol, 6), "pass": False})
+                    penetrations.append(entry)
                     continue
-                d = min(_sampled_gap(meshes[a][0], trees[b]), _sampled_gap(meshes[b][0], trees[a]))
+                if pen is not None:  # surfaces meet without depth: faces lying on each other
+                    d = 0.0
+                else:
+                    d = min(_sampled_gap(meshes[a][0], solids[b].bvh), _sampled_gap(meshes[b][0], solids[a].bvh))
                 dist[a, b] = dist[b, a] = d
                 if d <= tol:
                     contacts.append({"a": a, "b": b, "kind": "touching"})
@@ -501,6 +523,7 @@ def report(path: str, objects: list[str] | None = None) -> dict:
         "centered_x": abs(cx) < max(size * 0.01, 1e-3),
         "parts": out_parts,
         "contacts": contacts,
+        "penetrations": sorted(penetrations, key=lambda p: -p["depth_mm"]),
         "gaps": sorted(gaps, key=lambda g: -g["gap_m"]),
         "symmetry": symmetry,
         "balance": balance,

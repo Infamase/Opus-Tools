@@ -11,7 +11,10 @@
   ``weapon_r``/``weapon_l`` bone at the object's origin, parents the object to it, and keys
   the pose as a ``Grip_*`` action. Optional arm placement for first-person views.
 - ``check``: measure any hand holding anything: how deep the palm and each finger sink into
-  the object or how far they float off it, with contact-colored close-ups.
+  the object or how far they float off it, and where the object cuts into the body, with
+  contact-colored close-ups. Signed distances come from ``geom`` (right at edges and
+  corners); body clipping also tests the surfaces for crossing, which a plate or blade
+  through the forearm needs.
 """
 
 from __future__ import annotations
@@ -25,7 +28,7 @@ import numpy as np
 from mathutils import Matrix, Quaternion, Vector
 from mathutils.bvhtree import BVHTree
 
-from opus_bl import assets
+from opus_bl import assets, geom
 from opus_bl.inspect3d import _world_mesh, aim_direction
 from opus_bl.lookdev import _camera, _render_settings, _workbench
 
@@ -187,23 +190,9 @@ def _hierarchy(root) -> list:
     return out
 
 
-def object_bvh(objs) -> BVHTree | None:
-    verts, polys = [], []
-    for o in objs:
-        if o.type != "MESH":
-            continue
-        co, ps = _world_mesh(o)
-        base = len(verts)
-        verts.extend(Vector(v) for v in co)
-        polys.extend(tuple(i + base for i in p) for p in ps)
-    return BVHTree.FromPolygons(verts, polys) if polys else None
-
-
-def signed_distance(bvh, p) -> float:
-    loc, normal, _, dist = bvh.find_nearest(p)
-    if loc is None:
-        return float("inf")
-    return dist if (p - loc).dot(normal) >= 0 else -dist
+def object_solid(objs) -> geom.Solid | None:
+    """The held meshes as one solid for signed distances (negative inside any part)."""
+    return geom.Solid.from_objects(objs)
 
 
 def _grip_empties(objs) -> list:
@@ -225,35 +214,35 @@ def _fk(J: list, ax: Vector, th) -> list:
     return P
 
 
-def _first_hit(P, radii, bvh, tol: float):
+def _first_hit(P, radii, held, tol: float):
     """Index of the first segment that sinks deeper than ``tol`` into the object, else None."""
     for s in range(len(P) - 1):
         ts = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0) if s < len(P) - 2 else (0.0, 0.2, 0.4, 0.6, 0.8)
         for t in ts:
-            if signed_distance(bvh, P[s].lerp(P[s + 1], t)) - radii[s] < -tol:
+            if held.signed1(P[s].lerp(P[s + 1], t)) - radii[s] < -tol:
                 return s
-        if s == len(P) - 2 and signed_distance(bvh, P[-1]) - radii[s] * 0.3 < -tol:
+        if s == len(P) - 2 and held.signed1(P[-1]) - radii[s] * 0.3 < -tol:
             return s
     return None
 
 
-def _free_start(J, ax, radii, bvh, tol, n: int, step=math.radians(1.5)):
+def _free_start(J, ax, radii, held, tol, n: int, step=math.radians(1.5)):
     """Rest angles, or the knuckle opened just enough to clear the object; None if stuck."""
     th = [0.0] * n
-    if _first_hit(_fk(J, ax, th), radii, bvh, tol) is None:
+    if _first_hit(_fk(J, ax, th), radii, held, tol) is None:
         return th
     for back in np.arange(step, math.radians(40), step):
         th = [-back] + [0.0] * (n - 1)
-        if _first_hit(_fk(J, ax, th), radii, bvh, tol) is None:
+        if _first_hit(_fk(J, ax, th), radii, held, tol) is None:
             return th
     return None
 
 
-def close_chain(J, ax, radii, bvh, ratio, limit, tol, step=math.radians(1.5)):
+def close_chain(J, ax, radii, held, ratio, limit, tol, step=math.radians(1.5)):
     """GraspIt-style auto grasp of one finger. Returns (angles, status)."""
     n = len(J) - 1
     lim = [math.radians(x) for x in limit]
-    th = _free_start(J, ax, radii, bvh, tol, n)
+    th = _free_start(J, ax, radii, held, tol, n)
     if th is None:
         return [0.0] * n, "starts inside the object"
     frozen = [False] * n
@@ -265,34 +254,34 @@ def close_chain(J, ax, radii, bvh, ratio, limit, tol, step=math.radians(1.5)):
         if all(frozen):
             break
         trial = [th[i] + delta[i] for i in range(n)]
-        if _first_hit(_fk(J, ax, trial), radii, bvh, tol) is None:
+        if _first_hit(_fk(J, ax, trial), radii, held, tol) is None:
             th = trial
             continue
         lo, hi = 0.0, 1.0
         for _ in range(10):
             mid = (lo + hi) / 2
-            if _first_hit(_fk(J, ax, [th[i] + delta[i] * mid for i in range(n)]), radii, bvh, tol) is None:
+            if _first_hit(_fk(J, ax, [th[i] + delta[i] * mid for i in range(n)]), radii, held, tol) is None:
                 lo = mid
             else:
                 hi = mid
-        hit = _first_hit(_fk(J, ax, [th[i] + delta[i] * hi for i in range(n)]), radii, bvh, tol)
+        hit = _first_hit(_fk(J, ax, [th[i] + delta[i] * hi for i in range(n)]), radii, held, tol)
         th = [th[i] + delta[i] * lo for i in range(n)]
         for i in range(min(hit, n - 1) + 1):
             frozen[i] = True
     return th, "closed"
 
 
-def _march(J, ax, radii, bvh, ratio, limit, tol, score, step=math.radians(1.0)):
+def _march(J, ax, radii, held, ratio, limit, tol, score, step=math.radians(1.0)):
     """Close with coupled joints until contact or the limits; keep the best-scoring state."""
     lim = [math.radians(x) for x in limit]
-    start = _free_start(J, ax, radii, bvh, tol, len(ratio))
+    start = _free_start(J, ax, radii, held, tol, len(ratio))
     if start is None:
         return [0.0] * len(ratio), float("inf")
     best, best_th, t = float("inf"), start, 0.0
     while True:
         th = [min(start[i] + t * ratio[i], lim[i]) for i in range(len(ratio))]
         P = _fk(J, ax, th)
-        if _first_hit(P, radii, bvh, tol) is not None:
+        if _first_hit(P, radii, held, tol) is not None:
             break
         sc = score(P)
         if sc < best:
@@ -303,7 +292,7 @@ def _march(J, ax, radii, bvh, ratio, limit, tol, score, step=math.radians(1.0)):
     return best_th, best
 
 
-def _reach_point(J, ax, radii, bvh, tol, score):
+def _reach_point(J, ax, radii, held, tol, score):
     """Best knuckle and middle-joint angles (tip joint follows at 0.7x) for ``score``,
     without entering the object: a grid, then a finer grid around the best."""
     def search(k0, k1, step):
@@ -313,7 +302,7 @@ def _reach_point(J, ax, radii, bvh, tol, score):
                 th = [math.radians(a), math.radians(b), math.radians(b * 0.7)]
                 P = _fk(J, ax, th)
                 sc = score(P)
-                if sc < best and _first_hit(P, radii, bvh, tol) is None:
+                if sc < best and _first_hit(P, radii, held, tol) is None:
                     best, best_th = sc, th
         return best, best_th
 
@@ -397,7 +386,7 @@ def _capsule_clear(P, radii, capsules, tol, segments=(1, 2)) -> bool:
     return True
 
 
-def solve_thumb(J, radii, frame, bvh, capsules, target: Vector, tol: float, give: float = 0.0, skin=None):
+def solve_thumb(J, radii, frame, held, capsules, target: Vector, tol: float, give: float = 0.0, skin=None):
     """Hill-climb the thumb's pad onto ``target`` without entering the object or the fingers.
     The metacarpal sits inside the palm's flesh, so only the two phalanges are tested."""
     t = (J[1] - J[0]).normalized()
@@ -412,19 +401,18 @@ def solve_thumb(J, radii, frame, bvh, capsules, target: Vector, tol: float, give
     state = {}
 
     def ok(P):
+        for s in (1, 2):
+            ts = (0.0, 0.25, 0.5, 0.75, 1.0) if s == 1 else (0.0, 0.25, 0.5, 0.75)
+            for u in ts:
+                if held.signed1(P[s].lerp(P[s + 1], u)) - radii[s] < -tol:
+                    return False
         # every vertex the thumb moves (its ball, the web), skinned the way the rig will skin
         # it, may press into the object by ``give`` and no further
         rots = state.get("rots")
         if skin and rots is not None:
             D = [Matrix.Translation(P[i]) @ rots[i].to_4x4() @ Matrix.Translation(-J[i]) for i in range(3)]
             for v, ws in skin:
-                moved = v + sum(((D[i] @ v - v) * w for i, w in ws), Vector())
-                if signed_distance(bvh, moved) < -(tol + give):
-                    return False
-        for s in (1, 2):
-            ts = (0.0, 0.25, 0.5, 0.75, 1.0) if s == 1 else (0.0, 0.25, 0.5, 0.75)
-            for u in ts:
-                if signed_distance(bvh, P[s].lerp(P[s + 1], u)) - radii[s] < -tol:
+                if held.signed1(v + sum(((D[i] @ v - v) * w for i, w in ws), Vector())) < -(tol + give):
                     return False
         return _capsule_clear(P, radii, capsules, tol)
 
@@ -484,10 +472,10 @@ def _finger_skin(arm, chain) -> np.ndarray:
     return np.concatenate(pts) if pts else np.empty((0, 3))
 
 
-def _weighted_skin(arm, chain, bvh, reach: float, limit: int = 80) -> list:
+def _weighted_skin(arm, chain, held, reach: float, limit: int = 80) -> list:
     """Vertices the chain's bones move (weight > 0.1) within ``reach`` of the object, with
     their weights per chain bone: [(position, [(bone index, weight)])]."""
-    out = []
+    cand = []
     for obj in _skinned_meshes(arm):
         co, _ = _world_mesh(obj)
         if len(co) != len(obj.data.vertices):
@@ -498,22 +486,22 @@ def _weighted_skin(arm, chain, bvh, reach: float, limit: int = 80) -> list:
             total = sum(g.weight for g in v.groups)
             ws = [(idx[names[g.group]], g.weight / total) for g in v.groups if names.get(g.group) in idx and total > 0]
             if sum(w for _, w in ws) > 0.1:
-                pos = Vector(p)
-                d = signed_distance(bvh, pos)
-                if d < reach:
-                    out.append((d, pos, ws))
-    out.sort(key=lambda x: x[0])
-    return [(pos, ws) for _, pos, ws in out[:limit]]
+                cand.append((p, ws))
+    if not cand:
+        return []
+    d = held.signed([p for p, _ in cand])
+    near = sorted((d[i], i) for i in np.nonzero(d < reach)[0])
+    return [(Vector(cand[i][0]), cand[i][1]) for _, i in near[:limit]]
 
 
-def refine_on_skin(arm, chain, ax, bvh, gap: float, max_inside: float, step=math.radians(1.0), steps: int = 25) -> int:
+def refine_on_skin(arm, chain, ax, held, gap: float, max_inside: float, step=math.radians(1.0), steps: int = 25) -> int:
     """Keep curling a finger (mostly its outer joints) until its actual skin, not the capsule
     estimate, touches the object. Returns the number of steps taken."""
     ratio = (0.3, 1.0, 0.8)
     done = 0
     for _ in range(steps):  # first open up if the real skin already sinks in
         skin = _finger_skin(arm, chain)
-        if not len(skin) or min(signed_distance(bvh, Vector(p)) for p in skin) >= -max_inside:
+        if not len(skin) or held.signed(skin).min() >= -max_inside:
             break
         J = _chain_joints(arm, chain)
         th = [-step * r for r in ratio]
@@ -525,7 +513,7 @@ def refine_on_skin(arm, chain, ax, bvh, gap: float, max_inside: float, step=math
         skin = _finger_skin(arm, chain)
         if not len(skin):
             break
-        closest = min(signed_distance(bvh, Vector(p)) for p in skin)
+        closest = held.signed(skin).min()
         if closest <= gap:
             break
         J = _chain_joints(arm, chain)
@@ -533,7 +521,7 @@ def refine_on_skin(arm, chain, ax, bvh, gap: float, max_inside: float, step=math
         olds = [arm.pose.bones[b].matrix.copy() for b in chain]
         _apply_chain(arm, chain, _fk(J, ax, th), ax, th)
         skin = _finger_skin(arm, chain)
-        if min(signed_distance(bvh, Vector(p)) for p in skin) < -max_inside:
+        if held.signed(skin).min() < -max_inside:
             for b, m in zip(chain, olds):  # went too far: undo and stop
                 arm.pose.bones[b].matrix = m
                 bpy.context.view_layer.update()
@@ -552,7 +540,7 @@ def _apply_rotations(arm, chain, P_new, rots):
         bpy.context.view_layer.update()
 
 
-def close_hand(arm, info, frame, bvh, grip: dict) -> dict:
+def close_hand(arm, info, frame, held, grip: dict) -> dict:
     """Close every finger and the thumb on the object. Returns per-finger results."""
     regions = hand_regions(arm, info, ball_in_palm=False)
     n_palm = frame["n"]
@@ -571,8 +559,8 @@ def close_hand(arm, info, frame, bvh, grip: dict) -> dict:
         if f == "thumb":
             mode = grip.get("thumb", "wrap")
             target = _thumb_target(arm, info, mode, axis_d, center, radii, capsules)
-            skin = _weighted_skin(arm, chain, bvh, frame["palm_len"] * 0.5)
-            q, P, rots, miss = solve_thumb(J, radii, frame, bvh, capsules, target, tol, give=0.002 * s_hand, skin=skin)
+            skin = _weighted_skin(arm, chain, held, frame["palm_len"] * 0.5)
+            q, P, rots, miss = solve_thumb(J, radii, frame, held, capsules, target, tol, give=0.002 * s_hand, skin=skin)
             _apply_rotations(arm, chain, P, rots)
             results[f] = {"angles_deg": [round(math.degrees(x), 1) for x in q],
                           "status": f"{mode}, pad {miss * 1000:.0f} mm from its ideal spot"}
@@ -582,7 +570,7 @@ def close_hand(arm, info, frame, bvh, grip: dict) -> dict:
         mode = grip.get("index", "curl") if f == "index" else "curl"
         ratio, limit = CLOSE_RATIO["default"], CLOSE_LIMIT["default"]
         if mode == "extended":
-            th, _ = _march(J, ax, radii, bvh, ratio, (6.0, 4.0, 2.0), tol, lambda P: -(P[-1] - J[-1]).length)
+            th, _ = _march(J, ax, radii, held, ratio, (6.0, 4.0, 2.0), tol, lambda P: -(P[-1] - J[-1]).length)
             status = "extended"
         elif mode == "trigger" and grip.get("trigger_world") is not None:
             trig = grip["trigger_world"]
@@ -591,14 +579,14 @@ def close_hand(arm, info, frame, bvh, grip: dict) -> dict:
                 d = _segment_dist(np.array([tuple(trig)]), P[2], P[3])[0]
                 return abs(d - radii[2])
 
-            th, best = _reach_point(J, ax, radii, bvh, tol, pad_distance)
+            th, best = _reach_point(J, ax, radii, held, tol, pad_distance)
             status = f"on trigger ({best * 1000:.1f} mm off)"
         else:
-            th, status = close_chain(J, ax, radii, bvh, ratio, limit, tol)
+            th, status = close_chain(J, ax, radii, held, ratio, limit, tol)
         P = _fk(J, ax, th)
         _apply_chain(arm, chain, P, ax, th)
         if mode == "curl":
-            extra = refine_on_skin(arm, chain, ax, bvh, 0.0005 * s_hand, 0.0005 * s_hand)
+            extra = refine_on_skin(arm, chain, ax, held, 0.0005 * s_hand, 0.0005 * s_hand)
             if extra:
                 status += f", {extra:+d} deg on the skin"
                 P = _chain_joints(arm, chain)
@@ -638,19 +626,18 @@ def seat(arm, info, frame, root, held, gap: float, tol: float, give: float, max_
     thumb_base = {info["fingers"]["thumb"][0]} if "thumb" in info["fingers"] else set()
     moved = 0.0
     for _ in range(max_iter):
-        bvh = object_bvh(held)
+        solid = object_solid(held)
         palm, ball = float("inf"), float("inf")
         for obj in _skinned_meshes(arm):
             co, _ = _world_mesh(obj)
             if len(co) != len(obj.data.vertices):
                 continue
             dom, order = _groups_by_vertex(obj, {info["hand"]} | thumb_base)
-            for i in np.nonzero(dom >= 0)[0]:
-                d = signed_distance(bvh, Vector(co[i]))
-                if order[dom[i]] == info["hand"]:
-                    palm = min(palm, d)
-                else:
-                    ball = min(ball, d)
+            sel = np.nonzero(dom >= 0)[0]
+            d = solid.signed(co[sel])
+            is_palm = np.array([order[k] == info["hand"] for k in dom[sel]], bool)
+            palm = min(palm, float(d[is_palm].min(initial=np.inf)))
+            ball = min(ball, float(d[~is_palm].min(initial=np.inf)))
         step = min(palm - gap, ball + give)  # > 0 moves the object toward the palm
         if not math.isfinite(step) or abs(step) <= tol:
             break
@@ -882,8 +869,8 @@ def _key_pose(arm, bones: list, action_name: str):
 
 def measure(arm, info, held_objs) -> dict:
     """Signed distances (mm) from the palm and each finger to the held object."""
-    bvh = object_bvh(held_objs)
-    if bvh is None:
+    held = object_solid(held_objs)
+    if held is None:
         raise ValueError("the held object has no mesh")
     frame = hand_frame(arm, info)
     s_hand = frame["palm_len"] / REF_PALM
@@ -892,7 +879,7 @@ def measure(arm, info, held_objs) -> dict:
     regions = hand_regions(arm, info)
     out = {}
     for r, pts in regions.items():
-        sd = np.array([signed_distance(bvh, Vector(p)) for p in pts])
+        sd = held.signed(pts)
         inside = sd < -(soft_tol if r == "palm" else pen_tol)
         mn = float(sd.min())
         if inside.any():
@@ -906,8 +893,8 @@ def measure(arm, info, held_objs) -> dict:
     touching = [r for r, v in out.items() if v["status"] == "touching" and r != "palm"]
     inside = [r for r, v in out.items() if v["status"] == "inside"]
     palm = out.get("palm", {}).get("status")
-    body = body_clipping(arm, info, held_objs, bvh, soft_tol)
-    if body["verts_inside"]:
+    body = body_clipping(arm, info, held, soft_tol)
+    if body["verts_inside"] or body["crossing_triangles"]:
         verdict = "clips the body" if not inside else "sinks in and clips the body"
     elif inside:
         verdict = "sinks in"
@@ -922,32 +909,37 @@ def measure(arm, info, held_objs) -> dict:
                              "touching": round(touch_tol * 1000, 1)}}
 
 
-def body_clipping(arm, info, held_objs, bvh, tol: float) -> dict:
-    """Skin outside this hand (arms, chest, head) that ends up inside the held object."""
+def body_clipping(arm, info, held, tol: float) -> dict:
+    """Skin outside this hand (arms, chest, head) that ends up inside the held object, or
+    that the object's surface cuts through: a blade or plate through the forearm leaves no
+    skin vertex inside it, so the two surfaces are tested for crossing too."""
     hand_bones = {info["hand"], *[b for c in info["fingers"].values() for b in c]}
-    lo, hi = assets.world_bounds(held_objs)
-    pad = Vector((tol * 4,) * 3)
-    lo, hi = lo - pad, hi + pad
-    count, depth, where = 0, 0.0, {}
+    lo, hi = held.box[0] - tol * 4, held.box[1] + tol * 4
+    count, crossing, depth, where = 0, 0, 0.0, {}
     for obj in _skinned_meshes(arm):
-        co, _ = _world_mesh(obj)
+        co, tris = geom.world_triangles(obj)
         if len(co) != len(obj.data.vertices):
             continue
         names = {g.index: g.name for g in obj.vertex_groups}
-        box = np.all((co >= np.array(lo)) & (co <= np.array(hi)), axis=1)
-        for i in np.nonzero(box)[0]:
-            v = obj.data.vertices[i]
-            best = max(v.groups, key=lambda g: g.weight, default=None)
-            bone = names.get(best.group) if best is not None else None
-            if bone in hand_bones:
-                continue
-            d = signed_distance(bvh, Vector(co[i]))
-            if d < -tol:
-                count += 1
-                depth = max(depth, -d)
-                where[bone] = where.get(bone, 0) + 1
-    return {"verts_inside": count, "depth_mm": round(depth * 1000, 1),
-            "where": [b for b, _ in sorted(where.items(), key=lambda x: -x[1])[:4]]}
+        bones = [names.get(max(v.groups, key=lambda g: g.weight).group) if len(v.groups) else None for v in obj.data.vertices]
+        hand = np.array([b in hand_bones for b in bones], bool)
+        box = np.nonzero(np.all((co >= lo) & (co <= hi), axis=1) & ~hand)[0]
+        d = held.signed(co[box])
+        for i in box[d < -tol]:
+            count += 1
+            where[bones[i]] = where.get(bones[i], 0) + 1
+        if (d < -tol).any():
+            depth = max(depth, -float(d.min()))
+        pen = geom.penetration(held, geom.Solid(co, tris, flags=hand), skip_b=True)
+        if pen is not None and pen["depth"] > tol:
+            crossing += pen["triangles"]
+            depth = max(depth, pen["depth"])
+            skin = np.nonzero(~hand)[0]
+            for p in pen["points"][:: max(1, len(pen["points"]) // 50)]:
+                b = bones[skin[np.argmin(np.linalg.norm(co[skin] - p, axis=1))]]
+                where[b] = where.get(b, 0) + 1
+    return {"verts_inside": count, "crossing_triangles": crossing, "depth_mm": round(depth * 1000, 1),
+            "where": [b for b, _ in sorted(where.items(), key=lambda x: -x[1]) if b][:4]}
 
 
 def summarize(m: dict, side: str) -> list[str]:
@@ -964,7 +956,7 @@ def summarize(m: dict, side: str) -> list[str]:
         else:
             lines.append(f"  {r}: {v['closest_mm']} mm gap")
     b = m.get("body", {})
-    if b.get("verts_inside"):
+    if b.get("verts_inside") or b.get("crossing_triangles"):
         lines.append(f"  the object passes through the body by {b['depth_mm']} mm (at {', '.join(b['where'])})")
     return lines
 
@@ -973,7 +965,7 @@ def summarize(m: dict, side: str) -> list[str]:
 
 def _paint_contact(arm, info, held_objs):
     """Color the skinned meshes: hand red where inside the object, green where touching."""
-    bvh = object_bvh(held_objs)
+    held = object_solid(held_objs)
     frame = hand_frame(arm, info)
     s_hand = frame["palm_len"] / REF_PALM
     pen_tol, touch_tol = 0.0015 * s_hand, 0.003 * s_hand
@@ -985,9 +977,8 @@ def _paint_contact(arm, info, held_objs):
             continue
         dom, _ = _groups_by_vertex(obj, hand_bones)
         colors = np.tile(np.array([*BODY, 1.0]), (len(co), 1))
-        near = np.linalg.norm(co - np.array(frame["wrist"]), axis=1) < frame["palm_len"] * 4
-        for i in np.nonzero(near)[0]:
-            sd = signed_distance(bvh, Vector(co[i]))
+        near = np.nonzero(np.linalg.norm(co - np.array(frame["wrist"]), axis=1) < frame["palm_len"] * 4)[0]
+        for i, sd in zip(near, held.signed(co[near])):
             if sd < -pen_tol:
                 colors[i] = (*INSIDE, 1.0)
             elif sd <= touch_tol:
@@ -1337,7 +1328,7 @@ def hold(
         if attempt:
             _reset_fingers(arm, info)
         props = grip_props(empty) | {k: v for k, v in (("index", index), ("thumb", thumb)) if v}
-        report["fingers"] = close_hand(arm, info, hand_frame(arm, info), object_bvh(held), props)
+        report["fingers"] = close_hand(arm, info, hand_frame(arm, info), object_solid(held), props)
         if move == "hand" or measure(arm, info, held)["regions"]["palm"]["closest_mm"] <= 1.5 * sc:
             break
     report["seated_mm"] = round(report["seated_mm"], 1)
@@ -1433,10 +1424,10 @@ def _nearest_object(arm, info, skinned):
     for o in bpy.context.scene.objects:
         if o.type != "MESH" or o in skinned or o.hide_render:
             continue
-        bvh = object_bvh([o])
-        if bvh is None:
+        solid = object_solid([o])
+        if solid is None:
             continue
-        loc, *_ = bvh.find_nearest(palm)
+        loc, *_ = solid.bvh.find_nearest(palm)
         if loc is not None and (loc - palm).length < best_d:
             best, best_d = o, (loc - palm).length
     if best is None:

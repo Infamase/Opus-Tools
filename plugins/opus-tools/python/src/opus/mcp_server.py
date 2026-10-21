@@ -323,8 +323,10 @@ def model_report(path: str, objects: str = "") -> list:
 
     Parts are objects, or bone regions of a skinned body. Per part: size, shape class
     (rod/limb, slab, box, sphere-like...), long axis, bone length and girth. Also contacts and
-    floating gaps between parts, mirror symmetry (and which parts break it), whether the
-    center of mass sits over the footprint, and the rig's naming style.
+    floating gaps between parts, penetrations (parts cutting into, buried in or pushed right
+    through a thin plate: crossing triangles, depth in mm, where), mirror symmetry (and which
+    parts break it), whether the center of mass sits over the footprint, and the rig's naming
+    style.
     """
     from opus.threed.understand import model_report as run
 

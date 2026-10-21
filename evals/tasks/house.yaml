@@ -1,0 +1,41 @@
+id: house
+title: Modular medieval house kit
+category: building
+regression: true
+covers: [modular_kit]
+brief: >-
+  Make a modular medieval house kit for my Unreal game, stylized low poly: a wall, a wall with a door, a
+  wall with a window, an outside corner and a roof piece, all on a 4 m grid so they snap together. Then
+  assemble a small two-room house from them to show me.
+style: lowpoly
+engine: unreal
+camera: {profile: ue_tp_1080, distances_m: [3.5, 15, 40]}
+references: []
+budgets: {tris: 2000, materials: 2, texture_px: 1024}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 2000}, metric: errors, op: "==", value: 0, class: hard,
+     note: "each kit piece on its own"}
+  - {id: grid, tool: probe, metric: grid_offset_mm, op: "<=", value: 1, class: hard,
+     measure: "largest distance from any piece's pivot or bounding-box corner to the nearest point of the 4 m grid"}
+  - {id: seams, tool: probe, metric: seam_gap_mm, op: "<=", value: 1, class: hard,
+     measure: "largest gap between neighbouring pieces' meeting faces in the assembled house (nearest-point distance at sampled edge points)"}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard, note: "on the assembled house"}
+  - {id: door_width, tool: probe, metric: door_width_m, op: between, value: [0.8, 1.1], class: hard,
+     measure: "clear width of the door opening"}
+  - {id: door_height, tool: probe, metric: door_height_m, op: between, value: [1.95, 2.2], class: hard,
+     measure: "clear height of the door opening from the floor"}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
+     op: "==", value: true, names: [house, cottage, medieval house, building], class: hard}
+  - {id: readability, tool: readability_check, args: {distances: "15,40", defining: "door,window,roof"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Do the walls meet at the corner without a visible gap or overlap?
+      - Does the roof overhang the walls on every side?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, tris_per_piece]

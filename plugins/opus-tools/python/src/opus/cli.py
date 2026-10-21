@@ -127,6 +127,42 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("doctor", help="check integrations")
     sub.add_parser("mcp", help="run the MCP server on stdio")
 
+    s = sub.add_parser("run-log", help="append an event to the run ledger (.opus/runs)")
+    s.add_argument("event", help="run_start, iteration, validator_rejection, judge_round, user_rejection, tokens, "
+                                 "accept or abandon")
+    s.add_argument("fields", nargs="*", help='key=value, e.g. n=2 hard_fail_count=1 "findings=floating_parts, grip"')
+    s.add_argument("--run", default="")
+    s.add_argument("--dir", default=".")
+
+    s = sub.add_parser("run-stats", help="iterations, judge rounds, wall-clock, tokens and failures from the run ledger")
+    s.add_argument("--dir", default=".", help="project folder, .opus/runs folder or one .jsonl file")
+    s.add_argument("--task", default="")
+    s.add_argument("--label", default="")
+
+    s = sub.add_parser("eval", help="the 24-task eval suite (evals/ at the repo root, or $OPUS_EVALS_DIR)")
+    ev = s.add_subparsers(dest="eval_cmd", required=True)
+    for name, text in (("list", "list the tasks"), ("validate", "check every task spec and the suite's coverage")):
+        e = ev.add_parser(name, help=text)
+        e.add_argument("--evals", default="")
+    e = ev.add_parser("prompt", help="the prompt to paste into a fresh session for one task")
+    e.add_argument("task")
+    e.add_argument("--evals", default="")
+    e = ev.add_parser("summarize", help="write a run set's numbers to evals/results/<label>.json")
+    e.add_argument("label")
+    e.add_argument("--runs", default=".", help="project folder, .opus/runs folder or one .jsonl file")
+    e.add_argument("--all", action="store_true", help="every run, not only runs started with this label")
+    e.add_argument("--evals", default="")
+    e.add_argument("-o", "--out", default="")
+    e = ev.add_parser("compare", help="per-task median iterations to a hard pass, new vs base, with a sign test")
+    e.add_argument("base", help="a results label (e.g. v0.4) or a results .json")
+    e.add_argument("new")
+    e.add_argument("--evals", default="")
+    e = ev.add_parser("tokens", help="sum the token use in Claude Code session transcripts")
+    e.add_argument("transcripts", nargs="+", help="session .jsonl files or folders")
+    e.add_argument("--log", action="store_true", help="also log it as a tokens event")
+    e.add_argument("--run", default="")
+    e.add_argument("--dir", default=".")
+
     a = ap.parse_args(argv)
     if a.cmd == "inspect":
         from opus.pixel.inspect import inspect_sprite
@@ -225,6 +261,52 @@ def main(argv: list[str] | None = None) -> int:
         from opus.mcp_server import main as serve
 
         serve()
+    elif a.cmd == "run-log":
+        from opus.runs import log
+
+        def value(v: str):
+            for kind in (int, float):
+                try:
+                    return kind(v)
+                except ValueError:
+                    pass
+            return v
+
+        fields = dict(f.split("=", 1) for f in a.fields if "=" in f)
+        _print(log(a.event, run=a.run, near=a.dir, **{k: value(v) for k, v in fields.items()}))
+    elif a.cmd == "run-stats":
+        from opus.runs import run_stats
+
+        _print(run_stats(a.dir, task=a.task, label=a.label))
+    elif a.cmd == "eval":
+        from opus import runs
+
+        evals = a.evals if hasattr(a, "evals") and a.evals else None
+        if a.eval_cmd == "list":
+            for t in runs.load_tasks(evals):
+                tag = "regression" if t.get("regression") else t.get("category", "?")
+                cols = (t.get("id", "?"), tag, t.get("style", "?"), t.get("engine", "?"))
+                print("{:16} {:11} {:8} {:7} ".format(*cols) + t.get("title", ""))
+        elif a.eval_cmd == "validate":
+            tasks = runs.load_tasks(evals)
+            errs = runs.validate_suite(tasks)
+            _print("\n".join(errs) if errs else f"{len(tasks)} tasks valid · suite {runs.suite_hash(evals)}")
+            return 1 if errs else 0
+        elif a.eval_cmd == "prompt":
+            spec = next((t for t in runs.load_tasks(evals) if t.get("id") == a.task), None)
+            if spec is None:
+                raise SystemExit(f"no task {a.task!r}; see `opus eval list`")
+            _print(runs.task_prompt(spec))
+        elif a.eval_cmd == "summarize":
+            path, data = runs.summarize(a.label, a.runs, evals, all_runs=a.all, out=a.out or None)
+            _print({"written": str(path), "overall": data["overall"], "missing_tasks": data["missing_tasks"]})
+        elif a.eval_cmd == "compare":
+            _print(runs.compare(a.base, a.new, evals))
+        elif a.eval_cmd == "tokens":
+            used = runs.transcript_tokens(*a.transcripts)
+            if a.log:
+                used["logged"] = runs.log("tokens", run=a.run, near=a.dir, input=used["input"], output=used["output"])
+            _print(used)
     return 0
 
 

@@ -1,0 +1,38 @@
+id: goblin
+title: Stylized low-poly goblin, rig-ready
+category: character
+regression: true
+covers: [stylized, lowpoly]
+brief: >-
+  Make a stylized low-poly goblin for my Godot 4 third-person game: about 1.1 m tall and 4.5 heads tall,
+  long pointed ears, a hooked nose, skinny limbs with big hands and feet, a hunched posture, a
+  loincloth and a crude dagger. Flat-shaded with one palette texture, rigged with a humanoid skeleton
+  Godot can map.
+style: lowpoly
+engine: godot
+camera: {profile: godot_tp, distances_m: [2, 6, 20]}
+references: []
+budgets: {tris: 4000, materials: 1, bones: 70, texture_px: 512}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 4000, deforming: "true"}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: height, tool: model_report, metric: height_m, op: between, value: [1.0, 1.2], class: hard}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: balance, tool: model_report, metric: com_over_footprint, op: "==", value: true, class: hard}
+  - {id: proportions, tool: proportion_check, args: {archetype: humanoid, preset: stylized}, metric: unintended_findings,
+     op: "==", value: 0, class: hard, note: "the big head, ears, hands and feet are declared in the brief"}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: godot_tp}, metric: top1_names_subject,
+     op: "==", value: true, names: [goblin, hobgoblin], class: hard}
+  - {id: readability, tool: readability_check, args: {distances: "6,20", defining: "head,ear_l,ear_r,nose,hand_r,dagger"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Do the ears break the head's silhouette in the front and side views?
+      - Is the posture hunched, with the head forward of the chest?
+      - Are the hands larger than a human's in proportion to the body?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, tris]

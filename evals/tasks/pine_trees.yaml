@@ -1,0 +1,37 @@
+id: pine_trees
+title: Three low-poly pine trees
+category: foliage
+covers: [trees, variants]
+brief: >-
+  Make three low-poly pine tree variants for my Godot 4 game, 8 to 14 m tall, with conical crowns of
+  stacked tiers on a visible trunk. Flat-shaded with one palette texture, each with its origin at the
+  base of the trunk.
+style: lowpoly
+engine: godot
+camera: {profile: godot_tp, distances_m: [6, 20, 60]}
+references: []
+budgets: {tris: 400, materials: 1, variants: 3}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 400}, metric: errors, op: "==", value: 0, class: hard, note: "each tree"}
+  - {id: heights, tool: probe, metric: tree_height_m, op: between, value: [8, 14], class: hard,
+     measure: "height of each variant from its origin to its top"}
+  - {id: spread, tool: probe, metric: height_spread_m, op: ">=", value: 2, class: soft,
+     measure: "tallest variant minus shortest"}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard,
+     note: "every tier touches the trunk or the tier below"}
+  - {id: on_floor, tool: model_report, metric: on_floor, op: "==", value: true, class: hard}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: godot_tp}, metric: top1_names_subject,
+     op: "==", value: true, names: [pine, pine tree, conifer, fir, spruce], class: hard}
+  - {id: readability, tool: readability_check, args: {distances: "20,60", defining: "trunk"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Do the three variants differ in silhouette, not only in size?
+      - Is the trunk visible below the lowest tier?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, tris_per_tree]

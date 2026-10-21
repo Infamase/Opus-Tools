@@ -1,0 +1,41 @@
+id: sword
+title: HD medieval sword in hand
+category: weapon
+regression: true
+covers: [held_weapon]
+brief: >-
+  Make an HD medieval sword for my Unreal third-person game after the Met's sword of about 1400: 1.02 m
+  long with an 81 cm blade, a straight cross guard, a wheel pommel and a leather grip. Mark where the hand
+  holds it and put it in the right hand of a 1.8 m realistic body blockout.
+style: hd
+engine: unreal
+camera: {profile: ue_tp_1080, distances_m: [1.5, 3.5, 15]}
+references:
+  - url: https://www.metmuseum.org/art/collection/search/23367
+    license: CC0
+    note: Sword, ca. 1400 (The Met Open Access). L. 102.2 cm, blade 81.3 cm, 1,673 g.
+budgets: {tris: 4000, materials: 2, texture_px: 2048}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 4000}, metric: errors, op: "==", value: 0, class: hard, note: "the sword alone"}
+  - {id: length, tool: model_report, metric: longest_m, op: between, value: [0.99, 1.05], class: hard}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: contacts, tool: model_report, metric: missing_contacts, op: "==", value: 0, class: hard,
+     note: "blade, cross, grip and pommel touch in a chain"}
+  - {id: grip, tool: grip_check, args: {side: r}, metric: verdict, op: "==", value: good grip, class: hard}
+  - {id: clipping, tool: grip_check, args: {side: r}, metric: body_clipping_verts, op: "==", value: 0, class: hard}
+  - {id: reference, tool: reference_match, args: {view: front}, metric: iou, op: ">=", value: 0.8, class: soft}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
+     op: "==", value: true, names: [sword, longsword, arming sword], class: hard}
+  - {id: readability, tool: readability_check, args: {distances: "3.5,15", defining: "blade,cross,pommel"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Does the blade taper in width toward the point?
+      - Do the cutting edges stay sharp rather than rounded?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, reference_iou, grip_verdict, tris]

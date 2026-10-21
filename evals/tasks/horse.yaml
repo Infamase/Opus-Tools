@@ -1,0 +1,40 @@
+id: horse
+title: HD riding horse
+category: creature
+covers: [quadruped]
+brief: >-
+  Make an HD riding horse for my Unreal third-person game: about 1.6 m at the withers and 500 kg, with a
+  mane and tail, hooves with a visible fetlock above them, and hind legs whose hocks bend the right way.
+  Rig it so it can walk and gallop.
+style: hd
+engine: unreal
+camera: {profile: ue_tp_1080, distances_m: [3.5, 8, 30]}
+references:
+  - url: https://www.phylopic.org/images/071ee517-a0f1-4d19-aa29-812b9f86cb53
+    license: CC0
+    note: Equus ferus caballus standing, side view (PhyloPic, David Orr). Silhouette for reference_match.
+budgets: {tris: 30000, materials: 3, bones: 100, texture_px: 2048}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 30000, deforming: "true"}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: withers, tool: probe, metric: withers_height_m, op: between, value: [1.52, 1.68], class: hard,
+     measure: "height above the floor of the top of the spine between the shoulder blades"}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: balance, tool: model_report, metric: com_over_footprint, op: "==", value: true, class: hard}
+  - {id: proportions, tool: proportion_check, args: {archetype: quadruped, preset: horse}, metric: unintended_findings,
+     op: "==", value: 0, class: hard, note: "hind metatarsal over femur near the horse's 0.806"}
+  - {id: reference, tool: reference_match, args: {view: right}, metric: iou, op: ">=", value: 0.8, class: soft}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
+     op: "==", value: true, names: [horse, pony, stallion, mare], class: hard}
+  - {id: readability, tool: readability_check, args: {distances: "8,30", defining: "head,ear_l,mane,tail,hoof_fl"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Does each hind leg bend forward at the stifle and backward at the hock?
+      - Is there a fetlock joint above each hoof?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, reference_iou, tris]

@@ -1,0 +1,40 @@
+id: chair
+title: HD joined oak armchair
+category: prop
+covers: [furniture]
+brief: >-
+  Make an HD wooden armchair for my Unreal game after the Met's joined oak armchair of 1650-1700: turned
+  front legs and arm supports, a panelled back and a plank seat, about 0.93 m tall. A seated 1.8 m
+  character has to fit it.
+style: hd
+engine: unreal
+camera: {profile: ue_tp_1080, distances_m: [1.5, 3.5, 15]}
+references:
+  - url: https://www.metmuseum.org/art/collection/search/15292
+    license: CC0
+    note: Joined armchair, 1650-1700 (The Met Open Access). 92.7 x 58.4 x 42.5 cm.
+budgets: {tris: 5000, materials: 2, texture_px: 2048}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 5000}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: height, tool: model_report, metric: height_m, op: between, value: [0.88, 0.98], class: hard}
+  - {id: seat_height, tool: probe, metric: seat_height_m, op: between, value: [0.42, 0.48], class: hard,
+     measure: "floor to the top of the seat at its front edge; ANSUR II male popliteal p50 430 mm plus 25 mm of shoe"}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: contacts, tool: model_report, metric: missing_contacts, op: "==", value: 0, class: hard,
+     note: "rails meet the legs; the arms meet the back posts and the front supports"}
+  - {id: on_floor, tool: model_report, metric: on_floor, op: "==", value: true, class: hard}
+  - {id: balance, tool: model_report, metric: com_over_footprint, op: "==", value: true, class: hard}
+  - {id: reference, tool: reference_match, args: {view: front}, metric: iou, op: ">=", value: 0.8, class: soft}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
+     op: "==", value: true, names: [chair, armchair], class: hard}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Do all four legs reach the floor?
+      - Do the arm rests join both the back posts and the front supports?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, reference_iou, tris]

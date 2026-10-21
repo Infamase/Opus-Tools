@@ -1,0 +1,41 @@
+id: sword_attack
+title: Two-handed overhead sword attack
+category: animation
+covers: [sword_attack]
+brief: >-
+  Animate a heavy overhead sword attack for my Unreal game at 30 fps: a 1.8 m heroic body blockout holding
+  a longsword in both hands, with a clear wind-up, a fast downward strike, a short hold at impact and a
+  recovery back to the starting idle pose.
+style: hd
+engine: unreal
+camera: {profile: ue_tp_1080, distances_m: [1.5, 3.5, 15]}
+references: []
+budgets: {frames: 45, bones: 120}
+accept:
+  - {id: lint, tool: mesh_lint, args: {deforming: "true"}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: grip, tool: grip_check, args: {side: both}, metric: verdict, op: "==", value: good grip, class: hard,
+     note: "at the wind-up, impact and recovery key frames"}
+  - {id: clipping, tool: grip_check, args: {side: both}, metric: body_clipping_verts, op: "==", value: 0, class: hard,
+     note: "at the wind-up, impact and recovery key frames"}
+  - {id: hand_drift, tool: probe, metric: hand_grip_drift_mm, op: "<=", value: 5, class: hard,
+     measure: "largest distance between each hand and its grip point over all frames"}
+  - {id: impact, tool: probe, metric: impact_frame_offset, op: "<=", value: 1, class: hard,
+     measure: "frames between the intended impact frame and the frame of peak blade-tip speed"}
+  - {id: skate, tool: probe, metric: foot_skate_cm, op: "<=", value: 1, class: hard,
+     measure: "largest horizontal move per frame of a foot that should stay planted"}
+  - {id: seam, tool: probe, metric: idle_seam_deg, op: "<=", value: 1, class: hard,
+     measure: "largest joint rotation difference between the first and last frames and the idle pose"}
+  - {id: windup, tool: probe, metric: anticipation_frames, op: between, value: [8, 16], class: soft,
+     measure: "frames from the start of the wind-up to the start of the strike"}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Is the wind-up a separate, readable pose before the strike?
+      - Does the body's weight shift forward into the strike?
+      - Does the blade travel in an arc rather than a straight line?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, impact_frame_offset, foot_skate_cm, anticipation_frames]

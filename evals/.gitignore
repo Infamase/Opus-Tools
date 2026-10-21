@@ -1,0 +1,11 @@
+# Only task specs, score summaries and this folder's README are committed.
+# Assets, renders, references, ledgers and transcripts stay on the PC.
+/*
+!/.gitignore
+!/README.md
+!/tasks/
+!/results/
+/tasks/*
+!/tasks/*.yaml
+/results/*
+!/results/*.json

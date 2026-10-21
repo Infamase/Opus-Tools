@@ -1,0 +1,38 @@
+id: dragon
+title: HD western dragon boss
+category: creature
+regression: true
+covers: [flyer, quadruped]
+brief: >-
+  Make an HD western dragon boss for my Unreal third-person game: four legs and two bat-like wings with
+  finger spars and membranes, a long S-curved neck, a horned wedge-shaped head, back spines and a long
+  tapering tail. About 1,000 kg with a wingspan near 16 m. Rig it so the wings fold and it can fly.
+style: hd
+engine: unreal
+camera: {profile: ue_tp_1080, distances_m: [8, 25, 60]}
+references: []
+budgets: {tris: 60000, materials: 4, bones: 180, texture_px: 4096}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 60000, deforming: "true"}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: wingspan, tool: model_report, metric: width_m, op: between, value: [14, 19], class: hard,
+     note: "wings spread in the rest pose; 9,810 N at 150-250 N/m2 with aspect ratio 6 gives about 16.4 m"}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: balance, tool: model_report, metric: com_over_footprint, op: "==", value: true, class: hard}
+  - {id: proportions, tool: proportion_check, args: {archetype: dragon, preset: western}, metric: unintended_findings,
+     op: "==", value: 0, class: hard}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
+     op: "==", value: true, names: [dragon], class: hard}
+  - {id: readability, tool: readability_check, args: {distances: "25,60", defining: "head,horn_l,horn_r,wing_l,wing_r,tail"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Do the wing membranes attach along the finger spars and down the flank?
+      - Does the neck read as an S-curve in the side view?
+      - Are the horns visible in the silhouette from the front and the side?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, tris]

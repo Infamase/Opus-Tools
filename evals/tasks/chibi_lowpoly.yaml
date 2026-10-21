@@ -1,0 +1,35 @@
+id: chibi_lowpoly
+title: Stylized low-poly chibi adventurer
+category: character
+covers: [stylized, lowpoly, chibi]
+brief: >-
+  Make a stylized low-poly chibi adventurer for my Godot 4 game: 3 heads tall and about 1 m, a big head
+  with big eyes, a small body, a hooded cloak, a satchel and a short staff. Flat-shaded with one palette
+  texture, rigged with a humanoid skeleton Godot can map.
+style: lowpoly
+engine: godot
+camera: {profile: godot_tp, distances_m: [2, 6, 20]}
+references: []
+budgets: {tris: 2500, materials: 1, bones: 60, texture_px: 512}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 2500, deforming: "true"}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: height, tool: model_report, metric: height_m, op: between, value: [0.95, 1.05], class: hard}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: balance, tool: model_report, metric: com_over_footprint, op: "==", value: true, class: hard}
+  - {id: proportions, tool: proportion_check, args: {archetype: humanoid, preset: chibi}, metric: unintended_findings,
+     op: "==", value: 0, class: hard}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: godot_tp}, metric: top1_names_subject,
+     op: "==", value: true, names: [adventurer, traveler, mage, wizard, chibi character], class: hard}
+  - {id: readability, tool: readability_check, args: {distances: "6,20", defining: "head,hood,staff,satchel"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Is the head about a third of the total height?
+      - Does the cloak hang clear of the legs in the rest pose?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, tris]

@@ -1,0 +1,37 @@
+id: round_shield
+title: Low-poly round shield in hand
+category: weapon
+covers: [held_weapon]
+brief: >-
+  Make a low-poly Viking round shield for my Godot 4 game: 0.8 m across, painted planks, an iron boss in
+  the middle, a rim, and a horizontal grip behind the boss. Mark the grip and put it in the left hand of
+  a stylized body blockout.
+style: lowpoly
+engine: godot
+camera: {profile: godot_tp, distances_m: [2, 6, 20]}
+references: []
+budgets: {tris: 800, materials: 1, texture_px: 512}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 800}, metric: errors, op: "==", value: 0, class: hard, note: "the shield alone"}
+  - {id: diameter, tool: model_report, metric: longest_m, op: between, value: [0.76, 0.84], class: hard,
+     note: "Viking shields 45-120 cm, most 75-90 cm"}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: contacts, tool: model_report, metric: missing_contacts, op: "==", value: 0, class: hard,
+     note: "boss, rim and grip touch the board"}
+  - {id: grip, tool: grip_check, args: {side: l}, metric: verdict, op: "==", value: good grip, class: hard}
+  - {id: clipping, tool: grip_check, args: {side: l}, metric: body_clipping_verts, op: "==", value: 0, class: hard}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: godot_tp}, metric: top1_names_subject,
+     op: "==", value: true, names: [shield, round shield, viking shield], class: hard}
+  - {id: readability, tool: readability_check, args: {distances: "6,20", defining: "boss,rim"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Does the boss stand out from the face in the side view?
+      - Is the grip behind the boss, inside its hollow?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, grip_verdict, tris]

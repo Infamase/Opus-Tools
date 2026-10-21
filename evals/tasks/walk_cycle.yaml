@@ -1,0 +1,37 @@
+id: walk_cycle
+title: Human walk cycle
+category: animation
+covers: [walk_cycle]
+brief: >-
+  Animate a looping walk for a 1.8 m realistic body blockout for my Unreal game: 1.4 m/s with root
+  motion at 30 fps, arms swinging opposite to the legs, and feet that stay planted while they are on the
+  ground. Make it ready to export as an Unreal animation.
+style: hd
+engine: unreal
+camera: {profile: ue_tp_1080, distances_m: [1.5, 3.5, 15]}
+references: []
+budgets: {cycle_frames: 36, bones: 120}
+accept:
+  - {id: lint, tool: mesh_lint, args: {deforming: "true"}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: skate, tool: probe, metric: foot_skate_cm, op: "<=", value: 1, class: hard,
+     measure: "largest horizontal world-space move per frame of a stance foot (heel or ball under 5 cm high)"}
+  - {id: speed, tool: probe, metric: stride_speed_error_pct, op: "<=", value: 5, class: hard,
+     measure: "stride length x cycles per second against 1.4 m/s (no moonwalking)"}
+  - {id: seam, tool: probe, metric: loop_seam_deg, op: "<=", value: 1, class: hard,
+     measure: "largest joint rotation difference between the frame after the last and the first frame"}
+  - {id: floor, tool: probe, metric: floor_penetration_cm, op: "<=", value: 1, class: hard,
+     measure: "deepest foot point below the floor over the cycle"}
+  - {id: cycle, tool: probe, metric: cycle_frames, op: between, value: [30, 36], class: soft,
+     measure: "frames per cycle; 105-120 steps a minute at 1.4 m/s gives 30-34"}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Does each arm swing forward with the opposite leg?
+      - Does the heel strike first and the toes push off last?
+      - Does the pelvis drop slightly on the swing side?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, foot_skate_cm, loop_seam_deg, cycle_frames]

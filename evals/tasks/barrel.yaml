@@ -1,0 +1,28 @@
+id: barrel
+title: Stylized wooden barrel
+category: prop
+regression: true
+covers: []
+brief: >-
+  Make a stylized low-poly wooden barrel for my Godot 4 game: about 0.9 m tall, 0.55 m across the heads
+  and 0.65 m at the bulge, with visible staves and three iron hoops. Flat-shaded with a palette texture.
+style: lowpoly
+engine: godot
+camera: {profile: godot_tp, distances_m: [2, 6, 20]}
+references: []
+budgets: {tris: 800, materials: 1, texture_px: 256}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 800}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: height, tool: model_report, metric: height_m, op: between, value: [0.85, 0.95], class: hard}
+  - {id: bulge, tool: model_report, metric: width_m, op: between, value: [0.6, 0.7], class: hard}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: contacts, tool: model_report, metric: missing_contacts, op: "==", value: 0, class: hard,
+     note: "each hoop touches the staves"}
+  - {id: on_floor, tool: model_report, metric: on_floor, op: "==", value: true, class: hard}
+  - {id: symmetric, tool: model_report, metric: symmetric, op: "==", value: true, class: soft}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: godot_tp}, metric: top1_names_subject,
+     op: "==", value: true, names: [barrel, cask, keg], class: hard}
+  - {id: readability, tool: readability_check, args: {distances: "6,20", defining: "hoop"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, tris]

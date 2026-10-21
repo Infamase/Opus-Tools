@@ -1,0 +1,38 @@
+id: crow
+title: Pixel-art crow rendered from 3D
+category: creature
+covers: [flyer, pixel_from_3d]
+brief: >-
+  Make a crow enemy for my Godot 4 pixel-art side-scroller: model it low poly in 3D (about 0.45 m long
+  with a 0.9 m wingspan), then render a 6-frame flapping loop from the side as pixel sprites in 96 px
+  frames, on the PICO-8 palette, with hard pixel edges.
+style: pixel
+engine: godot
+camera: {profile: sidescroller, sprite_px: 96}
+references:
+  - url: https://www.phylopic.org/images/f0662de3-3161-4db6-b7bf-1b69e408b242
+    license: CC0
+    note: Corvus brachyrhynchos in flight (PhyloPic, Liftarn). Wing and tail shape.
+budgets: {tris: 1500, frames: 6, colors: 16}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 1500, deforming: "true"}, metric: errors, op: "==", value: 0, class: hard,
+     note: "the 3D crow"}
+  - {id: alpha, tool: sprite_inspect, args: {mode: sheet, palette: "lospec:pico-8"}, metric: semi_transparent_pixels,
+     op: "==", value: 0, class: hard}
+  - {id: palette, tool: sprite_inspect, args: {mode: sheet, palette: "lospec:pico-8"}, metric: off_palette_pixels,
+     op: "==", value: 0, class: hard}
+  - {id: strays, tool: sprite_inspect, args: {mode: sheet}, metric: strays, op: "==", value: 0, class: soft}
+  - {id: flicker, tool: sprite_inspect, args: {mode: sheet}, metric: colors_not_in_every_frame, op: "<=", value: 1, class: soft}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: sidescroller}, metric: top1_names_subject,
+     op: "==", value: true, names: [crow, raven, rook], class: hard}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Do the wings pass through a clear up position and a clear down position?
+      - Is the beak visible in every frame?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, color_count, tris]

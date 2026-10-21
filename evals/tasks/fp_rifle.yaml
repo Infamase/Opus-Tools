@@ -1,0 +1,44 @@
+id: fp_rifle
+title: First-person rifle held in two hands
+category: weapon
+covers: [first_person, two_handed, held_weapon]
+brief: >-
+  Make an HD assault rifle for my Unreal first-person game, about 0.88 m long with a 415 mm barrel, a
+  pistol grip, a curved detachable magazine, a handguard and iron sights. Put it in the player's hands:
+  right hand on the pistol grip with the index finger on the trigger, left hand on the handguard, at the
+  hip and aiming down the sights.
+style: hd
+engine: unreal
+camera: {profile: viewmodel, distances_m: [0.35, 0.45, 0.7]}
+references: []
+budgets: {tris: 15000, materials: 3, texture_px: 2048}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 15000}, metric: errors, op: "==", value: 0, class: hard, note: "the rifle alone"}
+  - {id: length, tool: model_report, metric: longest_m, op: between, value: [0.85, 0.91], class: hard,
+     note: "AK-47 880 mm overall, barrel 415 mm"}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: contacts, tool: model_report, metric: missing_contacts, op: "==", value: 0, class: hard,
+     note: "the magazine is seated in the well; sights sit on the receiver and the barrel"}
+  - {id: grip_r, tool: grip_check, args: {side: r, fp: true}, metric: verdict, op: "==", value: good grip, class: hard}
+  - {id: grip_l, tool: grip_check, args: {side: l, fp: true}, metric: verdict, op: "==", value: good grip, class: hard}
+  - {id: clipping, tool: grip_check, args: {side: both, fp: true}, metric: body_clipping_verts, op: "==", value: 0, class: hard}
+  - {id: trigger, tool: probe, metric: index_trigger_mm, op: "<=", value: 3, class: hard,
+     measure: "distance from the right index fingertip pad to the trigger face at the hip"}
+  - {id: sight_line, tool: probe, metric: sight_line_mm, op: "<=", value: 5, class: soft,
+     measure: "aiming down the sights, distance from the eye (the camera) to the line through the rear and front sights"}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
+     op: "==", value: true, names: [rifle, assault rifle, AK-47, carbine], class: hard}
+  - {id: readability, tool: readability_check, args: {camera: viewmodel, defining: "magazine,sight_front,handguard"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - In the hip view, are both hands visible on the weapon?
+      - Does the muzzle point toward the middle of the screen?
+      - Is the magazine curved and seated in its well?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, grip_verdict_r, grip_verdict_l, blind_read_top1, tris]

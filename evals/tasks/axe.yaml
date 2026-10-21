@@ -1,0 +1,34 @@
+id: axe
+title: Low-poly bearded axe in hand
+category: weapon
+covers: [held_weapon]
+brief: >-
+  Make a low-poly bearded axe for my Godot 4 game: a 0.9 m wooden haft and an iron head with a 20 cm
+  cutting edge whose beard hooks down below the haft. Flat-shaded with a palette texture. Mark the grip
+  and put it in the right hand of a stylized body blockout.
+style: lowpoly
+engine: godot
+camera: {profile: godot_tp, distances_m: [2, 6, 20]}
+references: []
+budgets: {tris: 600, materials: 1, texture_px: 256}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 600}, metric: errors, op: "==", value: 0, class: hard, note: "the axe alone"}
+  - {id: length, tool: model_report, metric: longest_m, op: between, value: [0.88, 1.0], class: hard}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: contacts, tool: model_report, metric: missing_contacts, op: "==", value: 0, class: hard, note: "the head sits on the haft"}
+  - {id: grip, tool: grip_check, args: {side: r}, metric: verdict, op: "==", value: good grip, class: hard}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: godot_tp}, metric: top1_names_subject,
+     op: "==", value: true, names: [axe, bearded axe, battle axe, war axe], class: hard}
+  - {id: readability, tool: readability_check, args: {distances: "6,20", defining: "head,haft"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Does the beard of the head hook below the line of the haft?
+      - Is the edge the widest part of the head in the side view?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, grip_verdict, tris]

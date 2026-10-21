@@ -38,6 +38,8 @@ it with an inspector, fix what the report and image show, and repeat before show
 - project_bible holds the project's style rules and budgets; read it before making assets.
 - ledger_record every imported or built asset with its licence_id, inputs and tools;
   licence_check lists what blocks export under the bible's policy (or classifies a text).
+- run_log records each asset run (start, every check round, judge rounds, rejections, accept);
+  run_stats summarizes iterations to a hard pass, wall-clock, tokens and the checks that fail.
 Paths may be absolute or relative to the project folder.
 """
 
@@ -689,6 +691,78 @@ def make_credits(project_dir: str = "") -> str:
 def opus_doctor(project_dir: str = "") -> str:
     """Check that Blender, Godot, the GPU, ComfyUI and the project bible are reachable."""
     return format_report(doctor(project_dir or None))
+
+
+# ---------------------------------------------------------------- run ledger
+
+@server.tool(structured_output=False)
+def run_log(
+    event: str,
+    run: str = "",
+    task: str = "",
+    asset: str = "",
+    label: str = "",
+    model: str = "",
+    n: int = 0,
+    tier: str = "",
+    hard_fail_count: int = -1,
+    findings: str = "",
+    check: str = "",
+    kind: str = "",
+    questions: int = 0,
+    failed: int = -1,
+    reason: str = "",
+    values: str = "",
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    project_dir: str = "",
+) -> str:
+    """Record one step of an asset run in the run ledger (.opus/runs/<date>.jsonl), so the
+    iterations, rejections, time and tokens an asset takes are measured, not remembered.
+
+    event: run_start (task: eval task id, asset: the file, label: e.g. v0.4, model: your model
+    id) | iteration (one round of checks after a change: n, tier T0-T6, hard_fail_count,
+    findings = failing check names, e.g. "floating_parts, grip x2") | validator_rejection (a
+    tool call rejected for bad input or a failed Blender script: check, reason) | judge_round
+    (kind: checklist, blind_read, lineup; questions, failed) | user_rejection (reason) | tokens
+    (input_tokens, output_tokens) | accept (iterations and wall-clock are filled in; values =
+    the task's score fields, "tris=3120; blind_read_top1=wolf") | abandon (reason, values).
+    Events go to ``run`` or the latest open run (tokens and user_rejection: the latest run).
+    Returns the entry.
+    """
+    from mcp.server.mcpserver.exceptions import ToolError
+
+    from opus.runs import log
+
+    fields = {"task": task, "asset": asset, "label": label, "model": model, "tier": tier, "findings": findings,
+              "check": check, "kind": kind, "reason": reason, "values": values}
+    if n:
+        fields["n"] = n
+    if hard_fail_count >= 0:
+        fields["hard_fail_count"] = hard_fail_count
+    if questions:
+        fields["questions"] = questions
+    if failed >= 0:
+        fields["failed"] = failed
+    if event == "tokens":
+        fields.update(input=input_tokens, output=output_tokens)
+    base = project_dir or os.environ.get("OPUS_PROJECT_DIR") or os.getcwd()
+    try:
+        entry = log(event, run=run, near=base, **fields)
+    except ValueError as e:  # say why the event was refused, so it can be logged again correctly
+        raise ToolError(str(e)) from e
+    return json.dumps(entry, default=str)
+
+
+@server.tool(structured_output=False)
+def run_stats(task: str = "", label: str = "", project_dir: str = "") -> str:
+    """Summarize the run ledger, per task (or asset) and overall: median iterations to a hard
+    pass and to accept, judge rounds, validator and user rejections, wall-clock, tokens, and a
+    histogram of the checks that failed. task/label filter the runs."""
+    from opus.runs import run_stats as stats
+
+    base = project_dir or os.environ.get("OPUS_PROJECT_DIR") or os.getcwd()
+    return json.dumps(stats(base, task=task, label=label), separators=(",", ":"), default=str)
 
 
 def main() -> None:

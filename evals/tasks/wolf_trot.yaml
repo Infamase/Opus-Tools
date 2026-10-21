@@ -1,0 +1,42 @@
+id: wolf_trot
+title: Quadruped trot cycle
+category: animation
+covers: [quadruped_trot]
+brief: >-
+  Animate a looping 3 m/s trot for a wolf-sized quadruped body blockout (0.8 m at the withers) for my
+  Godot 4 game, at 30 fps with root motion: diagonal legs move together, feet stay planted while they
+  are on the ground, and the tail follows the body.
+style: lowpoly
+engine: godot
+camera: {profile: godot_tp, distances_m: [2, 6, 20]}
+references:
+  - url: https://www.phylopic.org/images/23ddcc50-103c-432b-a5cc-f41f688bba8a
+    license: CC0
+    note: Canis lupus walking, side view (PhyloPic, Richard Rich).
+budgets: {cycle_frames: 18, bones: 60}
+accept:
+  - {id: lint, tool: mesh_lint, args: {deforming: "true"}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: skate, tool: probe, metric: foot_skate_cm, op: "<=", value: 1, class: hard,
+     measure: "largest horizontal world-space move per frame of a paw while it is on the ground"}
+  - {id: footfalls, tool: probe, metric: footfall_phase_error, op: "<=", value: 0.05, class: hard,
+     measure: "largest difference between a paw's touchdown phase and the trot table: LH 0, RF 0, RH 0.5, LF 0.5"}
+  - {id: seam, tool: probe, metric: loop_seam_deg, op: "<=", value: 1, class: hard,
+     measure: "largest joint rotation difference between the frame after the last and the first frame"}
+  - {id: floor, tool: probe, metric: floor_penetration_cm, op: "<=", value: 1, class: hard,
+     measure: "deepest paw point below the floor over the cycle"}
+  - {id: duty, tool: probe, metric: duty_factor, op: between, value: [0.39, 0.49], class: soft,
+     measure: "share of the cycle each paw is on the ground; 0.635 - 0.203 ln(2.62) = 0.44 for this size and speed"}
+  - {id: cycle, tool: probe, metric: cycle_frames, op: between, value: [16, 18], class: soft,
+     measure: "frames per cycle; dog 2.048 Hz scaled to 0.8 m at the withers is 1.79 Hz, 17 frames at 30 fps"}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Do the left hind and right fore land together, and the right hind and left fore?
+      - Does the back stay nearly level while the head nods slightly?
+      - Does the tail lag behind the body's motion?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, foot_skate_cm, footfall_phase_error, duty_factor]

@@ -1,0 +1,32 @@
+id: wolf
+title: Low-poly grey wolf
+category: creature
+regression: true
+covers: [quadruped]
+brief: >-
+  Make a low-poly grey wolf for my Godot 4 third-person game: about 40 kg and 0.8 m at the withers,
+  digitigrade legs, upright ears, a neck ruff and a bushy tail. Flat-shaded with a palette texture,
+  rigged so I can animate a trot.
+style: lowpoly
+engine: godot
+camera: {profile: godot_tp, distances_m: [2, 6, 20]}
+references:
+  - url: https://www.phylopic.org/images/23ddcc50-103c-432b-a5cc-f41f688bba8a
+    license: CC0
+    note: Canis lupus walking, side view (PhyloPic, Richard Rich). Silhouette for reference_match.
+budgets: {tris: 3000, materials: 1, bones: 60, texture_px: 512}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 3000, deforming: "true"}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: length, tool: model_report, metric: length_m, op: between, value: [1.4, 1.75], class: hard,
+     note: "nose to tail tip, standing (head and body about 1.15 m plus the tail)"}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: proportions, tool: proportion_check, args: {archetype: quadruped, preset: dog}, metric: unintended_findings,
+     op: "==", value: 0, class: hard, note: "hind metatarsal over femur near the wolf's 0.437"}
+  - {id: reference, tool: reference_match, args: {view: right}, metric: iou, op: ">=", value: 0.7, class: soft,
+     note: "the reference walks, so a standing model tops out below a perfect match"}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: godot_tp}, metric: top1_names_subject,
+     op: "==", value: true, names: [wolf, dog], class: hard}
+  - {id: readability, tool: readability_check, args: {distances: "6,20", defining: "ear_l,ear_r,muzzle,tail,ruff"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, reference_iou, tris]

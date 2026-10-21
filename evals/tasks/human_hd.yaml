@@ -1,0 +1,37 @@
+id: human_hd
+title: HD realistic woman, rigged
+category: character
+covers: [hd_human]
+brief: >-
+  Make an HD realistic adult woman for my Unreal third-person game, 1.65 m tall with an average build, in
+  simple fitted clothes: a long-sleeved top, trousers and boots. Rig her with Unreal mannequin bone names
+  in an A-pose so the UE5 mannequin animations retarget.
+style: hd
+engine: unreal
+camera: {profile: ue_tp_1080, distances_m: [1.5, 3.5, 15]}
+references: []
+budgets: {tris: 30000, materials: 5, bones: 120, texture_px: 2048}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 30000, deforming: "true"}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: height, tool: model_report, metric: height_m, op: between, value: [1.63, 1.68], class: hard}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: rig, tool: model_report, metric: rig_style, op: "==", value: "unreal (UE mannequin)", class: hard}
+  - {id: proportions, tool: proportion_check, args: {archetype: humanoid, preset: realistic}, metric: unintended_findings,
+     op: "==", value: 0, class: hard}
+  - {id: symmetric, tool: model_report, metric: symmetric, op: "==", value: true, class: soft}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
+     op: "==", value: true, names: [woman, female human, adult woman], class: hard}
+  - {id: readability, tool: readability_check, args: {distances: "3.5,15", defining: "head,hand_l,hand_r,foot_l,foot_r"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Do the hands have five separate fingers in a close view?
+      - Do the elbows and knees keep their volume in the A-pose, with no pinching?
+      - Do the clothes follow the body without floating above it?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, tris]

@@ -1,0 +1,35 @@
+id: peasant_outfit
+title: Layered peasant outfit on a body
+category: clothing
+covers: [layered_garments]
+brief: >-
+  Dress a 1.8 m realistic body blockout in a medieval peasant outfit for my Unreal game: a linen shirt,
+  wool trousers, a knee-length coat and a leather belt. Skin the clothes to the same rig, and make sure
+  nothing pokes through when the arms and legs bend.
+style: hd
+engine: unreal
+camera: {profile: ue_tp_1080, distances_m: [1.5, 3.5, 15]}
+references: []
+budgets: {tris: 20000, materials: 4, texture_px: 2048}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 20000, deforming: "true"}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: poke_through, tool: probe, metric: penetration_mm, op: "<=", value: 1, class: hard,
+     measure: "deepest body point outside a garment that should cover it, and deepest garment-into-garment point,
+       over the rest pose, elbows at 90 degrees, arms raised 90 degrees and a deep lunge (nearest-point depth)"}
+  - {id: hem, tool: probe, metric: coat_hem_fraction, op: between, value: [0.8, 1.2], class: soft,
+     measure: "coat hem height as a fraction from the crotch (0) to the knee (1), from the blockout's landmarks_m"}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
+     op: "==", value: true, names: [peasant, villager, farmer, medieval peasant], class: hard}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Does the coat show its own thickness at the hem and the cuffs?
+      - Does the belt sit at the waist over the coat rather than inside it?
+      - Do the trousers meet the boots or feet with no gap to the body?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, penetration_mm, tris]

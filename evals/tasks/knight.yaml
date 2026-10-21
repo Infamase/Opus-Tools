@@ -1,0 +1,46 @@
+id: knight
+title: HD knight with a longsword
+category: character
+regression: true
+covers: [hd_human, armor, held_weapon]
+brief: >-
+  Make an HD knight for my Unreal third-person game: a man about 1.83 m tall in a mid-15th-century
+  Italian plate harness with an armet helm, layered pauldrons, a tabard and knee cops, holding a
+  longsword in his right hand. Rig him with Unreal mannequin bone names in an A-pose so he retargets.
+style: hd
+engine: unreal
+camera: {profile: ue_tp_1080, distances_m: [1.5, 3.5, 15, 40]}
+references:
+  - url: https://www.metmuseum.org/art/collection/search/23232
+    license: CC0
+    note: Armet, Italian, ca. 1460 (The Met Open Access). Helm shape and visor line.
+  - url: https://www.metmuseum.org/art/collection/search/26585
+    license: CC0
+    note: Composed armor for man and horse, ca. 1450-1525 (The Met). Pauldron layering, breastplate.
+budgets: {tris: 40000, materials: 6, bones: 120, texture_px: 2048}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 40000, deforming: "true"}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: height, tool: model_report, metric: height_m, op: between, value: [1.84, 1.95], class: hard,
+     note: "stature 1.83 m plus the helm"}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: rig, tool: model_report, metric: rig_style, op: "==", value: "unreal (UE mannequin)", class: hard}
+  - {id: proportions, tool: proportion_check, args: {archetype: humanoid, preset: heroic}, metric: unintended_findings,
+     op: "==", value: 0, class: hard, note: "findings the brief does not explain as armor bulk count"}
+  - {id: grip, tool: grip_check, args: {side: r}, metric: verdict, op: "==", value: good grip, class: hard}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
+     op: "==", value: true, names: [knight, armored knight, man-at-arms], class: hard}
+  - {id: readability, tool: readability_check, args: {distances: "3.5,15,40", defining: "helm,pauldron_l,pauldron_r,tabard,sword"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Does the visor read as a dark slit in the three-quarter rear view?
+      - Do the pauldrons overlap the upper arm rather than butt against it?
+      - Does the tabard hem fall between the crotch and the knee?
+      - Does the sword still read when the knight is 117 px tall?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, grip_verdict, tris]

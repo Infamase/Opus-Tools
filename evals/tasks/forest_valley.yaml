@@ -1,0 +1,38 @@
+id: forest_valley
+title: Low-poly river valley terrain tile
+category: landscape
+covers: [terrain]
+brief: >-
+  Make a low-poly river valley terrain tile for my Godot 4 third-person game: 256 x 256 m, a river
+  between two ridges about 40 m high, and a path along the valley floor that a character can walk.
+  Flat-shaded, ready to import as a mesh with collision.
+style: lowpoly
+engine: godot
+camera: {profile: godot_tp, distances_m: [20, 60, 200]}
+references: []
+budgets: {tris: 20000, materials: 1, texture_px: 512}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 20000}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: width, tool: model_report, metric: width_m, op: between, value: [250, 262], class: hard}
+  - {id: length, tool: model_report, metric: length_m, op: between, value: [250, 262], class: hard}
+  - {id: relief, tool: model_report, metric: height_m, op: between, value: [35, 60], class: hard}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: river, tool: probe, metric: river_uphill_samples, op: "==", value: 0, class: hard,
+     measure: "river-bed samples every 2 m downstream that are higher than the sample before them"}
+  - {id: walkable, tool: probe, metric: walkable_pct, op: ">=", value: 85, class: soft,
+     measure: "share of the valley floor between the ridge feet with face slope under 45 degrees (Godot's default floor_max_angle)"}
+  - {id: path_grade, tool: probe, metric: path_max_grade_pct, op: "<=", value: 15, class: soft,
+     measure: "steepest grade along the path, sampled every 2 m"}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: godot_tp}, metric: top1_names_subject,
+     op: "==", value: true, names: [valley, river valley, landscape, terrain], class: hard}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Is the path visible from the valley floor 60 m away?
+      - Do the ridges read as too steep to climb from the path?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, walkable_pct, tris]

@@ -1,0 +1,43 @@
+id: chest
+title: HD iron-banded treasure chest
+category: prop
+regression: true
+covers: [articulated]
+brief: >-
+  Make an HD treasure chest for my Unreal game: oak planks with iron bands, corner brackets, a hasp and
+  padlock, and a lid on hinges so it can open later. About 0.8 m wide, 0.5 m deep and 0.55 m tall,
+  with PBR materials.
+style: hd
+engine: unreal
+camera: {profile: ue_tp_1080, distances_m: [1.5, 3.5, 15]}
+references:
+  - url: https://www.metmuseum.org/art/collection/search/463632
+    license: CC0
+    note: Chest with iron banding, 15th century (The Met Open Access). Banding and lock; the size differs.
+budgets: {tris: 6000, materials: 3, texture_px: 2048}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 6000}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: width, tool: model_report, metric: width_m, op: between, value: [0.72, 0.88], class: hard}
+  - {id: depth, tool: model_report, metric: length_m, op: between, value: [0.45, 0.56], class: hard}
+  - {id: height, tool: model_report, metric: height_m, op: between, value: [0.5, 0.6], class: hard}
+  - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
+  - {id: contacts, tool: model_report, metric: missing_contacts, op: "==", value: 0, class: hard,
+     note: "every band, bracket, hinge and the lock touches the part it is fixed to"}
+  - {id: on_floor, tool: model_report, metric: on_floor, op: "==", value: true, class: hard}
+  - {id: hinge, tool: probe, metric: hinge_offset_mm, op: "<=", value: 2, class: hard,
+     measure: "distance from the lid's origin to the hinge axis along the back top edge"}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
+     op: "==", value: true, names: [chest, treasure chest, trunk, coffer], class: hard}
+  - {id: readability, tool: readability_check, args: {distances: "3.5,15", defining: "lid,band,lock"},
+     metric: defining_under_floor, op: "==", value: 0, class: soft}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Do the iron bands wrap over the lid's edge onto its top?
+      - Does the lid show its thickness in the front view?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, tris]

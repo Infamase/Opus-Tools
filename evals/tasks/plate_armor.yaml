@@ -1,0 +1,39 @@
+id: plate_armor
+title: Plate armor fitted to a body
+category: armor
+covers: [rigid_plates]
+brief: >-
+  Fit a late-15th-century plate set to a 1.8 m heroic body blockout for my Unreal game: breastplate and
+  backplate, pauldrons, vambraces with elbow cops, and cuisses with knee cops. Each plate rides one bone,
+  and nothing may pass through the body when the arms and legs move.
+style: hd
+engine: unreal
+camera: {profile: ue_tp_1080, distances_m: [1.5, 3.5, 15]}
+references:
+  - url: https://www.metmuseum.org/art/collection/search/24826
+    license: CC0
+    note: Breastplate, ca. 1480 (The Met Open Access). H. 53.3 cm, W. 36.2 cm.
+budgets: {tris: 25000, materials: 3, texture_px: 2048}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 25000, deforming: "true"}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: penetration, tool: probe, metric: body_penetration_mm, op: "<=", value: 1, class: hard,
+     measure: "deepest body point through any plate over the rest pose, elbows at 120 degrees, arms raised 150 degrees,
+       knees at 110 degrees and a kneel (triangle overlap plus a one-sided test against the plate's inner sheet)"}
+  - {id: one_bone, tool: probe, metric: plates_off_one_bone, op: "==", value: 0, class: hard,
+     measure: "number of plates whose vertices are not all weighted 1.0 to a single bone"}
+  - {id: standoff, tool: probe, metric: breast_standoff_mm, op: between, value: [15, 45], class: soft,
+     measure: "median gap between the breastplate's inner surface and the chest"}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
+     op: "==", value: true, names: [knight, armored warrior, man-at-arms, soldier in plate armor], class: hard}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Does each cop cover its joint at full bend?
+      - Do the pauldrons overlap the breastplate rather than leave a gap at the armpit?
+      - Does the breastplate follow the chest's curve rather than a box?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, body_penetration_mm, tris]

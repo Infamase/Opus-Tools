@@ -1,0 +1,36 @@
+id: chest_open
+title: Chest lid opening
+category: animation
+covers: [prop_articulation]
+brief: >-
+  Make a simple wooden treasure chest, about 0.8 m wide with a separate hinged lid, and animate the lid
+  opening for my Unreal game at 30 fps: it swings up about 105 degrees on its hinges in 0.6 s with a small
+  overshoot and settle, then holds open.
+style: hd
+engine: unreal
+camera: {profile: ue_tp_1080, distances_m: [1.5, 3.5, 15]}
+references: []
+budgets: {tris: 3000, frames: 30}
+accept:
+  - {id: lint, tool: mesh_lint, args: {budget_tris: 3000}, metric: errors, op: "==", value: 0, class: hard}
+  - {id: hinge, tool: probe, metric: hinge_drift_mm, op: "<=", value: 1, class: hard,
+     measure: "largest movement over all frames of the lid's points on the hinge line"}
+  - {id: angle, tool: probe, metric: open_angle_deg, op: between, value: [100, 110], class: hard,
+     measure: "lid angle from closed at the last frame"}
+  - {id: overlap, tool: probe, metric: lid_body_overlap_mm, op: "<=", value: 0.5, class: hard,
+     measure: "deepest lid-into-body penetration over all frames"}
+  - {id: timing, tool: probe, metric: open_frames, op: between, value: [16, 20], class: soft,
+     measure: "frames from the first lid movement to the first time it reaches the open angle (0.6 s = 18)"}
+  - {id: overshoot, tool: probe, metric: overshoot_deg, op: between, value: [2, 8], class: soft,
+     measure: "largest angle past the final open angle"}
+  - id: checklist
+    tool: art_director
+    metric: checklist_no
+    op: "=="
+    value: 0
+    class: soft
+    questions:
+      - Does the lid speed up out of the closed pose rather than start at full speed?
+      - Does the lid overshoot slightly and settle?
+score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
+        user_rejections, wall_clock_s, tokens_input, tokens_output, open_angle_deg, hinge_drift_mm]

@@ -66,6 +66,17 @@ def test_humanoid_landmarks_follow_the_canon(tmp_path):
     assert fingers <= set(rep["bones"])
 
 
+def test_quadruped_report_gives_the_withers(tmp_path):
+    """height is the overall height (ear tips), but animals are sized at the withers."""
+    _, rep = build(tmp_path, archetype="quadruped", preset="horse", height=1.6)
+    lm = rep["landmarks_m"]
+    assert lm["height_m"] == rep["height_m"] == 1.6
+    assert 0 < lm["withers_m"] < lm["height_m"]
+    assert lm["withers_m"] > rep["joints_m"]["fshoulder_l"][2]  # on the back, above the front leg's top joint
+    # a horse 1.6 m at the withers stands about 2.1 m to the ear tips
+    assert lm["withers_m"] / lm["height_m"] == pytest.approx(1.6 / 2.1, rel=0.05)
+
+
 def test_posing_a_bone_moves_only_that_side(tmp_path):
     out, _ = build(tmp_path, archetype="humanoid", preset="stylized")
     probe = tmp_path / "probe.json"

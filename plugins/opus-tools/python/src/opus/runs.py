@@ -60,26 +60,41 @@ def tool_version() -> str:
         return __version__
 
 
+NO_FINDINGS = ("none", "0", "-", "")
+_CHECK_ID = re.compile(r"[A-Za-z0-9_.:/-]+")
+
+
+def _check_id(name) -> str:
+    name = str(name).strip()
+    if not _CHECK_ID.fullmatch(name):
+        raise ValueError(f"findings are failing check ids such as 'floating_parts, grip x2', not prose (got {name!r})")
+    return name
+
+
 def parse_findings(findings) -> dict[str, int]:
     """Failing checks as {check: count}, from a dict, a list of names, JSON, or text such as
-    "contact_gap, floating_part x2, non_manifold:3"."""
+    "contact_gap, floating_part x2, non_manifold:3". "none", "0" and "-" mean no failures.
+    Anything that is not a check id (prose) is refused."""
     if not findings:
         return {}
     if isinstance(findings, str):
         text = findings.strip()
+        if text.lower() in NO_FINDINGS:
+            return {}
         if text.startswith(("{", "[")):
             return parse_findings(json.loads(text))
         out: dict[str, int] = {}
         for item in re.split(r"[,;\n]+", text):
             m = re.fullmatch(r"\s*(.+?)(?:\s+[x×]\s*(\d+)|\s*:\s*(\d+))?\s*", item)
-            if m:
-                out[m.group(1)] = out.get(m.group(1), 0) + int(m.group(2) or m.group(3) or 1)
+            if m and item.strip():
+                name = _check_id(m.group(1))
+                out[name] = out.get(name, 0) + int(m.group(2) or m.group(3) or 1)
         return out
     if isinstance(findings, dict):
-        return {str(k): int(v) for k, v in findings.items()}
+        return {_check_id(k): int(v) for k, v in findings.items()}
     out = {}
-    for name in findings:
-        out[str(name)] = out.get(str(name), 0) + 1
+    for name in map(_check_id, findings):
+        out[name] = out.get(name, 0) + 1
     return out
 
 
@@ -109,6 +124,14 @@ def parse_values(values) -> dict:
     return out
 
 
+_KINDS = {str: "text", int: "integer", float: "number", dict: "name=value pairs"}
+
+
+def _schema(event: str) -> str:
+    """The event's fields and their kinds, for error messages."""
+    return ", ".join(f"{k} ({'failing check ids' if k == 'findings' else _KINDS[t]})" for k, t in EVENTS[event].items())
+
+
 def _clean(event: str, fields: dict) -> dict:
     allowed = EVENTS[event]
     data = {k: v for k, v in fields.items() if v is not None and v != ""}
@@ -121,14 +144,21 @@ def _clean(event: str, fields: dict) -> dict:
     for k, kind in allowed.items():
         if k not in data:
             continue
-        if kind is dict:
-            data[k] = parse_values(data[k]) if k == "values" else parse_findings(data[k])
-        elif kind is int:
-            data[k] = int(data[k])
-        elif kind is float:
-            data[k] = round(float(data[k]), 3)
-        else:
-            data[k] = str(data[k])
+        v = data[k]
+        try:
+            if kind is dict:
+                data[k] = parse_values(v) if k == "values" else parse_findings(v)
+            elif kind is int:
+                data[k] = int(v)
+            elif kind is float:
+                data[k] = round(float(v), 3)
+            else:
+                data[k] = str(v)
+        except (TypeError, ValueError) as e:
+            if kind is dict:
+                raise ValueError(f"{event}: {e}") from None
+            raise ValueError(f"{event}: {k} must be {'an integer' if kind is int else 'a number'} (got {v!r}); "
+                             f"fields: {_schema(event)}") from None
     return data
 
 
@@ -173,13 +203,24 @@ def _is_open(run_events: list[dict]) -> bool:
     return not state or state[-1] == "user_rejection"
 
 
+def _which_run(runs: dict[str, list[dict]], open_runs: list[str]) -> str:
+    """Why an event without a run id can't pick one: the open runs, newest first."""
+    rows = []
+    for r in sorted(open_runs, key=lambda r: runs[r][0].get("ts", 0), reverse=True):
+        start = next((e for e in runs[r] if e["event"] == "run_start"), runs[r][0])
+        what = f"task {start['task']}" if start.get("task") else f"asset {start.get('asset') or '?'}"
+        rows.append(f"{r} ({what}, started {time.strftime('%H:%M', time.localtime(start.get('ts', 0)))})")
+    return (f"{len(rows)} runs are open: {', '.join(rows)}; pass run=<id> (--run <id> on the command line), "
+            "the id run_start returned")
+
+
 def log(event: str, run: str = "", near=None, now: float | None = None, **fields) -> dict:
     """Append one event to the project's ledger and return it.
 
     run_start opens a run and names it (or uses ``run``). Other events go to ``run`` or, when
-    empty, to the most recently started run that is still open (tokens and user_rejection: the
-    most recent run, open or not). accept fills in iterations_to_accept and wall_clock_s from
-    the run unless given.
+    empty, to the one open run (tokens and user_rejection: the most recent run, open or not).
+    With several runs open, ``run`` is required: parallel sessions share one ledger. accept
+    fills in iterations_to_accept and wall_clock_s from the run unless given.
     """
     if event not in EVENTS:
         raise ValueError(f"unknown event {event!r}; known: {sorted(EVENTS)}")
@@ -205,6 +246,8 @@ def log(event: str, run: str = "", near=None, now: float | None = None, **fields
             candidates = [r for r, evs in runs.items() if event in LATE or _is_open(evs)]
             if not candidates:
                 raise ValueError("no open run in this project: log run_start first")
+            if event not in LATE and len(candidates) > 1:
+                raise ValueError(_which_run(runs, candidates))
             run = max(candidates, key=lambda r: runs[r][0].get("ts", 0))
         elif run not in runs:
             raise ValueError(f"no run {run!r} in {folder}")
@@ -399,6 +442,7 @@ METRICS: dict[str, tuple | None] = {
 # (§2.5): fixed-tolerance proportions (percentile-based in S1) and the readability floors
 SOFT_ONLY = {("proportion_check", "unintended_findings"), ("readability_check", "defining_under_floor"),
              ("readability_check", "subject_px")}
+CAMERA_CHECKS = ("readability_check", "blind_read_sheet")  # their numbers depend on the camera
 OPS = ("==", "!=", "<=", ">=", "<", ">", "between", "in")
 CLASSES = ("hard", "soft", "report")
 SCORE_FIELDS = ("accepted", "iterations_to_hard_pass", "iterations_to_accept", "hard_fail_count_first",
@@ -479,6 +523,28 @@ def _check_errors(c, where: str) -> list[str]:
     return errs
 
 
+def _default_camera() -> str:
+    """The camera a check without one runs at in an eval project (``project_bible init`` in an
+    empty folder: no engine marker, no camera.profile)."""
+    from opus.bible import camera_profile
+
+    return camera_profile({}, "").name
+
+
+def _camera_errors(c, profile: str, where: str) -> list[str]:
+    """A check whose numbers depend on the camera must run at the task's camera. A first-person
+    (viewmodel) task may also check its world model at a third-person camera, named in args."""
+    if not isinstance(c, dict) or c.get("tool") not in CAMERA_CHECKS:
+        return []
+    args = c.get("args") if isinstance(c.get("args"), dict) else {}
+    given = args.get("camera")
+    used = given or _default_camera()
+    if used == profile or (profile == "viewmodel" and given in CAMERAS):
+        return []
+    how = f"args.camera {given!r}" if given else f"no args.camera, so the tools use {used!r}"
+    return [f"{where}: {c['tool']} must run at the task's camera {profile!r} ({how}); set args.camera: {profile}"]
+
+
 def validate_task(spec: dict) -> list[str]:
     """Problems with one task spec (empty when it is valid)."""
     name = Path(spec.get("_file", "?")).name
@@ -534,6 +600,8 @@ def validate_task(spec: dict) -> list[str]:
         else:
             for i, c in enumerate(checks):
                 errs += _check_errors(c, f"{name}: accept[{i}]")
+                if isinstance(cam, dict) and cam.get("profile") in CAMERAS:
+                    errs += _camera_errors(c, cam["profile"], f"{name}: accept[{i}]")
             ids = [c.get("id") for c in checks if isinstance(c, dict)]
             if len(ids) != len(set(ids)):
                 errs.append(f"{name}: check ids repeat")
@@ -603,7 +671,7 @@ def task_prompt(spec: dict) -> str:
 
 ---
 Eval protocol (task {spec['id']}; see evals/README.md):
-- First call run_log(event="run_start", task="{spec['id']}", asset=<the file you will make>, label=<the label the user gives, e.g. v0.4>).
+- First call run_log(event="run_start", task="{spec['id']}", asset=<the file you will make>, label=<the label the user gives, e.g. v0.4>). run_start returns the run id; pass run=<that id> on every later run_log call (other sessions may share the ledger).
 - Style {spec['style']}, engine {spec['engine']}, camera {cam['profile']} at {view}. Budgets: {json.dumps(spec['budgets'])}.
 - References (download into refs/, never commit): {refs or 'none'}
 - Accepted means every hard check passes:

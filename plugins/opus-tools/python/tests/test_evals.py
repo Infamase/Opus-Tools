@@ -1,6 +1,7 @@
 """The 24-task eval suite: every spec loads and validates, and the suite covers what §9 asks."""
 
 import copy
+import importlib.util
 import inspect
 import shutil
 import subprocess
@@ -120,6 +121,53 @@ def test_validator_catches_broken_specs(tasks):
     assert "uncalibrated heuristic" in check(tool="readability_check", metric="defining_under_floor")
 
 
+def test_camera_checks_run_at_the_task_camera(tasks):
+    """readability_check and blind_read_sheet measure at a camera. Without args.camera they use
+    the eval project's default (ue_tp_1080), so a Godot task's check must name godot_tp."""
+    assert runs._default_camera() == "ue_tp_1080"
+    wolf = copy.deepcopy(by_id(tasks)["wolf"])
+    read = next(c for c in wolf["accept"] if c["tool"] == "readability_check")
+    assert read["args"]["camera"] == "godot_tp" and runs.validate_task(wolf) == []
+    del read["args"]["camera"]
+    errs = runs.validate_suite([wolf if t["id"] == "wolf" else t for t in tasks])
+    assert errs == [f"wolf.yaml: accept[{wolf['accept'].index(read)}]: readability_check must run at the task's camera "
+                    "'godot_tp' (no args.camera, so the tools use 'ue_tp_1080'); set args.camera: godot_tp"]
+    read["args"]["camera"] = "ue_tp_1080"
+    assert "(args.camera 'ue_tp_1080')" in " | ".join(runs.validate_task(wolf))
+    # a first-person task checks at the view model, and may check its world model at a named third-person camera
+    rifle = copy.deepcopy(by_id(tasks)["fp_rifle"])
+    blind = next(c for c in rifle["accept"] if c["tool"] == "blind_read_sheet")
+    assert blind["args"]["camera"] == "ue_tp_1080" and runs.validate_task(rifle) == []
+    del blind["args"]["camera"]
+    assert "blind_read_sheet must run at the task's camera 'viewmodel'" in " | ".join(runs.validate_task(rifle))
+    # every camera check in the committed suite runs at its task's camera
+    for t in tasks:
+        for c in t["accept"]:
+            if c["tool"] in runs.CAMERA_CHECKS:
+                cam = (c.get("args") or {}).get("camera") or runs._default_camera()
+                assert cam == t["camera"]["profile"] or t["camera"]["profile"] == "viewmodel", (t["id"], c["id"])
+
+
+def _judge():
+    path = EVALS / "judge.py"
+    if not path.is_file():
+        pytest.skip("no evals/judge.py")
+    spec = importlib.util.spec_from_file_location("eval_judge", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_judge_rechecks_one_question_and_reads_comma_names():
+    judge = _judge()
+    assert judge.check_args("checklist", ["Is the tail moving?"]) == []  # a re-check asks only what failed
+    assert judge.check_args("blind", [], "a,b|c") == ["a", "b", "c"]
+    assert judge.check_args("blind", [], "House, cottage|medieval house") == ["house", "cottage", "medieval house"]
+    for questions in ([], ["Is it red?"] * 6):
+        with pytest.raises(SystemExit, match="1-5 questions"):
+            judge.check_args("checklist", questions)
+
+
 def test_suite_level_problems_are_reported(tasks):
     errs = runs.validate_suite([t for t in tasks if t["id"] not in ("wolf", "crow")])
     assert "suite: 22 tasks, expected 24" in errs
@@ -132,6 +180,7 @@ def test_prompt_carries_brief_and_protocol(tasks):
     p = runs.task_prompt(knight)
     assert p.startswith(knight["brief"].strip())
     assert 'run_log(event="run_start", task="knight"' in p
+    assert "run_start returns the run id; pass run=<that id> on every later run_log call" in p
     for c in knight["accept"]:
         assert f"] {c['id']}: {c['tool']}(" in p
     assert 'values="blind_read_top1=...; grip_verdict=...; tris=..."' in p

@@ -20,7 +20,7 @@ accept:
      op: "==", value: 0, class: soft}
   - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: godot_tp}, metric: top1_names_subject,
      op: "==", value: true, names: [adventurer, traveler, mage, wizard, chibi character], class: hard}
-  - {id: readability, tool: readability_check, args: {distances: "6,20", defining: "head,hood,staff,satchel"},
+  - {id: readability, tool: readability_check, args: {camera: godot_tp, distances: "6,20", defining: "head,hood,staff,satchel"},
      metric: defining_under_floor, op: "==", value: 0, class: soft}
   - id: checklist
     tool: art_director

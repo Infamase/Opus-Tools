@@ -22,7 +22,7 @@ accept:
   - {id: on_floor, tool: model_report, metric: on_floor, op: "==", value: true, class: hard}
   - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: godot_tp}, metric: top1_names_subject,
      op: "==", value: true, names: [pine, pine tree, conifer, fir, spruce], class: hard}
-  - {id: readability, tool: readability_check, args: {distances: "20,60", defining: "trunk"},
+  - {id: readability, tool: readability_check, args: {camera: godot_tp, distances: "20,60", defining: "trunk"},
      metric: defining_under_floor, op: "==", value: 0, class: soft}
   - id: checklist
     tool: art_director

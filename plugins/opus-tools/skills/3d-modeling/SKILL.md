@@ -40,7 +40,10 @@ size (see Conventions).
    western. Other creatures start from the nearest one (wolf, bear → dog; deer, unicorn →
    horse; wyvern, griffin → dragon) and you move joints from there. It returns a rigged,
    watertight body plus `landmarks_m` (chin, shoulder, waist, crotch, knee heights, limb
-   lengths, widths). Model to those numbers. The canons come from measured tables: hands
+   lengths, widths; quadrupeds: `withers_m` and `height_m`). Model to those numbers.
+   `body_blockout` height is the overall height (ear tips); for a quadruped, build, read
+   `landmarks_m.withers_m` and rescale (a horse 1.6 m at the withers is about 2.1 m
+   overall). The canons come from measured tables: hands
    0.82 and feet 1.15 head-units on the realistic human (inside ANSUR II p5–p95, other
    presets keep the same fractions of stature); dog, cat and horse hind legs use the
    metatarsal/femur ratio of wolf, lion and horse (Garland & Janis 1993; the report's
@@ -218,8 +221,10 @@ free text only matches whole licence names, restriction phrases beside a name su
 "non-commercial use only" add their flags, and anything unmatched, including a licence
 version the table lacks, is unknown and blocks export), `inputs` (sources, or `{"asset": "<path in the ledger>"}` so an earlier asset's
 flags carry over), `tools` whose terms reach the output, and `attribution` when the terms
-prescribe the exact credit. Run `licence_check` before a release: the bible's `commercial`
-and `publish_assets` set what blocks. `make_credits` writes CREDITS.md.
+prescribe the exact credit. An asset you build in this project from scratch: `licence_id`
+`LicenseRef-Own-Work` (list references as inputs). Run `licence_check` before a release:
+the bible's `commercial` and `publish_assets` set what blocks. `make_credits` writes
+CREDITS.md.
 
 - **Unreal (preferred):** FBX with scale applied, Add Leaf Bones off, smoothing set to
   Face. Keep the armature object named `Armature` (blockouts already are): Unreal's

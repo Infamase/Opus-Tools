@@ -15,6 +15,16 @@ BIBLE_NAME = "opus.project.yaml"
 PROJECT_MARKERS = (BIBLE_NAME, "project.godot")
 
 
+def plugin_root() -> Path:
+    """The plugin folder (holds ``python/``, ``blender/``, ``data/``, ``skills/``)."""
+    return Path(__file__).resolve().parents[3]
+
+
+def data_dir() -> Path:
+    """Committed fact tables and licence data (``<plugin>/data``)."""
+    return plugin_root() / "data"
+
+
 def find_project_root(start: str | os.PathLike | None = None) -> Path | None:
     """Walk up from ``start`` (or $OPUS_PROJECT_DIR, or the cwd) to a project marker."""
     origin = start or os.environ.get("OPUS_PROJECT_DIR") or os.getcwd()

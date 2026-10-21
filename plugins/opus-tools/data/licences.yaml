@@ -1,0 +1,345 @@
+# Licence IDs -> flags for the provenance ledger (opus.ledger). Own work; see LICENSES.md.
+#
+# Keys are SPDX identifiers, or LicenseRef-* for terms SPDX does not list. Each entry has:
+#   name        the terms' own name (matched as an alias too)
+#   url         where the terms live
+#   flags       what the terms demand, from the vocabulary below
+#   tool_flags  flags that reach outputs made by running a tool under these terms
+#               (default: flags). Code licences bind copies of the code, not what it
+#               makes, so theirs are [].
+#   aliases     other names and fixed phrases for the same terms
+#   credit      the credit line the terms ask for, word for word, when they give one
+#   notes       obligations the flags do not capture
+#
+# Matching (ledger.classify): text is split into lowercase word tokens ("licence" reads as
+# "license", "v1" as "1"), and an alias matches only as a whole run of tokens, never inside
+# a word; the longest alias at each position wins. Text that names nothing is unknown.
+# Aliases name licences. Descriptions of permissions ("royalty-free", "non-commercial",
+# "research and commercial projects") are never aliases: the same words describe very
+# different terms, and unknown blocks until someone records the ID.
+# A CC or BSD name without a version maps to the version listed here (CC 4.0,
+# BSD-3-Clause); the flags are the same across those versions. Record the exact ID when
+# it is known.
+
+version: 1
+
+flags:
+  attribution: credit the source; CREDITS.md carries the exact attribution string
+  nc: non-commercial use only; blocks export when the bible says commercial true
+  sa: share-alike; the output carries the same licence (stamped at export)
+  nd: no derivatives may be shared; blocks export when the bible says publish_assets true
+  no-redistribute-as-asset: may ship inside a game but never as asset files others can reuse; blocks export when publish_assets is true
+  use-restricted: the terms limit the use itself (research only, territory exclusions); blocks export when commercial is true, a warning otherwise
+  unknown: not classified yet; always blocks export
+
+licences:
+  # ---------------------------------------------------------------- Creative Commons
+  CC0-1.0:
+    name: Creative Commons Zero v1.0 Universal
+    url: https://creativecommons.org/publicdomain/zero/1.0/
+    flags: []
+    aliases: [CC0, CC0 1.0, CC-0, CC 0, CC Zero, Creative Commons Zero, CC0 Public Domain Dedication]
+
+  CC-BY-3.0:
+    name: Creative Commons Attribution 3.0 Unported
+    url: https://creativecommons.org/licenses/by/3.0/
+    flags: [attribution]
+    aliases: [CC BY 3.0, Attribution 3.0 Unported, Creative Commons Attribution 3.0]
+
+  CC-BY-4.0:
+    name: Creative Commons Attribution 4.0 International
+    url: https://creativecommons.org/licenses/by/4.0/
+    flags: [attribution]
+    aliases: [CC BY, CC BY 4.0, Attribution 4.0 International, Creative Commons Attribution 4.0]
+
+  CC-BY-SA-4.0:
+    name: Creative Commons Attribution Share Alike 4.0 International
+    url: https://creativecommons.org/licenses/by-sa/4.0/
+    flags: [attribution, sa]
+    aliases: [CC BY-SA, CC BY-SA 4.0, Attribution-ShareAlike 4.0 International, Creative Commons Attribution-ShareAlike 4.0]
+
+  CC-BY-ND-4.0:
+    name: Creative Commons Attribution No Derivatives 4.0 International
+    url: https://creativecommons.org/licenses/by-nd/4.0/
+    flags: [attribution, nd]
+    aliases: [CC BY-ND, CC BY-ND 4.0, Attribution-NoDerivatives 4.0 International, Creative Commons Attribution-NoDerivatives 4.0]
+
+  CC-BY-NC-4.0:
+    name: Creative Commons Attribution Non Commercial 4.0 International
+    url: https://creativecommons.org/licenses/by-nc/4.0/
+    flags: [attribution, nc]
+    aliases: [CC BY-NC, CC BY-NC 4.0, Attribution-NonCommercial 4.0 International, Creative Commons Attribution-NonCommercial 4.0]
+
+  CC-BY-NC-SA-4.0:
+    name: Creative Commons Attribution Non Commercial Share Alike 4.0 International
+    url: https://creativecommons.org/licenses/by-nc-sa/4.0/
+    flags: [attribution, nc, sa]
+    aliases: [CC BY-NC-SA, CC BY-NC-SA 4.0, Attribution-NonCommercial-ShareAlike 4.0 International, Creative Commons Attribution-NonCommercial-ShareAlike 4.0]
+
+  CC-BY-NC-ND-4.0:
+    name: Creative Commons Attribution Non Commercial No Derivatives 4.0 International
+    url: https://creativecommons.org/licenses/by-nc-nd/4.0/
+    flags: [attribution, nc, nd]
+    aliases: [CC BY-NC-ND, CC BY-NC-ND 4.0, Attribution-NonCommercial-NoDerivatives 4.0 International, Creative Commons Attribution-NonCommercial-NoDerivatives 4.0]
+
+  # ---------------------------------------------------------------- code and fonts
+  MIT:
+    name: MIT License
+    url: https://opensource.org/license/mit
+    flags: [attribution]
+    tool_flags: []
+    aliases: [Expat License]
+
+  BSD-2-Clause:
+    name: BSD 2-Clause "Simplified" License
+    url: https://opensource.org/license/bsd-2-clause
+    flags: [attribution]
+    tool_flags: []
+    aliases: [BSD 2-Clause, 2-clause BSD, Simplified BSD, FreeBSD License]
+
+  BSD-3-Clause:
+    name: BSD 3-Clause "New" or "Revised" License
+    url: https://opensource.org/license/bsd-3-clause
+    flags: [attribution]
+    tool_flags: []
+    aliases: [BSD, BSD 3-Clause, 3-clause BSD, New BSD, Revised BSD, Modified BSD]
+
+  ISC:
+    name: ISC License
+    url: https://opensource.org/license/isc-license-txt
+    flags: [attribution]
+    tool_flags: []
+
+  Apache-2.0:
+    name: Apache License 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+    flags: [attribution]
+    tool_flags: []
+    aliases: [Apache, Apache 2.0, Apache-2, "Apache License, Version 2.0", ASL 2.0]
+
+  OFL-1.1:
+    name: SIL Open Font License 1.1
+    url: https://openfontlicense.org/
+    flags: [attribution]
+    tool_flags: []
+    aliases: [OFL, SIL OFL, SIL OFL 1.1, Open Font License]
+    notes: Keep the licence with the font; the font may not be sold by itself.
+
+  Unlicense:
+    name: The Unlicense
+    url: https://unlicense.org/
+    flags: []
+
+  GPL-2.0-only:
+    name: GNU General Public License v2.0 only
+    url: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+    flags: [attribution, sa]
+    tool_flags: []
+    aliases: [GPL-2.0, GPLv2, GPL v2, GNU General Public License v2.0]
+    notes: Not compatible with GPL-3.0; never port code under it.
+
+  GPL-2.0-or-later:
+    name: GNU General Public License v2.0 or later
+    url: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+    flags: [attribution, sa]
+    tool_flags: []
+    aliases: [GPL-2.0+, GPLv2+, GPL v2 or later, GPL-2.0 or later]
+
+  GPL-3.0-only:
+    name: GNU General Public License v3.0 only
+    url: https://www.gnu.org/licenses/gpl-3.0.html
+    flags: [attribution, sa]
+    tool_flags: []
+    aliases: [GPL-3.0, GPL-3, GPLv3, GPL v3, GNU General Public License v3.0]
+
+  GPL-3.0-or-later:
+    name: GNU General Public License v3.0 or later
+    url: https://www.gnu.org/licenses/gpl-3.0.html
+    flags: [attribution, sa]
+    tool_flags: []
+    aliases: [GPL-3.0+, GPLv3+, GPL v3 or later, GPL-3.0 or later, GPL-3 or later]
+    notes: Opus Tools' own licence. Blender's outputs are not covered by it.
+
+  AGPL-3.0-only:
+    name: GNU Affero General Public License v3.0 only
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+    flags: [attribution, sa]
+    tool_flags: []
+    aliases: [AGPL-3.0, AGPL-3, AGPLv3, AGPL v3, AGPL, GNU Affero General Public License v3.0]
+    notes: Never ported (§2.7). Assets carrying AGPL data (MB-Lab) are excluded.
+
+  AGPL-3.0-or-later:
+    name: GNU Affero General Public License v3.0 or later
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+    flags: [attribution, sa]
+    tool_flags: []
+    aliases: [AGPL-3.0+, AGPLv3+, AGPL v3 or later, AGPL-3.0 or later]
+
+  # ---------------------------------------------------------------- asset and data terms
+  LicenseRef-QAL-1.0:
+    name: Quaternius Asset License v1.0
+    url: https://quaternius.com/license.html
+    flags: [no-redistribute-as-asset]
+    aliases: [QAL, QAL 1.0, Quaternius Asset License]
+    notes: >-
+      Personal, educational and commercial use without attribution; the assets may not be
+      resold or redistributed, even modified. The version in effect when a pack was
+      obtained governs, so record the page snapshot and date per pack (some itch pages
+      still say CC0).
+
+  LicenseRef-Copernicus:
+    name: Copernicus DEM free licence
+    url: https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM
+    flags: [attribution]
+    aliases: [Copernicus, Copernicus DEM, Copernicus GLO-30, Copernicus GLO-90, Copernicus WorldDEM, Copernicus free license]
+    credit: >-
+      produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and
+      Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all
+      rights reserved
+    notes: >-
+      Free use and modification with credit. The credit above is for the DEM; Sentinel
+      products credit "Contains modified Copernicus Sentinel data <year>" instead, given as
+      the input's attribution.
+
+  LicenseRef-CMU-Mocap:
+    name: CMU Graphics Lab Motion Capture Database terms
+    url: https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/READMEFIRST.txt
+    flags: []
+    # CMU's own wording is an alias; the bare phrase "research and commercial projects" is
+    # not (it describes permissions, so it stays unknown until the ID is recorded).
+    aliases: [CMU mocap, CMU motion capture database, CMU Graphics Lab Motion Capture Database, Free for use in research and commercial projects worldwide]
+    credit: >-
+      The data used in this project was obtained from mocap.cs.cmu.edu. The database was
+      created with funding from NSF EIA-0196217.
+    notes: >-
+      Free for research and commercial projects; the data may not be resold directly, even
+      in converted form. CMU asks for the credit line in publications.
+
+  LicenseRef-Sonniss-GDC:
+    name: Sonniss GDC Game Audio Bundle licence
+    url: https://sonniss.com/gdc-bundle-license/
+    flags: [no-redistribute-as-asset]
+    aliases: [Sonniss, Sonniss GDC, GDC Game Audio Bundle, Sonniss license]
+    notes: >-
+      Royalty-free in commercial projects, no attribution required. The sounds may not be
+      redistributed as a library, and licence v2.0 bans using them to develop, train or
+      enhance AI.
+
+  LicenseRef-Mixamo:
+    name: Adobe Mixamo terms
+    url: https://community.adobe.com/t5/mixamo-discussions/mixamo-faq-licensing-royalties-ownership-eula-and-tos/td-p/13234775
+    flags: [no-redistribute-as-asset]
+    aliases: [Mixamo, Adobe Mixamo, Mixamo terms]
+    notes: >-
+      Royalty-free in personal and commercial projects including games; raw character and
+      animation files may not be redistributed; no ML training. Free under revocable
+      technology-preview terms, so manual, optional input only.
+
+  LicenseRef-Terrarium-Mixed:
+    name: AWS Terrain Tiles (Terrarium), mixed sources
+    url: https://github.com/tilezen/joerd/blob/master/docs/attribution.md
+    flags: [attribution]
+    aliases: [Terrarium, Terrain Tiles, AWS Terrain Tiles, joerd]
+    notes: >-
+      Public-domain sources (SRTM, 3DEP, GMTED, ETOPO1) mixed with Copernicus EU-DEM and CC
+      BY regional data; the source of a tile is not encoded, so record the joerd
+      attribution list wholesale.
+
+  LicenseRef-ARCSim:
+    name: ARCSim licence (UC non-profit terms)
+    url: http://graphics.berkeley.edu/resources/ARCSim/
+    flags: [nc]
+    aliases: [ARCSim, UC non-profit]
+    notes: Educational, research and non-profit use. Opus commits only fabric-density facts from it.
+
+  # ---------------------------------------------------------------- public and factual
+  LicenseRef-Public-Domain:
+    name: Public domain
+    url: https://creativecommons.org/publicdomain/mark/1.0/
+    flags: []
+    aliases: [Public Domain Mark, Public Domain Mark 1.0, no known copyright restrictions, no known restrictions]
+    notes: Only with a stated status per item (Library of Congress, Wikimedia Commons, museum PD images).
+
+  LicenseRef-US-Gov-PD:
+    name: US Government work (public domain)
+    url: https://www.usa.gov/government-copyright
+    flags: []
+    aliases: [US Government work, US Gov work, US Gov public domain, public domain (US Gov), public domain (US Government)]
+    notes: 17 U.S.C. 105 (USGS 3DEP, ADA 2010 dimensions).
+
+  LicenseRef-US-Gov-Public-Release:
+    name: US Government data cleared for unlimited public release
+    url: https://www.openlab.psu.edu/ansur2/
+    flags: []
+    aliases: [cleared for unlimited public release, unlimited public release, approved for public release, Distribution Statement A]
+    notes: >-
+      No licence text (the ANSUR II memo); a US Government work and likely public domain,
+      but not stated.
+
+  # 308(d) restricts NCHS data to statistical use with no re-identification. Opus commits
+  # and uses summary percentiles only, which is statistical use, and the terms say nothing
+  # about commerce, so no flag; raw files are never committed.
+  LicenseRef-NCHS-Data-Use:
+    name: NCHS data-use terms (Section 308(d))
+    url: https://www.cdc.gov/nchs/data_access/restrictions.htm
+    flags: []
+    aliases: [NCHS, NHANES, NCHS data-use terms, NCHS data use restrictions, Section 308(d), 308(d), US Gov public-use data, statistical use only]
+    notes: Statistical use only; never attempt to identify a person. Summary statistics only.
+
+  LicenseRef-Facts:
+    name: Facts (not copyrightable)
+    flags: []
+    aliases: [facts, factual data, numeric facts]
+    notes: Numbers taken from papers and references; cite the source in data/LICENSES.md.
+
+  LicenseRef-Own-Work:
+    name: Own work
+    flags: []
+    aliases: [original work, made by hand]
+    notes: Made in this project from scratch; its licence is the project's choice.
+
+  # ---------------------------------------------------------------- models and code with use limits
+  LicenseRef-NVIDIA-SCL:
+    name: NVIDIA Source Code License
+    url: https://github.com/NVlabs/stylegan2/blob/master/LICENSE.txt
+    flags: [nc]
+    tool_flags: [nc]
+    aliases: [NVIDIA Source Code License-NC, NVIDIA SCL]
+    notes: >-
+      The work and its derivatives may be used only non-commercially (e.g. the GarmentCode
+      Warp fork); running it to make an output counts as that use.
+
+  LicenseRef-FLUX-Non-Commercial:
+    name: FLUX Non-Commercial License
+    url: https://huggingface.co/black-forest-labs/FLUX.1-dev/blob/main/LICENSE.md
+    flags: [nc]
+    aliases: [FLUX Non-Commercial, "FLUX.1 [dev] Non-Commercial License"]
+    notes: Outputs may be usable commercially under some versions; flagged nc until checked per model.
+
+  LicenseRef-Tencent-Hunyuan-Community:
+    name: Tencent Hunyuan Community License
+    url: https://huggingface.co/tencent/Hunyuan3D-2/blob/main/LICENSE
+    flags: [use-restricted]
+    aliases: [Tencent Hunyuan Community License Agreement, Hunyuan Community License]
+    notes: Not licensed in the EU, the UK or South Korea; large deployments need a separate licence.
+
+  LicenseRef-Research-Only:
+    name: Research-only licence
+    flags: [nc, use-restricted]
+    notes: >-
+      For models and data whose terms allow research only. Strictly, they do not cover
+      making a game, even a free one (PLAN §6).
+
+  LicenseRef-SMPL:
+    name: SMPL-family model licence (non-commercial scientific research)
+    url: https://smpl-x.is.tue.mpg.de/modellicense.html
+    flags: [nc, use-restricted]
+    aliases: [SMPL, SMPL-X, SMPL-H, SMAL, MANO, AMASS]
+    notes: Excluded from Opus (§7.2); listed so these never pass as unknown text.
+
+  # ---------------------------------------------------------------- unknown
+  LicenseRef-Unknown:
+    name: Unknown licence
+    flags: [unknown]
+    aliases: [unknown, unlicensed, unstated, not stated, none stated, no license]
+    notes: Blocks export until the licence is recorded by ID.

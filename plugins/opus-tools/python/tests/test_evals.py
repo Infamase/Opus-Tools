@@ -155,7 +155,7 @@ def test_only_specs_and_summaries_are_committed():
     except (OSError, subprocess.CalledProcessError):
         pytest.skip("not a git checkout")
     for name in out.split():
-        assert (name in ("README.md", ".gitignore") or (name.startswith("tasks/") and name.endswith(".yaml"))
+        assert (name in ("README.md", ".gitignore", "judge.py") or (name.startswith("tasks/") and name.endswith(".yaml"))
                 or (name.startswith("results/") and name.endswith(".json"))), name
 
 

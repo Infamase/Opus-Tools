@@ -3,6 +3,7 @@
 /*
 !/.gitignore
 !/README.md
+!/judge.py
 !/tasks/
 !/results/
 /tasks/*

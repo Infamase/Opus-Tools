@@ -96,6 +96,23 @@ Checks use only tools that exist in v0.4:
 7. `opus eval summarize v0.4 --runs D:\opus-evals\v0.4` writes `results/v0.4.json`. Commit only
    that file.
 
+### Without a desktop session (cloud or batch)
+
+`judge.py` stands in for the fresh art-director subagent. Each call starts a new headless
+`claude -p` session in an empty folder holding only the images, renamed `image1.png`, ...,
+with the art-director instructions appended and no MCP servers, settings or file names:
+
+```
+python evals/judge.py blind --image <sheet> --prompt-file <prompt> --names "wolf|dog" --log judges.jsonl
+python evals/judge.py checklist --image <render> --question "..." --question "..."
+python evals/judge.py letter --image <lineup or A/B sheet> --prompt-file <prompt>
+```
+
+It prints the verdict (`top1_names_subject`, `checklist_no` or the letter) with the judge's
+token usage. A cloud run freezes the plugin at the label's commit (a git worktree), gives each
+task a fresh builder session and then an independent grader that re-runs every hard check
+with its own probes; the grader's verdict decides `accepted`.
+
 ## Scoring
 
 Per run, from the ledger (`<project>/.opus/runs/<date>.jsonl`):

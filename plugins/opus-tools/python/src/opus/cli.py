@@ -124,6 +124,12 @@ def main(argv: list[str] | None = None) -> int:
     s = sub.add_parser("credits", help="write CREDITS.md from the provenance ledger")
     s.add_argument("--dir", default=".")
 
+    s = sub.add_parser("data", help="rebuild the committed fact tables (maintainers)")
+    s.add_argument("action", choices=["build"])
+    s.add_argument("--tables", action="store_true", required=True)
+    s.add_argument("--ansur", default="", help="folder with ANSUR_II_MALE/FEMALE_Public.csv")
+    s.add_argument("--out", default="", help="write here instead of data/tables")
+
     sub.add_parser("doctor", help="check integrations")
     sub.add_parser("mcp", help="run the MCP server on stdio")
 
@@ -215,6 +221,10 @@ def main(argv: list[str] | None = None) -> int:
         from opus.ledger import write_credits
 
         _print(str(write_credits(a.dir)))
+    elif a.cmd == "data":
+        from opus.tables import build_tables
+
+        _print(build_tables(a.ansur or None, a.out or None))
     elif a.cmd == "doctor":
         from opus.doctor import doctor, format_report
 

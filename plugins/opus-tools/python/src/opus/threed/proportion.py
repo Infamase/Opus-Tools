@@ -35,7 +35,8 @@ ROLE_ALIASES = {
     "calf": ("calfl", "shinl", "leftleg", "leftlowerleg", "lowerlegl"),
     "foot": ("footl", "leftfoot"),
 }
-CANON_BONES = {"upperarm": ("shoulder_l", "elbow_l"), "lowerarm": ("elbow_l", "wrist_l"), "hand": ("wrist_l", "hand_l"),
+# the blockout's joints at each end of those bones (its hand bone runs wrist to knuckles)
+CANON_BONES = {"upperarm": ("shoulder_l", "elbow_l"), "lowerarm": ("elbow_l", "wrist_l"), "hand": ("wrist_l", "knuckles_l"),
                "thigh": ("hip_l", "knee_l"), "calf": ("knee_l", "ankle_l"), "foot": ("ankle_l", "ball_l")}
 
 

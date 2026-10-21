@@ -1,0 +1,3085 @@
+{
+ "table": "quadruped_hindlimb",
+ "version": 1,
+ "description": "Hindlimb proportions of 49 Carnivora and ungulates: MT/F = metatarsal / femur, hind leg = femur + tibia + metatarsal (digits excluded). Donors map body_blockout presets to species.",
+ "source": {
+  "citation": "Garland T Jr, Janis CM (1993). Does metatarsal/femur ratio predict maximal running speed in cursorial mammals? Journal of Zoology, London 229: 133-151. Data from Fig. 1 (p. 136).",
+  "licence_id": "LicenseRef-Facts",
+  "licence_url": "https://biologyfiles.ucr.edu/people/faculty/Garland/GarlandJanis1993.pdf",
+  "licence_text": "Numeric facts transcribed from a published figure; facts are not copyrightable. The paper itself is not redistributed.",
+  "url": "https://biologyfiles.ucr.edu/people/faculty/Garland/GarlandJanis1993.pdf",
+  "attribution": "Hindlimb data from Garland T Jr & Janis CM (1993), J. Zool. Lond. 229: 133-151, Fig. 1.",
+  "modification": "Derived/modified: the 49 rows of Fig. 1 transcribed and checked against a render of p. 136. Femur, tibia and metatarsal lengths are derived from hind leg length and MT/F assuming tibia = femur; donor bands are the family ranges in the same figure; digit lengths are recalled values (warnings only).",
+  "caveats": "Limb lengths are maximum articular lengths (Scott 1985) of mostly wild-shot museum specimens; hind leg = femur + tibia + metatarsal and excludes the digits. Domestic dog and cat are not in the table."
+ },
+ "species": {
+  "Ursus maritimus": {
+   "family": "Ursidae",
+   "sprint_speed_kmh": {
+    "value": 40,
+    "min": 40,
+    "max": 40,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 265,
+    "min": 265,
+    "max": 265,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 84.24,
+    "min": 84.24,
+    "max": 84.24,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.214,
+    "min": 0.214,
+    "max": 0.214,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 38.05,
+    "min": 38.05,
+    "max": 38.05,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 84.24 cm split by MT/F 0.214 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 38.05,
+    "min": 38.05,
+    "max": 38.05,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 84.24 cm split by MT/F 0.214 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 8.14,
+    "min": 8.14,
+    "max": 8.14,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 84.24 cm split by MT/F 0.214 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Ursus horribilis": {
+   "family": "Ursidae",
+   "sprint_speed_kmh": {
+    "value": 48,
+    "min": 48,
+    "max": 48,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 251.3,
+    "min": 251.3,
+    "max": 251.3,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 65.2,
+    "min": 65.2,
+    "max": 65.2,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.22,
+    "min": 0.22,
+    "max": 0.22,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 29.37,
+    "min": 29.37,
+    "max": 29.37,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 65.2 cm split by MT/F 0.22 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 29.37,
+    "min": 29.37,
+    "max": 29.37,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 65.2 cm split by MT/F 0.22 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 6.46,
+    "min": 6.46,
+    "max": 6.46,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 65.2 cm split by MT/F 0.22 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Ursus americanus": {
+   "family": "Ursidae",
+   "sprint_speed_kmh": {
+    "value": 48,
+    "min": 48,
+    "max": 48,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 93.4,
+    "min": 93.4,
+    "max": 93.4,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 66.83,
+    "min": 66.83,
+    "max": 66.83,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.2,
+    "min": 0.2,
+    "max": 0.2,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 30.38,
+    "min": 30.38,
+    "max": 30.38,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 66.83 cm split by MT/F 0.2 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 30.38,
+    "min": 30.38,
+    "max": 30.38,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 66.83 cm split by MT/F 0.2 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 6.08,
+    "min": 6.08,
+    "max": 6.08,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 66.83 cm split by MT/F 0.2 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Nasua narica": {
+   "family": "Procyonidae",
+   "sprint_speed_kmh": {
+    "value": 27,
+    "min": 27,
+    "max": 27,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 4.4,
+    "min": 4.4,
+    "max": 4.4,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 22.89,
+    "min": 22.89,
+    "max": 22.89,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.265,
+    "min": 0.265,
+    "max": 0.265,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 10.11,
+    "min": 10.11,
+    "max": 10.11,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 22.89 cm split by MT/F 0.265 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 10.11,
+    "min": 10.11,
+    "max": 10.11,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 22.89 cm split by MT/F 0.265 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 2.68,
+    "min": 2.68,
+    "max": 2.68,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 22.89 cm split by MT/F 0.265 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Procyon lotor": {
+   "family": "Procyonidae",
+   "sprint_speed_kmh": {
+    "value": 24,
+    "min": 24,
+    "max": 24,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 7,
+    "min": 7,
+    "max": 7,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 26.15,
+    "min": 26.15,
+    "max": 26.15,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.294,
+    "min": 0.294,
+    "max": 0.294,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 11.4,
+    "min": 11.4,
+    "max": 11.4,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 26.15 cm split by MT/F 0.294 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 11.4,
+    "min": 11.4,
+    "max": 11.4,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 26.15 cm split by MT/F 0.294 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 3.35,
+    "min": 3.35,
+    "max": 3.35,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 26.15 cm split by MT/F 0.294 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Mephitis mephitis": {
+   "family": "Mustelidae",
+   "sprint_speed_kmh": {
+    "value": 16,
+    "min": 16,
+    "max": 16,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 2.5,
+    "min": 2.5,
+    "max": 2.5,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 14.65,
+    "min": 14.65,
+    "max": 14.65,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.265,
+    "min": 0.265,
+    "max": 0.265,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 6.47,
+    "min": 6.47,
+    "max": 6.47,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 14.65 cm split by MT/F 0.265 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 6.47,
+    "min": 6.47,
+    "max": 6.47,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 14.65 cm split by MT/F 0.265 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 1.71,
+    "min": 1.71,
+    "max": 1.71,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 14.65 cm split by MT/F 0.265 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Meles meles": {
+   "family": "Mustelidae",
+   "sprint_speed_kmh": {
+    "value": 30,
+    "min": 30,
+    "max": 30,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 11.6,
+    "min": 11.6,
+    "max": 11.6,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 25.11,
+    "min": 25.11,
+    "max": 25.11,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.313,
+    "min": 0.313,
+    "max": 0.313,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 10.86,
+    "min": 10.86,
+    "max": 10.86,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 25.11 cm split by MT/F 0.313 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 10.86,
+    "min": 10.86,
+    "max": 10.86,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 25.11 cm split by MT/F 0.313 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 3.4,
+    "min": 3.4,
+    "max": 3.4,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 25.11 cm split by MT/F 0.313 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Canis lupus": {
+   "family": "Canidae",
+   "sprint_speed_kmh": {
+    "value": 64,
+    "min": 64,
+    "max": 64,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 35.3,
+    "min": 35.3,
+    "max": 35.3,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 59.02,
+    "min": 59.02,
+    "max": 59.02,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.437,
+    "min": 0.437,
+    "max": 0.437,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 24.22,
+    "min": 24.22,
+    "max": 24.22,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 59.02 cm split by MT/F 0.437 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 24.22,
+    "min": 24.22,
+    "max": 24.22,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 59.02 cm split by MT/F 0.437 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 10.58,
+    "min": 10.58,
+    "max": 10.58,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 59.02 cm split by MT/F 0.437 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Canis latrans": {
+   "family": "Canidae",
+   "sprint_speed_kmh": {
+    "value": 65,
+    "min": 65,
+    "max": 65,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 13.3,
+    "min": 13.3,
+    "max": 13.3,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 43.73,
+    "min": 43.73,
+    "max": 43.73,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.426,
+    "min": 0.426,
+    "max": 0.426,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 18.03,
+    "min": 18.03,
+    "max": 18.03,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 43.73 cm split by MT/F 0.426 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 18.03,
+    "min": 18.03,
+    "max": 18.03,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 43.73 cm split by MT/F 0.426 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 7.68,
+    "min": 7.68,
+    "max": 7.68,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 43.73 cm split by MT/F 0.426 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Lycaon pictus": {
+   "family": "Canidae",
+   "sprint_speed_kmh": {
+    "value": 70,
+    "min": 70,
+    "max": 70,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 20,
+    "min": 20,
+    "max": 20,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 52.29,
+    "min": 52.29,
+    "max": 52.29,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.395,
+    "min": 0.395,
+    "max": 0.395,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 21.83,
+    "min": 21.83,
+    "max": 21.83,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 52.29 cm split by MT/F 0.395 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 21.83,
+    "min": 21.83,
+    "max": 21.83,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 52.29 cm split by MT/F 0.395 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 8.62,
+    "min": 8.62,
+    "max": 8.62,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 52.29 cm split by MT/F 0.395 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Canis aureus": {
+   "family": "Canidae",
+   "sprint_speed_kmh": {
+    "value": 56,
+    "min": 56,
+    "max": 56,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 8.8,
+    "min": 8.8,
+    "max": 8.8,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 35.42,
+    "min": 35.42,
+    "max": 35.42,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.434,
+    "min": 0.434,
+    "max": 0.434,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 14.55,
+    "min": 14.55,
+    "max": 14.55,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 35.42 cm split by MT/F 0.434 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 14.55,
+    "min": 14.55,
+    "max": 14.55,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 35.42 cm split by MT/F 0.434 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 6.32,
+    "min": 6.32,
+    "max": 6.32,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 35.42 cm split by MT/F 0.434 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Urocyon cinereoargenteus": {
+   "family": "Canidae",
+   "sprint_speed_kmh": {
+    "value": 64,
+    "min": 64,
+    "max": 64,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 3.7,
+    "min": 3.7,
+    "max": 3.7,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 27.14,
+    "min": 27.14,
+    "max": 27.14,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.473,
+    "min": 0.473,
+    "max": 0.473,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 10.97,
+    "min": 10.97,
+    "max": 10.97,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 27.14 cm split by MT/F 0.473 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 10.97,
+    "min": 10.97,
+    "max": 10.97,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 27.14 cm split by MT/F 0.473 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 5.19,
+    "min": 5.19,
+    "max": 5.19,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 27.14 cm split by MT/F 0.473 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Vulpes fulva": {
+   "family": "Canidae",
+   "sprint_speed_kmh": {
+    "value": 72,
+    "min": 72,
+    "max": 72,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 4.8,
+    "min": 4.8,
+    "max": 4.8,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 34.48,
+    "min": 34.48,
+    "max": 34.48,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.483,
+    "min": 0.483,
+    "max": 0.483,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 13.89,
+    "min": 13.89,
+    "max": 13.89,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 34.48 cm split by MT/F 0.483 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 13.89,
+    "min": 13.89,
+    "max": 13.89,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 34.48 cm split by MT/F 0.483 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 6.71,
+    "min": 6.71,
+    "max": 6.71,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 34.48 cm split by MT/F 0.483 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Hyaena hyaena": {
+   "family": "Hyaenidae",
+   "sprint_speed_kmh": {
+    "value": 50,
+    "min": 50,
+    "max": 50,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 26.8,
+    "min": 26.8,
+    "max": 26.8,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 54.83,
+    "min": 54.83,
+    "max": 54.83,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.313,
+    "min": 0.313,
+    "max": 0.313,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 23.71,
+    "min": 23.71,
+    "max": 23.71,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 54.83 cm split by MT/F 0.313 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 23.71,
+    "min": 23.71,
+    "max": 23.71,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 54.83 cm split by MT/F 0.313 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 7.42,
+    "min": 7.42,
+    "max": 7.42,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 54.83 cm split by MT/F 0.313 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Crocuta crocuta": {
+   "family": "Hyaenidae",
+   "sprint_speed_kmh": {
+    "value": 65,
+    "min": 65,
+    "max": 65,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 52,
+    "min": 52,
+    "max": 52,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 52.85,
+    "min": 52.85,
+    "max": 52.85,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.365,
+    "min": 0.365,
+    "max": 0.365,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 22.35,
+    "min": 22.35,
+    "max": 22.35,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 52.85 cm split by MT/F 0.365 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 22.35,
+    "min": 22.35,
+    "max": 22.35,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 52.85 cm split by MT/F 0.365 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 8.16,
+    "min": 8.16,
+    "max": 8.16,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 52.85 cm split by MT/F 0.365 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Acinonyx jubatus": {
+   "family": "Felidae",
+   "sprint_speed_kmh": {
+    "value": 110,
+    "min": 110,
+    "max": 110,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 58.8,
+    "min": 58.8,
+    "max": 58.8,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 66.44,
+    "min": 66.44,
+    "max": 66.44,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.438,
+    "min": 0.438,
+    "max": 0.438,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 27.25,
+    "min": 27.25,
+    "max": 27.25,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 66.44 cm split by MT/F 0.438 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 27.25,
+    "min": 27.25,
+    "max": 27.25,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 66.44 cm split by MT/F 0.438 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 11.94,
+    "min": 11.94,
+    "max": 11.94,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 66.44 cm split by MT/F 0.438 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Panthera pardus": {
+   "family": "Felidae",
+   "sprint_speed_kmh": {
+    "value": 60,
+    "min": 60,
+    "max": 60,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 52.4,
+    "min": 52.4,
+    "max": 52.4,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 53.58,
+    "min": 53.58,
+    "max": 53.58,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.401,
+    "min": 0.401,
+    "max": 0.401,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 22.32,
+    "min": 22.32,
+    "max": 22.32,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 53.58 cm split by MT/F 0.401 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 22.32,
+    "min": 22.32,
+    "max": 22.32,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 53.58 cm split by MT/F 0.401 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 8.95,
+    "min": 8.95,
+    "max": 8.95,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 53.58 cm split by MT/F 0.401 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Panthera tigris": {
+   "family": "Felidae",
+   "sprint_speed_kmh": {
+    "value": 56,
+    "min": 56,
+    "max": 56,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 161,
+    "min": 161,
+    "max": 161,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 73.69,
+    "min": 73.69,
+    "max": 73.69,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.345,
+    "min": 0.345,
+    "max": 0.345,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 31.42,
+    "min": 31.42,
+    "max": 31.42,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 73.69 cm split by MT/F 0.345 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 31.42,
+    "min": 31.42,
+    "max": 31.42,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 73.69 cm split by MT/F 0.345 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 10.84,
+    "min": 10.84,
+    "max": 10.84,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 73.69 cm split by MT/F 0.345 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Panthera leo": {
+   "family": "Felidae",
+   "sprint_speed_kmh": {
+    "value": 59,
+    "min": 59,
+    "max": 59,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 155.8,
+    "min": 155.8,
+    "max": 155.8,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 74.42,
+    "min": 74.42,
+    "max": 74.42,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.348,
+    "min": 0.348,
+    "max": 0.348,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 31.7,
+    "min": 31.7,
+    "max": 31.7,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 74.42 cm split by MT/F 0.348 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 31.7,
+    "min": 31.7,
+    "max": 31.7,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 74.42 cm split by MT/F 0.348 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 11.03,
+    "min": 11.03,
+    "max": 11.03,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 74.42 cm split by MT/F 0.348 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Tapirus bairdii": {
+   "family": "Tapiridae",
+   "sprint_speed_kmh": {
+    "value": 40,
+    "min": 40,
+    "max": 40,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 250,
+    "min": 250,
+    "max": 250,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 74.55,
+    "min": 74.55,
+    "max": 74.55,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.305,
+    "min": 0.305,
+    "max": 0.305,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 32.34,
+    "min": 32.34,
+    "max": 32.34,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 74.55 cm split by MT/F 0.305 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 32.34,
+    "min": 32.34,
+    "max": 32.34,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 74.55 cm split by MT/F 0.305 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 9.86,
+    "min": 9.86,
+    "max": 9.86,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 74.55 cm split by MT/F 0.305 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Diceros bicornis": {
+   "family": "Rhinocerotidae",
+   "sprint_speed_kmh": {
+    "value": 45,
+    "min": 45,
+    "max": 45,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 1200,
+    "min": 1200,
+    "max": 1200,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 92.53,
+    "min": 92.53,
+    "max": 92.53,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.36,
+    "min": 0.36,
+    "max": 0.36,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 39.21,
+    "min": 39.21,
+    "max": 39.21,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 92.53 cm split by MT/F 0.36 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 39.21,
+    "min": 39.21,
+    "max": 39.21,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 92.53 cm split by MT/F 0.36 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 14.11,
+    "min": 14.11,
+    "max": 14.11,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 92.53 cm split by MT/F 0.36 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Ceratotherium simum": {
+   "family": "Rhinocerotidae",
+   "sprint_speed_kmh": {
+    "value": 25,
+    "min": 25,
+    "max": 25,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 2000,
+    "min": 2000,
+    "max": 2000,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 101.2,
+    "min": 101.2,
+    "max": 101.2,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.327,
+    "min": 0.327,
+    "max": 0.327,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 43.49,
+    "min": 43.49,
+    "max": 43.49,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 101.2 cm split by MT/F 0.327 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 43.49,
+    "min": 43.49,
+    "max": 43.49,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 101.2 cm split by MT/F 0.327 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 14.22,
+    "min": 14.22,
+    "max": 14.22,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 101.2 cm split by MT/F 0.327 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Equus hemionus": {
+   "family": "Equidae",
+   "sprint_speed_kmh": {
+    "value": 70,
+    "min": 70,
+    "max": 70,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 200,
+    "min": 200,
+    "max": 200,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 77.06,
+    "min": 77.06,
+    "max": 77.06,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.872,
+    "min": 0.872,
+    "max": 0.872,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 26.83,
+    "min": 26.83,
+    "max": 26.83,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 77.06 cm split by MT/F 0.872 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 26.83,
+    "min": 26.83,
+    "max": 26.83,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 77.06 cm split by MT/F 0.872 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 23.4,
+    "min": 23.4,
+    "max": 23.4,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 77.06 cm split by MT/F 0.872 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Equus caballus": {
+   "family": "Equidae",
+   "sprint_speed_kmh": {
+    "value": 70,
+    "min": 70,
+    "max": 70,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 350,
+    "min": 350,
+    "max": 350,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 87.54,
+    "min": 87.54,
+    "max": 87.54,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.806,
+    "min": 0.806,
+    "max": 0.806,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 31.2,
+    "min": 31.2,
+    "max": 31.2,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 87.54 cm split by MT/F 0.806 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 31.2,
+    "min": 31.2,
+    "max": 31.2,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 87.54 cm split by MT/F 0.806 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 25.15,
+    "min": 25.15,
+    "max": 25.15,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 87.54 cm split by MT/F 0.806 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Equus burchelli": {
+   "family": "Equidae",
+   "sprint_speed_kmh": {
+    "value": 70,
+    "min": 70,
+    "max": 70,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 235,
+    "min": 235,
+    "max": 235,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 83.65,
+    "min": 83.65,
+    "max": 83.65,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.784,
+    "min": 0.784,
+    "max": 0.784,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 30.05,
+    "min": 30.05,
+    "max": 30.05,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 83.65 cm split by MT/F 0.784 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 30.05,
+    "min": 30.05,
+    "max": 30.05,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 83.65 cm split by MT/F 0.784 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 23.56,
+    "min": 23.56,
+    "max": 23.56,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 83.65 cm split by MT/F 0.784 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Camelus dromedarius": {
+   "family": "Camelidae",
+   "sprint_speed_kmh": {
+    "value": 32,
+    "min": 32,
+    "max": 32,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 550,
+    "min": 550,
+    "max": 550,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 132.6,
+    "min": 132.6,
+    "max": 132.6,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.677,
+    "min": 0.677,
+    "max": 0.677,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 49.53,
+    "min": 49.53,
+    "max": 49.53,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 132.6 cm split by MT/F 0.677 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 49.53,
+    "min": 49.53,
+    "max": 49.53,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 132.6 cm split by MT/F 0.677 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 33.53,
+    "min": 33.53,
+    "max": 33.53,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 132.6 cm split by MT/F 0.677 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Lama guanicoe": {
+   "family": "Camelidae",
+   "sprint_speed_kmh": {
+    "value": 56,
+    "min": 56,
+    "max": 56,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 95,
+    "min": 95,
+    "max": 95,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 77.09,
+    "min": 77.09,
+    "max": 77.09,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.706,
+    "min": 0.706,
+    "max": 0.706,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 28.49,
+    "min": 28.49,
+    "max": 28.49,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 77.09 cm split by MT/F 0.706 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 28.49,
+    "min": 28.49,
+    "max": 28.49,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 77.09 cm split by MT/F 0.706 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 20.11,
+    "min": 20.11,
+    "max": 20.11,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 77.09 cm split by MT/F 0.706 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Giraffa camelopardalis": {
+   "family": "Giraffidae",
+   "sprint_speed_kmh": {
+    "value": 60,
+    "min": 60,
+    "max": 60,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 1075,
+    "min": 1075,
+    "max": 1075,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 159.7,
+    "min": 159.7,
+    "max": 159.7,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 1.416,
+    "min": 1.416,
+    "max": 1.416,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 46.75,
+    "min": 46.75,
+    "max": 46.75,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 159.7 cm split by MT/F 1.416 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 46.75,
+    "min": 46.75,
+    "max": 46.75,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 159.7 cm split by MT/F 1.416 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 66.2,
+    "min": 66.2,
+    "max": 66.2,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 159.7 cm split by MT/F 1.416 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Syncerus caffer": {
+   "family": "Bovidae",
+   "sprint_speed_kmh": {
+    "value": 57,
+    "min": 57,
+    "max": 57,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 620,
+    "min": 620,
+    "max": 620,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 101.1,
+    "min": 101.1,
+    "max": 101.1,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.572,
+    "min": 0.572,
+    "max": 0.572,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 39.31,
+    "min": 39.31,
+    "max": 39.31,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 101.1 cm split by MT/F 0.572 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 39.31,
+    "min": 39.31,
+    "max": 39.31,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 101.1 cm split by MT/F 0.572 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 22.48,
+    "min": 22.48,
+    "max": 22.48,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 101.1 cm split by MT/F 0.572 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Bison bison": {
+   "family": "Bovidae",
+   "sprint_speed_kmh": {
+    "value": 56,
+    "min": 56,
+    "max": 56,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 865,
+    "min": 865,
+    "max": 865,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 96.61,
+    "min": 96.61,
+    "max": 96.61,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.68,
+    "min": 0.68,
+    "max": 0.68,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 36.05,
+    "min": 36.05,
+    "max": 36.05,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 96.61 cm split by MT/F 0.68 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 36.05,
+    "min": 36.05,
+    "max": 36.05,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 96.61 cm split by MT/F 0.68 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 24.51,
+    "min": 24.51,
+    "max": 24.51,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 96.61 cm split by MT/F 0.68 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Taurotragus oryx": {
+   "family": "Bovidae",
+   "sprint_speed_kmh": {
+    "value": 70,
+    "min": 70,
+    "max": 70,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 511,
+    "min": 511,
+    "max": 511,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 100.9,
+    "min": 100.9,
+    "max": 100.9,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.813,
+    "min": 0.813,
+    "max": 0.813,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 35.87,
+    "min": 35.87,
+    "max": 35.87,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 100.9 cm split by MT/F 0.813 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 35.87,
+    "min": 35.87,
+    "max": 35.87,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 100.9 cm split by MT/F 0.813 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 29.16,
+    "min": 29.16,
+    "max": 29.16,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 100.9 cm split by MT/F 0.813 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Gazella granti": {
+   "family": "Bovidae",
+   "sprint_speed_kmh": {
+    "value": 81,
+    "min": 81,
+    "max": 81,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 62.5,
+    "min": 62.5,
+    "max": 62.5,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 66.21,
+    "min": 66.21,
+    "max": 66.21,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 1.105,
+    "min": 1.105,
+    "max": 1.105,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 21.32,
+    "min": 21.32,
+    "max": 21.32,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 66.21 cm split by MT/F 1.105 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 21.32,
+    "min": 21.32,
+    "max": 21.32,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 66.21 cm split by MT/F 1.105 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 23.56,
+    "min": 23.56,
+    "max": 23.56,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 66.21 cm split by MT/F 1.105 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Gazella thomsonii": {
+   "family": "Bovidae",
+   "sprint_speed_kmh": {
+    "value": 81,
+    "min": 81,
+    "max": 81,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 20.5,
+    "min": 20.5,
+    "max": 20.5,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 53.01,
+    "min": 53.01,
+    "max": 53.01,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 1.138,
+    "min": 1.138,
+    "max": 1.138,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 16.89,
+    "min": 16.89,
+    "max": 16.89,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 53.01 cm split by MT/F 1.138 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 16.89,
+    "min": 16.89,
+    "max": 16.89,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 53.01 cm split by MT/F 1.138 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 19.22,
+    "min": 19.22,
+    "max": 19.22,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 53.01 cm split by MT/F 1.138 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Antilope cervicapra": {
+   "family": "Bovidae",
+   "sprint_speed_kmh": {
+    "value": 105,
+    "min": 105,
+    "max": 105,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 37.5,
+    "min": 37.5,
+    "max": 37.5,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 60.72,
+    "min": 60.72,
+    "max": 60.72,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 1.051,
+    "min": 1.051,
+    "max": 1.051,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 19.9,
+    "min": 19.9,
+    "max": 19.9,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 60.72 cm split by MT/F 1.051 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 19.9,
+    "min": 19.9,
+    "max": 19.9,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 60.72 cm split by MT/F 1.051 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 20.92,
+    "min": 20.92,
+    "max": 20.92,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 60.72 cm split by MT/F 1.051 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Madoqua kirki": {
+   "family": "Bovidae",
+   "sprint_speed_kmh": {
+    "value": 42,
+    "min": 42,
+    "max": 42,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 5,
+    "min": 5,
+    "max": 5,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 30.11,
+    "min": 30.11,
+    "max": 30.11,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.78,
+    "min": 0.78,
+    "max": 0.78,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 10.83,
+    "min": 10.83,
+    "max": 10.83,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 30.11 cm split by MT/F 0.78 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 10.83,
+    "min": 10.83,
+    "max": 10.83,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 30.11 cm split by MT/F 0.78 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 8.45,
+    "min": 8.45,
+    "max": 8.45,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 30.11 cm split by MT/F 0.78 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Oreamnos americanus": {
+   "family": "Bovidae",
+   "sprint_speed_kmh": {
+    "value": 33,
+    "min": 33,
+    "max": 33,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 113.5,
+    "min": 113.5,
+    "max": 113.5,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 65.65,
+    "min": 65.65,
+    "max": 65.65,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.448,
+    "min": 0.448,
+    "max": 0.448,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 26.82,
+    "min": 26.82,
+    "max": 26.82,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 65.65 cm split by MT/F 0.448 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 26.82,
+    "min": 26.82,
+    "max": 26.82,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 65.65 cm split by MT/F 0.448 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 12.01,
+    "min": 12.01,
+    "max": 12.01,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 65.65 cm split by MT/F 0.448 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Ovis canadensis nelsoni": {
+   "family": "Bovidae",
+   "sprint_speed_kmh": {
+    "value": 48,
+    "min": 48,
+    "max": 48,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 85,
+    "min": 85,
+    "max": 85,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 72.19,
+    "min": 72.19,
+    "max": 72.19,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.78,
+    "min": 0.78,
+    "max": 0.78,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 25.97,
+    "min": 25.97,
+    "max": 25.97,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 72.19 cm split by MT/F 0.78 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 25.97,
+    "min": 25.97,
+    "max": 25.97,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 72.19 cm split by MT/F 0.78 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 20.25,
+    "min": 20.25,
+    "max": 20.25,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 72.19 cm split by MT/F 0.78 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Hippotragus equinus": {
+   "family": "Bovidae",
+   "sprint_speed_kmh": {
+    "value": 56,
+    "min": 56,
+    "max": 56,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 226.5,
+    "min": 226.5,
+    "max": 226.5,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 84.4,
+    "min": 84.4,
+    "max": 84.4,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.762,
+    "min": 0.762,
+    "max": 0.762,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 30.56,
+    "min": 30.56,
+    "max": 30.56,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 84.4 cm split by MT/F 0.762 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 30.56,
+    "min": 30.56,
+    "max": 30.56,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 84.4 cm split by MT/F 0.762 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 23.28,
+    "min": 23.28,
+    "max": 23.28,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 84.4 cm split by MT/F 0.762 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Aepyceros melampus": {
+   "family": "Bovidae",
+   "sprint_speed_kmh": {
+    "value": 47,
+    "min": 47,
+    "max": 47,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 53.25,
+    "min": 53.25,
+    "max": 53.25,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 74.06,
+    "min": 74.06,
+    "max": 74.06,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 1.128,
+    "min": 1.128,
+    "max": 1.128,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 23.68,
+    "min": 23.68,
+    "max": 23.68,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 74.06 cm split by MT/F 1.128 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 23.68,
+    "min": 23.68,
+    "max": 23.68,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 74.06 cm split by MT/F 1.128 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 26.71,
+    "min": 26.71,
+    "max": 26.71,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 74.06 cm split by MT/F 1.128 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Connochaetes taurinus": {
+   "family": "Bovidae",
+   "sprint_speed_kmh": {
+    "value": 80,
+    "min": 80,
+    "max": 80,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 216,
+    "min": 216,
+    "max": 216,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 90.0,
+    "min": 90.0,
+    "max": 90.0,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.818,
+    "min": 0.818,
+    "max": 0.818,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 31.94,
+    "min": 31.94,
+    "max": 31.94,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 90.0 cm split by MT/F 0.818 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 31.94,
+    "min": 31.94,
+    "max": 31.94,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 90.0 cm split by MT/F 0.818 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 26.12,
+    "min": 26.12,
+    "max": 26.12,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 90.0 cm split by MT/F 0.818 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Damaliscus lunatus": {
+   "family": "Bovidae",
+   "sprint_speed_kmh": {
+    "value": 70,
+    "min": 70,
+    "max": 70,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 130,
+    "min": 130,
+    "max": 130,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 84.6,
+    "min": 84.6,
+    "max": 84.6,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 1.004,
+    "min": 1.004,
+    "max": 1.004,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 28.16,
+    "min": 28.16,
+    "max": 28.16,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 84.6 cm split by MT/F 1.004 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 28.16,
+    "min": 28.16,
+    "max": 28.16,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 84.6 cm split by MT/F 1.004 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 28.28,
+    "min": 28.28,
+    "max": 28.28,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 84.6 cm split by MT/F 1.004 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Alcelaphus buselaphus": {
+   "family": "Bovidae",
+   "sprint_speed_kmh": {
+    "value": 80,
+    "min": 80,
+    "max": 80,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 136,
+    "min": 136,
+    "max": 136,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 84.7,
+    "min": 84.7,
+    "max": 84.7,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.924,
+    "min": 0.924,
+    "max": 0.924,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 28.97,
+    "min": 28.97,
+    "max": 28.97,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 84.7 cm split by MT/F 0.924 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 28.97,
+    "min": 28.97,
+    "max": 28.97,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 84.7 cm split by MT/F 0.924 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 26.77,
+    "min": 26.77,
+    "max": 26.77,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 84.7 cm split by MT/F 0.924 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Antilocapra americana": {
+   "family": "Antilocapridae",
+   "sprint_speed_kmh": {
+    "value": 100,
+    "min": 100,
+    "max": 100,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 50,
+    "min": 50,
+    "max": 50,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 66.44,
+    "min": 66.44,
+    "max": 66.44,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 1.0,
+    "min": 1.0,
+    "max": 1.0,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 22.15,
+    "min": 22.15,
+    "max": 22.15,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 66.44 cm split by MT/F 1.0 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 22.15,
+    "min": 22.15,
+    "max": 22.15,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 66.44 cm split by MT/F 1.0 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 22.15,
+    "min": 22.15,
+    "max": 22.15,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 66.44 cm split by MT/F 1.0 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Cervus canadensis": {
+   "family": "Cervidae",
+   "sprint_speed_kmh": {
+    "value": 72,
+    "min": 72,
+    "max": 72,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 300,
+    "min": 300,
+    "max": 300,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 97.0,
+    "min": 97.0,
+    "max": 97.0,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.956,
+    "min": 0.956,
+    "max": 0.956,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 32.81,
+    "min": 32.81,
+    "max": 32.81,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 97.0 cm split by MT/F 0.956 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 32.81,
+    "min": 32.81,
+    "max": 32.81,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 97.0 cm split by MT/F 0.956 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 31.37,
+    "min": 31.37,
+    "max": 31.37,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 97.0 cm split by MT/F 0.956 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Dama dama": {
+   "family": "Cervidae",
+   "sprint_speed_kmh": {
+    "value": 65,
+    "min": 65,
+    "max": 65,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 55,
+    "min": 55,
+    "max": 55,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 64.09,
+    "min": 64.09,
+    "max": 64.09,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.971,
+    "min": 0.971,
+    "max": 0.971,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 21.57,
+    "min": 21.57,
+    "max": 21.57,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 64.09 cm split by MT/F 0.971 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 21.57,
+    "min": 21.57,
+    "max": 21.57,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 64.09 cm split by MT/F 0.971 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 20.95,
+    "min": 20.95,
+    "max": 20.95,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 64.09 cm split by MT/F 0.971 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Alces alces": {
+   "family": "Cervidae",
+   "sprint_speed_kmh": {
+    "value": 56,
+    "min": 56,
+    "max": 56,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 384,
+    "min": 384,
+    "max": 384,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 123.8,
+    "min": 123.8,
+    "max": 123.8,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.933,
+    "min": 0.933,
+    "max": 0.933,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 42.21,
+    "min": 42.21,
+    "max": 42.21,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 123.8 cm split by MT/F 0.933 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 42.21,
+    "min": 42.21,
+    "max": 42.21,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 123.8 cm split by MT/F 0.933 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 39.38,
+    "min": 39.38,
+    "max": 39.38,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 123.8 cm split by MT/F 0.933 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Rangifer tarandus": {
+   "family": "Cervidae",
+   "sprint_speed_kmh": {
+    "value": 80,
+    "min": 80,
+    "max": 80,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 100,
+    "min": 100,
+    "max": 100,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 101.2,
+    "min": 101.2,
+    "max": 101.2,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.947,
+    "min": 0.947,
+    "max": 0.947,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 34.34,
+    "min": 34.34,
+    "max": 34.34,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 101.2 cm split by MT/F 0.947 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 34.34,
+    "min": 34.34,
+    "max": 34.34,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 101.2 cm split by MT/F 0.947 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 32.52,
+    "min": 32.52,
+    "max": 32.52,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 101.2 cm split by MT/F 0.947 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Odocoileus virginianus": {
+   "family": "Cervidae",
+   "sprint_speed_kmh": {
+    "value": 64,
+    "min": 64,
+    "max": 64,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 57,
+    "min": 57,
+    "max": 57,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 80.85,
+    "min": 80.85,
+    "max": 80.85,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 1.002,
+    "min": 1.002,
+    "max": 1.002,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 26.93,
+    "min": 26.93,
+    "max": 26.93,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 80.85 cm split by MT/F 1.002 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 26.93,
+    "min": 26.93,
+    "max": 26.93,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 80.85 cm split by MT/F 1.002 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 26.99,
+    "min": 26.99,
+    "max": 26.99,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 80.85 cm split by MT/F 1.002 with tibia = femur",
+    "tag": "derived"
+   }
+  },
+  "Odocoileus hemionus": {
+   "family": "Cervidae",
+   "sprint_speed_kmh": {
+    "value": 61,
+    "min": 61,
+    "max": 61,
+    "unit": "km/h",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "mass_kg": {
+    "value": 74,
+    "min": 74,
+    "max": 74,
+    "unit": "kg",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "hind_leg_cm": {
+    "value": 78.2,
+    "min": 78.2,
+    "max": 78.2,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1 (femur + tibia + metatarsal)",
+    "tag": "measured"
+   },
+   "mt_f": {
+    "value": 0.963,
+    "min": 0.963,
+    "max": 0.963,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1",
+    "tag": "measured"
+   },
+   "femur_cm": {
+    "value": 26.39,
+    "min": 26.39,
+    "max": 26.39,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 78.2 cm split by MT/F 0.963 with tibia = femur",
+    "tag": "derived"
+   },
+   "tibia_cm": {
+    "value": 26.39,
+    "min": 26.39,
+    "max": 26.39,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 78.2 cm split by MT/F 0.963 with tibia = femur",
+    "tag": "derived"
+   },
+   "metatarsal_cm": {
+    "value": 25.42,
+    "min": 25.42,
+    "max": 25.42,
+    "unit": "cm",
+    "src": "Garland & Janis 1993, Fig. 1: hind leg 78.2 cm split by MT/F 0.963 with tibia = femur",
+    "tag": "derived"
+   }
+  }
+ },
+ "donors": {
+  "wolf": {
+   "species": "Canis lupus",
+   "preset": "dog",
+   "mt_f": {
+    "value": 0.437,
+    "min": 0.395,
+    "max": 0.483,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1: Canis lupus; band = Canidae range over 6 species",
+    "tag": "measured"
+   },
+   "tibia_f": {
+    "value": 1.0,
+    "min": 0.9,
+    "max": 1.1,
+    "unit": "ratio",
+    "src": "OVERHAUL.md section 4.3 (femur ~ tibia)",
+    "tag": "recalled"
+   },
+   "digits": [
+    {
+     "name": "toes",
+     "x_metatarsal": {
+      "value": 0.5,
+      "min": 0.4,
+      "max": 0.7,
+      "unit": "ratio",
+      "src": "general mammal anatomy, unchecked",
+      "tag": "recalled"
+     }
+    }
+   ],
+   "note": "Domestic dogs are Canis lupus familiaris; the wild wolf is the table's nearest row."
+  },
+  "felid": {
+   "species": "Panthera leo",
+   "preset": "cat",
+   "mt_f": {
+    "value": 0.348,
+    "min": 0.345,
+    "max": 0.438,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1: Panthera leo; band = Felidae range over 4 species",
+    "tag": "derived"
+   },
+   "tibia_f": {
+    "value": 1.0,
+    "min": 0.9,
+    "max": 1.1,
+    "unit": "ratio",
+    "src": "OVERHAUL.md section 4.3 (femur ~ tibia)",
+    "tag": "recalled"
+   },
+   "digits": [
+    {
+     "name": "toes",
+     "x_metatarsal": {
+      "value": 0.5,
+      "min": 0.4,
+      "max": 0.7,
+      "unit": "ratio",
+      "src": "general mammal anatomy, unchecked",
+      "tag": "recalled"
+     }
+    }
+   ],
+   "note": "Felis catus is not in the table. Felid long-bone lengths scale isometrically and felids keep a crouched posture at every size (Cuff et al. 2016, J. Anat., PMC5341591), so the lion's ratio stands in for the cat; check against domestic-cat skeletons when one is fetched."
+  },
+  "horse": {
+   "species": "Equus caballus",
+   "preset": "horse",
+   "mt_f": {
+    "value": 0.806,
+    "min": 0.784,
+    "max": 0.872,
+    "unit": "ratio",
+    "src": "Garland & Janis 1993, Fig. 1: Equus caballus; band = Equidae range over 3 species",
+    "tag": "measured"
+   },
+   "tibia_f": {
+    "value": 1.0,
+    "min": 0.9,
+    "max": 1.1,
+    "unit": "ratio",
+    "src": "OVERHAUL.md section 4.3 (femur ~ tibia)",
+    "tag": "recalled"
+   },
+   "digits": [
+    {
+     "name": "pastern",
+     "x_metatarsal": {
+      "value": 0.48,
+      "min": 0.42,
+      "max": 0.55,
+      "unit": "ratio",
+      "src": "general mammal anatomy, unchecked",
+      "tag": "recalled"
+     }
+    },
+    {
+     "name": "hoof",
+     "x_metatarsal": {
+      "value": 0.3,
+      "min": 0.25,
+      "max": 0.35,
+      "unit": "ratio",
+      "src": "general mammal anatomy, unchecked",
+      "tag": "recalled"
+     }
+    }
+   ],
+   "note": "Pastern = fetlock to coffin joint (P1 + P2); hoof = coffin joint to the toe on the ground (P3)."
+  }
+ },
+ "power_fit": {
+  "all": {
+   "n": 49,
+   "a_cm": {
+    "value": 19.797,
+    "min": 16.827,
+    "max": 23.292,
+    "unit": "cm",
+    "src": "least squares on log(hind leg) vs log(mass), n=49, band +-1.96 SE",
+    "tag": "derived"
+   },
+   "b": {
+    "value": 0.27,
+    "min": 0.2352,
+    "max": 0.3048,
+    "unit": "exponent",
+    "src": "least squares on log(hind leg) vs log(mass), n=49, band +-1.96 SE",
+    "tag": "derived"
+   },
+   "residual_sd_log": 0.201
+  },
+  "carnivora": {
+   "n": 19,
+   "a_cm": {
+    "value": 16.701,
+    "min": 13.372,
+    "max": 20.858,
+    "unit": "cm",
+    "src": "least squares on log(hind leg) vs log(mass), n=19, band +-1.96 SE",
+    "tag": "derived"
+   },
+   "b": {
+    "value": 0.2998,
+    "min": 0.2376,
+    "max": 0.3621,
+    "unit": "exponent",
+    "src": "least squares on log(hind leg) vs log(mass), n=19, band +-1.96 SE",
+    "tag": "derived"
+   },
+   "residual_sd_log": 0.2003
+  },
+  "ungulates": {
+   "n": 30,
+   "a_cm": {
+    "value": 30.308,
+    "min": 23.897,
+    "max": 38.44,
+    "unit": "cm",
+    "src": "least squares on log(hind leg) vs log(mass), n=30, band +-1.96 SE",
+    "tag": "derived"
+   },
+   "b": {
+    "value": 0.1953,
+    "min": 0.1501,
+    "max": 0.2406,
+    "unit": "exponent",
+    "src": "least squares on log(hind leg) vs log(mass), n=30, band +-1.96 SE",
+    "tag": "derived"
+   },
+   "residual_sd_log": 0.1627
+  }
+ }
+}

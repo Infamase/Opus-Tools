@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from opus.blender.runner import BlenderNotFound, find_blender, run_task
+from opus.tables import load_table
 
 try:
     BLENDER = find_blender()
@@ -25,6 +26,14 @@ def build(tmp_path, **kw):
     out = tmp_path / f"{kw['archetype']}_{kw['preset']}.blend"
     rep = run_task("body", {"target_tris": 4000, "out_blend": str(out), **kw})
     return out, rep
+
+
+def probe(tmp_path, blend):
+    """Bone lengths and skin measurements of a built blockout (body_probe.py)."""
+    out = tmp_path / "probe.json"
+    subprocess.run([BLENDER, "-b", str(blend), "--python", str(SCRIPTS / "body_probe.py"), "--", str(out)],
+                   check=True, capture_output=True, timeout=300)
+    return json.loads(out.read_text())
 
 
 @pytest.mark.parametrize(
@@ -88,3 +97,41 @@ def test_unknown_preset_is_a_clear_error(tmp_path):
 
     with pytest.raises(BlenderTaskError, match="humanoid presets"):
         build(tmp_path, archetype="humanoid", preset="gnome")
+
+
+def test_realistic_hand_and_foot_measure_inside_ansur(tmp_path):
+    out, rep = build(tmp_path, archetype="humanoid", preset="realistic", height=1.8)
+    r = probe(tmp_path, out)
+    male = load_table("anthro_ansur2")["sexes"]["male"]["measures"]
+    for name in ("foot_length", "hand_length"):
+        band = male[name]
+        assert band["min"] < r[name] / r["height"] < band["max"], (name, r[name] / r["height"], band)
+    # the canon's landmark says what was built
+    assert rep["landmarks_m"]["foot"] == pytest.approx(r["foot_length"], rel=0.03)
+
+
+@pytest.mark.parametrize("preset,donor,mt_f,digits", [
+    ("dog", "wolf", 0.437, {"ball_l"}),
+    ("cat", "felid", 0.35, {"ball_l"}),
+    ("horse", "horse", 0.806, {"pastern_l", "hoof_l", "fpastern_l", "fhoof_l"}),
+])
+def test_hind_legs_follow_garland_and_janis(tmp_path, preset, donor, mt_f, digits):
+    out, rep = build(tmp_path, archetype="quadruped", preset=preset)
+    L = probe(tmp_path, out)["lengths"]
+    assert L["foot_l"] / L["thigh_l"] == pytest.approx(mt_f, rel=0.1)  # metatarsal / femur
+    assert L["calf_l"] / L["thigh_l"] == pytest.approx(1.0, rel=0.1)  # tibia ~ femur
+    assert digits | {d[:-1] + "r" for d in digits} <= set(L)  # phalanges are their own bones
+    assert rep["hindlimb"]["donor"] == donor and rep["hindlimb"]["mt_f"] == pytest.approx(mt_f, rel=0.1)
+
+
+def test_horse_fetlock_and_pastern_bend_the_skin(tmp_path):
+    out, rep = build(tmp_path, archetype="quadruped", preset="horse")
+    assert rep["binding"] == "automatic"
+    assert {"fetlock_l", "coronet_l", "ffetlock_r", "fcoronet_r"} <= set(rep["joints_m"])
+    assert {"pastern_l", "hoof_l", "fpastern_l", "fhoof_r"} <= set(probe(tmp_path, out)["weighted_bones"])
+    moved = tmp_path / "pose.json"
+    subprocess.run([BLENDER, "-b", str(out), "--python", str(SCRIPTS / "pose_probe.py"), "--", "pastern_l", str(moved)],
+                   check=True, capture_output=True, timeout=300)
+    r = json.loads(moved.read_text())
+    assert r["moved_left"] > 20 and r["max_move"] > 0.03
+    assert r["moved_right"] == 0

@@ -103,6 +103,19 @@ def test_proportion_check_picks_the_closest_canon(work):
     assert rep["heads_tall_estimate"] == pytest.approx(3.0, abs=0.3)
 
 
+@pytest.mark.parametrize("archetype,preset", [
+    ("humanoid", "realistic"), ("humanoid", "heroic"), ("humanoid", "stylized"),
+    ("quadruped", "dog"), ("quadruped", "horse"), ("quadruped", "cat"), ("dragon", "western"),
+])
+def test_proportion_check_names_each_presets_own_canon(work, archetype, preset):
+    from opus.threed.proportion import proportion_check
+
+    model = work / f"own_{preset}.blend"
+    run_task("body", {"archetype": archetype, "preset": preset, "target_tris": 4000, "out_blend": str(model)})
+    _, rep = proportion_check(model, archetype=archetype, pose="A", out=work / f"own_{preset}.png")
+    assert rep["canon"] == preset, rep["iou_by_canon"]
+
+
 def test_reference_match_finds_a_mirrored_side_view(work):
     from opus.threed.proportion import reference_match
 

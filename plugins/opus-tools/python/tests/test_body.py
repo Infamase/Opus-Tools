@@ -49,6 +49,15 @@ def test_every_preset_builds_and_binds(tmp_path, archetype, preset):
     assert {"root", "pelvis", "spine_01", "head", "thigh_l", "thigh_r"} <= set(rep["bones"])
 
 
+def test_saving_over_a_reserved_output_leaves_no_backup(tmp_path):
+    """output_path reserves its file empty (PATH-1); saving the blockout over it must not leave
+    Blender's renamed empty copy behind as a .blend1."""
+    out = tmp_path / "cat.blend"
+    out.touch()
+    run_task("body", {"archetype": "quadruped", "preset": "cat", "target_tris": 4000, "out_blend": str(out)})
+    assert out.stat().st_size > 0 and not (tmp_path / "cat.blend1").exists()
+
+
 def test_humanoid_landmarks_follow_the_canon(tmp_path):
     _, rep = build(tmp_path, archetype="humanoid", preset="realistic", height=1.8)
     assert UE_HUMANOID <= set(rep["bones"])

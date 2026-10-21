@@ -174,6 +174,9 @@ def summarize(rep: dict, max_parts: int = 40) -> str:
         else:
             what = f"{p['a']} and {p['b']} cut into each other ({p['triangles']} crossing triangle pairs)"
         lines.append(f"Penetration: {what}, ~{p['depth_mm']:g} mm deep, at ({at}) m")
+    if rep.get("penetrations"):
+        note = rep["penetrations"][0].get("note") or "fine for hidden joints on static props; avoid on deforming meshes"
+        lines.append(f"  (penetrations are reported, not gated: {note})")
     lines.append(f"Floating parts: {m['floating_parts']} · penetrations: {m['penetrations']} · longest {m['longest_m']:.2f} m")
     for g in rep["gaps"][:10]:
         lines.append(f"Floating: {g['part']} is {g['gap_m'] * 100:.1f} cm from {g['nearest']}")

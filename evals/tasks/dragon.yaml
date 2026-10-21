@@ -20,8 +20,8 @@ accept:
   - {id: balance, tool: model_report, metric: com_over_footprint, op: "==", value: true, class: hard}
   - {id: proportions, tool: proportion_check, args: {archetype: dragon, preset: western}, metric: unintended_findings,
      op: "==", value: 0, class: soft}
-  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
-     op: "==", value: true, names: [dragon], class: hard}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080, distances: "25,60"},
+     metric: top1_names_subject, op: "==", value: true, names: [dragon], class: hard}
   - {id: readability, tool: readability_check, args: {distances: "25,60", defining: "head,horn_l,horn_r,wing_l,wing_r,tail"},
      metric: defining_under_floor, op: "==", value: 0, class: soft}
   - id: checklist

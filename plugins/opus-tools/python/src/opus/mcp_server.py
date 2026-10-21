@@ -43,8 +43,9 @@ it with an inspector, fix what the report and image show, and repeat before show
 - project_bible holds the project's style rules and budgets; read it before making assets.
 - ledger_record every imported or built asset with its licence_id, inputs and tools;
   licence_check lists what blocks export under the bible's policy (or classifies a text).
-- run_log records each asset run (start, every check round, judge rounds, rejections, accept);
-  run_stats summarizes iterations to a hard pass, wall-clock, tokens and the checks that fail.
+- run_log records each asset run (start, every check round, judge rounds, rejections, accept,
+  and an independent grader's grade); run_stats summarizes iterations to a hard pass,
+  wall-clock, tokens and the checks that fail.
 Paths may be absolute or relative to the project folder.
 """
 
@@ -744,11 +745,13 @@ def run_log(
     check: str = "",
     kind: str = "",
     questions: int = 0,
-    failed: int = -1,
+    failed: int | str = -1,
     reason: str = "",
     values: str = "",
     input_tokens: int = 0,
     output_tokens: int = 0,
+    accepted: bool | None = None,
+    note: str = "",
     project_dir: str = "",
 ) -> str:
     """Record one step of an asset run in the run ledger (.opus/runs/<date>.jsonl), so the
@@ -760,22 +763,28 @@ def run_log(
     tool call rejected for bad input or a failed Blender script: check, reason) | judge_round
     (kind: checklist, blind_read, lineup; questions, failed) | user_rejection (reason) | tokens
     (input_tokens, output_tokens) | accept (iterations and wall-clock are filled in; values =
-    the task's score fields, "tris=3120; blind_read_top1=wolf") | abandon (reason, values).
-    Pass run=<id from run_start>; it is required when several runs are open (an empty run
-    goes to the latest open run; tokens and user_rejection: the latest run). Returns the entry.
+    the task's score fields, "tris=3120; blind_read_top1=wolf") | abandon (reason, values) |
+    grade (an independent grader's verdict on a closed run: accepted true/false, failed = the
+    hard check ids it failed, e.g. "blind_read, poke_through", note; a graded run counts as
+    accepted only when its last grade says so).
+    Pass run=<id from run_start>; it is required when several runs are open (an empty run goes
+    to the one open run; tokens and user_rejection: the latest run), and a grade needs it once
+    the ledger holds more than one run. Returns the entry.
     """
     from opus.runs import log
 
     fields = {"task": task, "asset": asset, "label": label, "model": model, "tier": tier, "findings": findings,
-              "check": check, "kind": kind, "reason": reason, "values": values}
+              "check": check, "kind": kind, "reason": reason, "values": values, "note": note}
     if n:
         fields["n"] = n
     if hard_fail_count >= 0:
         fields["hard_fail_count"] = hard_fail_count
     if questions:
         fields["questions"] = questions
-    if failed >= 0:
+    if isinstance(failed, str) or failed >= 0:  # judge_round: a count; grade: check ids
         fields["failed"] = failed
+    if accepted is not None:
+        fields["accepted"] = accepted
     if event == "tokens":
         fields.update(input=input_tokens, output=output_tokens)
     base = project_dir or os.environ.get("OPUS_PROJECT_DIR") or os.getcwd()

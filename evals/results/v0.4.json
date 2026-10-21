@@ -1,0 +1,951 @@
+{
+ "label": "v0.4",
+ "created": "2026-10-21",
+ "tool_versions": [
+  "0.4.0"
+ ],
+ "models": [],
+ "suite": {
+  "tasks": 24,
+  "hash": "b3208ab30cbd"
+ },
+ "missing_tasks": [],
+ "runs_outside_suite": 0,
+ "overall": {
+  "tasks": 24,
+  "runs": 24,
+  "accepted": 22,
+  "self_accepted": 23,
+  "graded": 24,
+  "median_iterations_to_hard_pass": 2.0,
+  "median_iterations_to_accept": 3.0,
+  "median_hard_fail_count_first": 1.0,
+  "median_judge_rounds": 2.0,
+  "median_validator_rejections": 4.0,
+  "median_user_rejections": 0.0,
+  "median_wall_clock_s": 1146.55,
+  "median_tokens_input": 10120593.5,
+  "median_tokens_output": 6003.0,
+  "failure_histogram": {
+   "(prose)": 82,
+   "blind_read": 9,
+   "blind_read_not_run": 4,
+   "lint_tris_25188_over_25000": 3,
+   "blind_read_not_run_yet": 2,
+   "blind_read_not_yet_run": 2,
+   "contacts": 2,
+   "floating": 2,
+   "grip": 2,
+   "lint": 2,
+   "lint:sword_inward_faces": 2,
+   "none_numeric": 2,
+   "skate": 2,
+   "body_clipping": 1,
+   "grip:no_object_near_hand": 1,
+   "grip_l_cant_reach": 1,
+   "grip_not_built": 1,
+   "grip_r_clips_body": 1,
+   "index_trigger_gap_4mm": 1,
+   "lint:sword_no_vertex_groups": 1,
+   "lint_tris_43948_over_25000": 1,
+   "penetration_11.67mm_breastplate_armpit_arms150": 1,
+   "penetration_194.85mm_fauld_lame2_kneel": 1,
+   "penetration_218.96mm_breastplate_cuisse_backplate": 1,
+   "penetration_56.08mm_besagew": 1,
+   "penetration_haft_head": 1,
+   "poke_through": 1,
+   "rest": 1,
+   "reverted": 1
+  },
+  "grade_failure_histogram": {
+   "blind_read": 1,
+   "poke_through": 1
+  },
+  "rejection_histogram": {
+   "run_log": 60,
+   "grip_define": 10,
+   "grip_check": 8,
+   "?": 5,
+   "lookdev_sheet": 5,
+   "run-log": 5,
+   "body_blockout": 3,
+   "lookdev": 3,
+   "bible": 2,
+   "mesh_lint": 2,
+   "model_report": 2,
+   "probe": 2,
+   "project_bible": 2,
+   "blender_probe": 1,
+   "blender_script": 1,
+   "grip-define": 1,
+   "grip_hold": 1,
+   "judge_checklist": 1,
+   "look_at": 1,
+   "readability_check": 1,
+   "sdf_build_script": 1
+  },
+  "values": {
+   "anticipation_frames": 13,
+   "blind_read_top1": {
+    "AK-47": 1,
+    "armchair": 1,
+    "arming sword": 1,
+    "barrel": 1,
+    "battle axe": 1,
+    "chibi mage": 1,
+    "crow": 1,
+    "dragon": 1,
+    "goblin": 1,
+    "horse": 1,
+    "knight": 1,
+    "mountain valley": 1,
+    "pine tree": 1,
+    "round shield": 1,
+    "timbered house": 1,
+    "treasure chest": 1,
+    "true": 1,
+    "villager": 1,
+    "wolf": 1,
+    "woman character": 1
+   },
+   "body_penetration_mm": 0.0,
+   "checklist_no": 0.0,
+   "color_count": 4,
+   "com_over_footprint": {
+    "true": 1
+   },
+   "cycle_frames": 32,
+   "duty_factor": 0.44,
+   "floating_parts": {
+    "0": 1,
+    "0 (probe)": 1
+   },
+   "foot_skate_cm": 0.26,
+   "footfall_phase_error": 0.0,
+   "grip_verdict": {
+    "good grip": 4
+   },
+   "grip_verdict_l": {
+    "good grip": 1
+   },
+   "grip_verdict_r": {
+    "good grip": 1
+   },
+   "height_m": 1.33,
+   "hinge_drift_mm": 0.0,
+   "impact_frame_offset": 0,
+   "lint_errors": 0.0,
+   "loop_seam_deg": 0.0,
+   "open_angle_deg": 105.0,
+   "penetration_mm": 8.82,
+   "proportion_unintended": {
+    "0 (5 findings: 4 from cloak silhouette, 1 deliberately chunky boots)": 1,
+    "1 (legs 12% longer)": 1
+   },
+   "readability_defining_under_floor": {
+    "0": 1,
+    "2 (hands at 15 m)": 1
+   },
+   "reference_iou": 0.7,
+   "rig_style": {
+    "unreal": 1
+   },
+   "symmetric": {
+    "true": 1
+   },
+   "tris": 4258.0,
+   "tris_per_piece": {
+    "SM_Wall:144 SM_Wall_Door:360 SM_Wall_Window:408 SM_Corner_Outside:252 SM_Roof:256": 1
+   },
+   "tris_per_tree": {
+    "136,112,106": 1
+   },
+   "walkable_pct": 100.0
+  }
+ },
+ "by_task": {
+  "knight": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 3,
+   "median_iterations_to_accept": 3,
+   "median_hard_fail_count_first": 1,
+   "median_judge_rounds": 2,
+   "median_validator_rejections": 11,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 1270.0,
+   "median_tokens_input": 11400644,
+   "median_tokens_output": 7350,
+   "failure_histogram": {
+    "lint:sword_inward_faces": 2,
+    "grip:no_object_near_hand": 1,
+    "lint:sword_no_vertex_groups": 1
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 6,
+    "lookdev": 2,
+    "blender_probe": 1,
+    "grip_check": 1,
+    "grip_define": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "knight": 1
+    },
+    "grip_verdict": {
+     "good grip": 1
+    },
+    "tris": 37936
+   }
+  },
+  "goblin": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": null,
+   "median_iterations_to_accept": 1,
+   "median_hard_fail_count_first": 1,
+   "median_judge_rounds": 2,
+   "median_validator_rejections": 4,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 842.35,
+   "median_tokens_input": 7989487,
+   "median_tokens_output": 4448,
+   "failure_histogram": {
+    "(prose)": 1
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run-log": 2,
+    "bible": 1,
+    "grip-define": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "goblin": 1
+    },
+    "tris": 2098
+   }
+  },
+  "wolf": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 1,
+   "median_iterations_to_accept": 2,
+   "median_hard_fail_count_first": 0,
+   "median_judge_rounds": 2,
+   "median_validator_rejections": 3,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 793.36,
+   "median_tokens_input": 7833480,
+   "median_tokens_output": 4690,
+   "failure_histogram": {},
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 3
+   },
+   "values": {
+    "blind_read_top1": {
+     "wolf": 1
+    },
+    "reference_iou": 0.48,
+    "tris": 905
+   }
+  },
+  "dragon": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 1,
+   "median_iterations_to_accept": 6,
+   "median_hard_fail_count_first": 0,
+   "median_judge_rounds": 5,
+   "median_validator_rejections": 5,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 1718.2,
+   "median_tokens_input": 17588891,
+   "median_tokens_output": 8178,
+   "failure_histogram": {
+    "blind_read_not_run": 1,
+    "lint": 1
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 5
+   },
+   "values": {
+    "blind_read_top1": {
+     "dragon": 1
+    },
+    "tris": 54126
+   }
+  },
+  "chest": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 1,
+   "median_iterations_to_accept": 3,
+   "median_hard_fail_count_first": 0,
+   "median_judge_rounds": 2,
+   "median_validator_rejections": 2,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 1181.17,
+   "median_tokens_input": 10162118,
+   "median_tokens_output": 6678,
+   "failure_histogram": {
+    "blind_read_not_run_yet": 2
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "lookdev_sheet": 1,
+    "run_log": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "treasure chest": 1
+    },
+    "tris": 5828
+   }
+  },
+  "barrel": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 2,
+   "median_iterations_to_accept": 3,
+   "median_hard_fail_count_first": 2,
+   "median_judge_rounds": 1,
+   "median_validator_rejections": 4,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 571.46,
+   "median_tokens_input": 5467992,
+   "median_tokens_output": 6174,
+   "failure_histogram": {
+    "contacts": 1,
+    "floating": 1
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 3,
+    "look_at": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "barrel": 1
+    },
+    "tris": 776
+   }
+  },
+  "house": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 3,
+   "median_iterations_to_accept": 3,
+   "median_hard_fail_count_first": 1,
+   "median_judge_rounds": 2,
+   "median_validator_rejections": 6,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 1360.87,
+   "median_tokens_input": 8977432,
+   "median_tokens_output": 10770,
+   "failure_histogram": {
+    "(prose)": 13
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 3,
+    "blender_script": 1,
+    "grip_define": 1,
+    "readability_check": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "timbered house": 1
+    },
+    "tris_per_piece": {
+     "SM_Wall:144 SM_Wall_Door:360 SM_Wall_Window:408 SM_Corner_Outside:252 SM_Roof:256": 1
+    }
+   }
+  },
+  "sword": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 1,
+   "median_iterations_to_accept": 2,
+   "median_hard_fail_count_first": 0,
+   "median_judge_rounds": 3,
+   "median_validator_rejections": 6,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 993.16,
+   "median_tokens_input": 12519131,
+   "median_tokens_output": 11333,
+   "failure_histogram": {},
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 4,
+    "grip_define": 1,
+    "lookdev_sheet": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "arming sword": 1
+    },
+    "grip_verdict": {
+     "good grip": 1
+    },
+    "reference_iou": 0.89,
+    "tris": 2748
+   }
+  },
+  "chibi_lowpoly": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 1,
+   "median_iterations_to_accept": 2,
+   "median_hard_fail_count_first": 0,
+   "median_judge_rounds": 2,
+   "median_validator_rejections": 4,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 1132.68,
+   "median_tokens_input": 9313620,
+   "median_tokens_output": 4774,
+   "failure_histogram": {},
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 3,
+    "body_blockout": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "chibi mage": 1
+    },
+    "checklist_no": 0,
+    "com_over_footprint": {
+     "true": 1
+    },
+    "floating_parts": {
+     "0 (probe)": 1
+    },
+    "height_m": 1.0,
+    "lint_errors": 0,
+    "proportion_unintended": {
+     "0 (5 findings: 4 from cloak silhouette, 1 deliberately chunky boots)": 1
+    },
+    "readability_defining_under_floor": 0,
+    "tris": 2298
+   }
+  },
+  "human_hd": {
+   "runs": 1,
+   "accepted": 0,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 1,
+   "median_iterations_to_accept": null,
+   "median_hard_fail_count_first": 0,
+   "median_judge_rounds": 4,
+   "median_validator_rejections": 5,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 2010.73,
+   "median_tokens_input": 15993934,
+   "median_tokens_output": 5997,
+   "failure_histogram": {
+    "(prose)": 9,
+    "blind_read": 2
+   },
+   "grade_failure_histogram": {
+    "blind_read": 1
+   },
+   "rejection_histogram": {
+    "run_log": 2,
+    "body_blockout": 1,
+    "lookdev_sheet": 1,
+    "sdf_build_script": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "woman character": 1
+    },
+    "checklist_no": 0,
+    "floating_parts": 0,
+    "height_m": 1.66,
+    "lint_errors": 0,
+    "proportion_unintended": {
+     "1 (legs 12% longer)": 1
+    },
+    "readability_defining_under_floor": {
+     "2 (hands at 15 m)": 1
+    },
+    "rig_style": {
+     "unreal": 1
+    },
+    "symmetric": {
+     "true": 1
+    },
+    "tris": 26700
+   }
+  },
+  "peasant_outfit": {
+   "runs": 1,
+   "accepted": 0,
+   "self_accepted": 0,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 9,
+   "median_iterations_to_accept": null,
+   "median_hard_fail_count_first": 2,
+   "median_judge_rounds": 1,
+   "median_validator_rejections": 5,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 2096.51,
+   "median_tokens_input": 15001961,
+   "median_tokens_output": 5814,
+   "failure_histogram": {
+    "(prose)": 25,
+    "contacts": 1,
+    "floating": 1,
+    "poke_through": 1,
+    "rest": 1
+   },
+   "grade_failure_histogram": {
+    "poke_through": 1
+   },
+   "rejection_histogram": {
+    "?": 3,
+    "probe": 1,
+    "run-log": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "villager": 1
+    },
+    "penetration_mm": 8.82,
+    "tris": 10351
+   }
+  },
+  "plate_armor": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 5,
+   "median_iterations_to_accept": 8,
+   "median_hard_fail_count_first": 2,
+   "median_judge_rounds": 2,
+   "median_validator_rejections": 10,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 1409.24,
+   "median_tokens_input": 10079069,
+   "median_tokens_output": 6009,
+   "failure_histogram": {
+    "lint_tris_25188_over_25000": 3,
+    "blind_read_not_yet_run": 2,
+    "none_numeric": 2,
+    "lint_tris_43948_over_25000": 1,
+    "penetration_11.67mm_breastplate_armpit_arms150": 1,
+    "penetration_194.85mm_fauld_lame2_kneel": 1,
+    "penetration_218.96mm_breastplate_cuisse_backplate": 1,
+    "penetration_56.08mm_besagew": 1
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 6,
+    "?": 1,
+    "body_blockout": 1,
+    "mesh_lint": 1,
+    "model_report": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "true": 1
+    },
+    "body_penetration_mm": 0.0,
+    "tris": 23572
+   }
+  },
+  "axe": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 2,
+   "median_iterations_to_accept": 2,
+   "median_hard_fail_count_first": 2,
+   "median_judge_rounds": 2,
+   "median_validator_rejections": 5,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 713.87,
+   "median_tokens_input": 7911569,
+   "median_tokens_output": 8558,
+   "failure_histogram": {
+    "blind_read_not_run": 1,
+    "grip_not_built": 1,
+    "penetration_haft_head": 1
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 3,
+    "grip_define": 2
+   },
+   "values": {
+    "blind_read_top1": {
+     "battle axe": 1
+    },
+    "grip_verdict": {
+     "good grip": 1
+    },
+    "tris": 274
+   }
+  },
+  "fp_rifle": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 3,
+   "median_iterations_to_accept": 4,
+   "median_hard_fail_count_first": 5,
+   "median_judge_rounds": 2,
+   "median_validator_rejections": 9,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 1876.53,
+   "median_tokens_input": 19540794,
+   "median_tokens_output": 6242,
+   "failure_histogram": {
+    "blind_read_not_run": 2,
+    "body_clipping": 1,
+    "grip_l_cant_reach": 1,
+    "grip_r_clips_body": 1,
+    "index_trigger_gap_4mm": 1
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 3,
+    "grip_define": 2,
+    "grip_hold": 1,
+    "lookdev_sheet": 1,
+    "mesh_lint": 1,
+    "model_report": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "AK-47": 1
+    },
+    "grip_verdict_l": {
+     "good grip": 1
+    },
+    "grip_verdict_r": {
+     "good grip": 1
+    },
+    "tris": 4752
+   }
+  },
+  "round_shield": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 2,
+   "median_iterations_to_accept": 2,
+   "median_hard_fail_count_first": 1,
+   "median_judge_rounds": 2,
+   "median_validator_rejections": 3,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 1051.51,
+   "median_tokens_input": 8079673,
+   "median_tokens_output": 4727,
+   "failure_histogram": {
+    "grip": 1
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 2,
+    "grip_define": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "round shield": 1
+    },
+    "grip_verdict": {
+     "good grip": 1
+    },
+    "tris": 704
+   }
+  },
+  "chair": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 1,
+   "median_iterations_to_accept": 2,
+   "median_hard_fail_count_first": 0,
+   "median_judge_rounds": 2,
+   "median_validator_rejections": 4,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 1105.57,
+   "median_tokens_input": 11422985,
+   "median_tokens_output": 9419,
+   "failure_histogram": {},
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run-log": 2,
+    "lookdev": 1,
+    "probe": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "armchair": 1
+    },
+    "reference_iou": 0.74,
+    "tris": 3764
+   }
+  },
+  "crow": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 2,
+   "median_iterations_to_accept": 4,
+   "median_hard_fail_count_first": 1,
+   "median_judge_rounds": 4,
+   "median_validator_rejections": 2,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 1106.81,
+   "median_tokens_input": 13607918,
+   "median_tokens_output": 5816,
+   "failure_histogram": {
+    "blind_read": 3
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "project_bible": 1,
+    "run_log": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "crow": 1
+    },
+    "color_count": 4,
+    "tris": 860
+   }
+  },
+  "horse": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 4,
+   "median_iterations_to_accept": 6,
+   "median_hard_fail_count_first": 1,
+   "median_judge_rounds": 4,
+   "median_validator_rejections": 1,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 1806.26,
+   "median_tokens_input": 15728443,
+   "median_tokens_output": 7549,
+   "failure_histogram": {
+    "blind_read": 3
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "?": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "horse": 1
+    },
+    "reference_iou": 0.66,
+    "tris": 27736
+   }
+  },
+  "forest_valley": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 2,
+   "median_iterations_to_accept": 2,
+   "median_hard_fail_count_first": 1,
+   "median_judge_rounds": 3,
+   "median_validator_rejections": 4,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 885.2,
+   "median_tokens_input": 9029979,
+   "median_tokens_output": 3856,
+   "failure_histogram": {
+    "blind_read": 1
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 3,
+    "project_bible": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "mountain valley": 1
+    },
+    "tris": 4980,
+    "walkable_pct": 100.0
+   }
+  },
+  "pine_trees": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 1,
+   "median_iterations_to_accept": 2,
+   "median_hard_fail_count_first": 0,
+   "median_judge_rounds": 3,
+   "median_validator_rejections": 1,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 522.81,
+   "median_tokens_input": 5162602,
+   "median_tokens_output": 3183,
+   "failure_histogram": {},
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 1
+   },
+   "values": {
+    "blind_read_top1": {
+     "pine tree": 1
+    },
+    "tris_per_tree": {
+     "136,112,106": 1
+    }
+   }
+  },
+  "chest_open": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 2,
+   "median_iterations_to_accept": 2,
+   "median_hard_fail_count_first": 1,
+   "median_judge_rounds": 1,
+   "median_validator_rejections": 2,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 834.84,
+   "median_tokens_input": 5314576,
+   "median_tokens_output": 896,
+   "failure_histogram": {
+    "lint": 1
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "lookdev_sheet": 1,
+    "run_log": 1
+   },
+   "values": {
+    "hinge_drift_mm": 0.0,
+    "open_angle_deg": 105.0
+   }
+  },
+  "sword_attack": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 4,
+   "median_iterations_to_accept": 9,
+   "median_hard_fail_count_first": 1,
+   "median_judge_rounds": 2,
+   "median_validator_rejections": 15,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 2216.88,
+   "median_tokens_input": 19687143,
+   "median_tokens_output": 8756,
+   "failure_histogram": {
+    "(prose)": 34,
+    "grip": 1,
+    "reverted": 1
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "grip_check": 7,
+    "run_log": 5,
+    "grip_define": 2,
+    "bible": 1
+   },
+   "values": {
+    "anticipation_frames": 13,
+    "foot_skate_cm": 0.0,
+    "impact_frame_offset": 0
+   }
+  },
+  "walk_cycle": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 1,
+   "median_iterations_to_accept": 3,
+   "median_hard_fail_count_first": 0,
+   "median_judge_rounds": 1,
+   "median_validator_rejections": 3,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 1160.43,
+   "median_tokens_input": 6962800,
+   "median_tokens_output": 1457,
+   "failure_histogram": {
+    "skate": 1
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 3
+   },
+   "values": {
+    "cycle_frames": 32,
+    "foot_skate_cm": 0.38,
+    "loop_seam_deg": 0.0
+   }
+  },
+  "wolf_trot": {
+   "runs": 1,
+   "accepted": 1,
+   "self_accepted": 1,
+   "graded": 1,
+   "median_iterations_to_hard_pass": 2,
+   "median_iterations_to_accept": 4,
+   "median_hard_fail_count_first": 1,
+   "median_judge_rounds": 2,
+   "median_validator_rejections": 3,
+   "median_user_rejections": 0,
+   "median_wall_clock_s": 1395.3,
+   "median_tokens_input": 12533745,
+   "median_tokens_output": 4713,
+   "failure_histogram": {
+    "skate": 1
+   },
+   "grade_failure_histogram": {},
+   "rejection_histogram": {
+    "run_log": 2,
+    "judge_checklist": 1
+   },
+   "values": {
+    "duty_factor": 0.44,
+    "foot_skate_cm": 0.26,
+    "footfall_phase_error": 0.0
+   }
+  }
+ }
+}

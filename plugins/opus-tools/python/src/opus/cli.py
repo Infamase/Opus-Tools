@@ -32,15 +32,18 @@ def _run_log_fields() -> str:
     """run-log's epilog: every event with its fields, from the event schema."""
     from opus.runs import EVENTS, REQUIRED
 
-    kinds = {int: " (int)", float: " (float)"}
+    kinds = {int: " (int)", float: " (float)", bool: " (true/false)"}
     lines = ["events and their fields (* = required):"]
     for event, fields in EVENTS.items():
         names = [f"{k}{'*' if k in REQUIRED.get(event, ()) else ''}{kinds.get(t, '')}" for k, t in fields.items()]
         lines.append(f"  {event:20} {', '.join(names)}")
     lines += ['findings: failing check names, e.g. "floating_parts, grip x2"; values: "tris=3120; blind_read_top1=wolf".',
+              'grade: an independent grader\'s verdict on a closed run; failed lists the hard check ids it failed,',
+              'e.g. "blind_read, poke_through". A graded run counts as accepted only when its last grade says so.',
               "run_start fills in tool_version; accept fills in iterations_to_accept and wall_clock_s.",
-              "--run <id from run_start> picks the run; without it an event goes to the latest open run",
-              "(tokens and user_rejection: the latest run), so pass it when several runs are open."]
+              "--run <id from run_start> picks the run. Without it an event goes to the one open run",
+              "(tokens and user_rejection: the latest run); with several runs open it is refused, and a",
+              "grade always needs --run once the ledger holds more than one run."]
     return "\n".join(lines)
 
 
@@ -263,7 +266,7 @@ def _parser() -> argparse.ArgumentParser:
     s = sub.add_parser("run-log", help="append an event to the run ledger (.opus/runs)", epilog=_run_log_fields(),
                        formatter_class=argparse.RawDescriptionHelpFormatter)
     s.add_argument("event", help="run_start, iteration, validator_rejection, judge_round, user_rejection, tokens, "
-                                 "accept or abandon")
+                                 "accept, abandon or grade")
     s.add_argument("fields", nargs="*", help='key=value, e.g. n=2 hard_fail_count=1 "findings=floating_parts, grip" '
                                              "(each event's fields are listed below)")
     s.add_argument("--run", default="", help="the run id from run_start")

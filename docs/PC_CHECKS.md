@@ -1,6 +1,6 @@
 # PC checks for S0a
 
-About 10 minutes on the Windows PC. It answers four questions: does the update (v0.4.0) install,
+About 10 minutes on the Windows PC. It answers four questions: does the update (v0.4.1) install,
 is the doctor green, does every tool (the v0.3 tools and the v0.4 additions) run on Windows, and
 does a 1.8 m blockout come into Unreal 180 units tall. Paste each prompt as written and note
 anything that fails.
@@ -15,7 +15,7 @@ claude plugin update opus-tools@opus-tools
 ```
 
 Fully quit the desktop app and reopen it. `claude plugin list` shows the installed version,
-which should be 0.4.0.
+which should be 0.4.1.
 
 ## 2. Doctor (1 min)
 

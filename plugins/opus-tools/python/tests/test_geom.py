@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from opus.blender.runner import BLENDER_MODULES, BlenderNotFound, find_blender, run_task
+from opus.threed.understand import summarize
 
 try:
     BLENDER = find_blender()
@@ -127,6 +128,7 @@ def test_box_pushed_through_a_thin_plate_is_a_penetration(work):
     assert pin["depth_mm"] == pytest.approx(15.0, abs=0.2)
     assert frozenset(("Plate", "Pin")) not in pens
     assert any({c["a"], c["b"]} == {"Plate", "Box"} and c["kind"] == "intersecting" for c in rep["contacts"])
+    assert "(penetrations are reported, not gated: fine for hidden joints on static props" in summarize(rep)  # REP-2
 
 
 def test_parts_that_only_touch_are_not_penetrations(work):
@@ -145,7 +147,9 @@ def test_abutting_roof_bays_touch_without_penetrating(tmp_path):
                    check=True, capture_output=True, timeout=300)
     rep = run_task("report", {"path": str(roof)})
     assert rep["penetrations"] == []
-    assert {"a": "roof_back_01", "b": "roof_back_02", "kind": "touching"} in rep["contacts"]
+    roof_pair = [{k: c[k] for k in ("a", "b", "kind")} for c in rep["contacts"]]
+    assert {"a": "roof_back_01", "b": "roof_back_02", "kind": "touching"} in roof_pair
+    assert all(c["gap_mm"] == 0 for c in rep["contacts"])  # REP-1 adds the gap to each contact
 
 
 def test_grip_check_catches_a_plate_cut_through_the_forearm(tmp_path):

@@ -2,9 +2,11 @@
 
 Every asset run appends events to ``<project>/.opus/runs/<date>.jsonl``, one JSON object per
 line: run_start, iteration (one round of checks), validator_rejection, judge_round,
-user_rejection, tokens, accept and abandon. ``run_stats`` turns them into the numbers the
-overhaul is judged by (docs/OVERHAUL.md §1 and §2.6): iterations to a hard pass, judge rounds,
-wall-clock, tokens and a histogram of the checks that failed.
+user_rejection, tokens, accept, abandon and grade (an independent grader's verdict on the
+closed run). ``run_stats`` turns them into the numbers the overhaul is judged by
+(docs/OVERHAUL.md §1 and §2.6): iterations to a hard pass, judge rounds, wall-clock, tokens and
+a histogram of the checks that failed. A graded run counts as accepted only when its last grade
+says so.
 
 The eval suite is a fixed set of 24 asset tasks in ``evals/tasks/*.yaml`` at the repo root.
 ``summarize`` writes one run set's numbers to ``evals/results/<label>.json``, so every later
@@ -38,10 +40,13 @@ EVENTS: dict[str, dict[str, type]] = {
     "tokens": {"input": int, "output": int},
     "accept": {"iterations_to_accept": int, "wall_clock_s": float, "values": dict},
     "abandon": {"reason": str, "values": dict},
+    "grade": {"accepted": bool, "failed": list, "note": str},
 }
-REQUIRED = {"iteration": ("n", "hard_fail_count"), "tokens": ("input", "output")}
+REQUIRED = {"iteration": ("n", "hard_fail_count"), "tokens": ("input", "output"), "grade": ("accepted",)}
 CLOSING = ("accept", "abandon")
-LATE = ("tokens", "user_rejection")  # arrive after a run closed: usage is read at the end, the user judges last
+# arrive after a run closed: usage is read at the end, the grader and the user judge last
+LATE = ("tokens", "user_rejection", "grade")
+NAMED = ("grade",)  # a grader works from a run id, never from "the latest run"
 
 
 def runs_dir(near=None) -> Path:
@@ -71,6 +76,15 @@ def _check_id(name) -> str:
     return name
 
 
+def parse_checks(checks) -> list[str]:
+    """Failing check ids as a list without repeats, from the same inputs as ``parse_findings``."""
+    if _num(checks) and checks == 0:
+        return []
+    if _num(checks):
+        raise ValueError(f"failed lists the failing check ids, such as 'blind_read, lint', not a count (got {checks!r})")
+    return list(parse_findings(checks))
+
+
 def parse_findings(findings) -> dict[str, int]:
     """Failing checks as {check: count}, from a dict, a list of names, JSON, or text such as
     "contact_gap, floating_part x2, non_manifold:3". "none", "0" and "-" mean no failures.
@@ -96,6 +110,17 @@ def parse_findings(findings) -> dict[str, int]:
     for name in map(_check_id, findings):
         out[name] = out.get(name, 0) + 1
     return out
+
+
+def _bool(v) -> bool:
+    if isinstance(v, bool):
+        return v
+    text = str(v).strip().lower()
+    if text in ("true", "yes", "y", "1"):
+        return True
+    if text in ("false", "no", "n", "0"):
+        return False
+    raise ValueError(v)
 
 
 def _scalar(v: str):
@@ -124,7 +149,9 @@ def parse_values(values) -> dict:
     return out
 
 
-_KINDS = {str: "text", int: "integer", float: "number", dict: "name=value pairs"}
+_KINDS = {str: "text", int: "integer", float: "number", bool: "true or false", dict: "name=value pairs",
+          list: "failing check ids"}
+_MUST = {int: "an integer", float: "a number", bool: "true or false"}
 
 
 def _schema(event: str) -> str:
@@ -148,6 +175,10 @@ def _clean(event: str, fields: dict) -> dict:
         try:
             if kind is dict:
                 data[k] = parse_values(v) if k == "values" else parse_findings(v)
+            elif kind is list:
+                data[k] = parse_checks(v)
+            elif kind is bool:
+                data[k] = _bool(v)
             elif kind is int:
                 data[k] = int(v)
             elif kind is float:
@@ -155,10 +186,9 @@ def _clean(event: str, fields: dict) -> dict:
             else:
                 data[k] = str(v)
         except (TypeError, ValueError) as e:
-            if kind is dict:
+            if kind in (dict, list):
                 raise ValueError(f"{event}: {e}") from None
-            raise ValueError(f"{event}: {k} must be {'an integer' if kind is int else 'a number'} (got {v!r}); "
-                             f"fields: {_schema(event)}") from None
+            raise ValueError(f"{event}: {k} must be {_MUST[kind]} (got {v!r}); fields: {_schema(event)}") from None
     return data
 
 
@@ -219,8 +249,10 @@ def log(event: str, run: str = "", near=None, now: float | None = None, **fields
 
     run_start opens a run and names it (or uses ``run``). Other events go to ``run`` or, when
     empty, to the one open run (tokens and user_rejection: the most recent run, open or not).
-    With several runs open, ``run`` is required: parallel sessions share one ledger. accept
-    fills in iterations_to_accept and wall_clock_s from the run unless given.
+    With several runs open, ``run`` is required: parallel sessions share one ledger. A grade
+    (an independent grader's verdict, logged after the run closed) needs ``run`` whenever the
+    ledger holds more than one run. accept fills in iterations_to_accept and wall_clock_s from
+    the run unless given.
     """
     if event not in EVENTS:
         raise ValueError(f"unknown event {event!r}; known: {sorted(EVENTS)}")
@@ -246,6 +278,9 @@ def log(event: str, run: str = "", near=None, now: float | None = None, **fields
             candidates = [r for r, evs in runs.items() if event in LATE or _is_open(evs)]
             if not candidates:
                 raise ValueError("no open run in this project: log run_start first")
+            if event in NAMED and len(candidates) > 1:
+                raise ValueError(f"{event}: {len(candidates)} runs in this ledger; pass run=<id> (--run <id> on the "
+                                 "command line), the id of the run being graded")
             if event not in LATE and len(candidates) > 1:
                 raise ValueError(_which_run(runs, candidates))
             run = max(candidates, key=lambda r: runs[r][0].get("ts", 0))
@@ -264,24 +299,47 @@ def log(event: str, run: str = "", near=None, now: float | None = None, **fields
     return entry
 
 
+PROSE = "(prose)"
+
+
+def _failing(findings: dict) -> dict[str, int]:
+    """One iteration's findings as check ids. Ledgers written before v0.4.1, which refuses prose,
+    can hold "none" (no failure) and prose fragments; these count as one PROSE entry each."""
+    out: dict[str, int] = {}
+    for k, v in (findings or {}).items():
+        name = str(k).strip()
+        if name.lower() in NO_FINDINGS:
+            continue
+        name = name if _CHECK_ID.fullmatch(name) else PROSE
+        out[name] = out.get(name, 0) + v
+    return out
+
+
 def summarize_run(evs: list[dict]) -> dict:
-    """One run's numbers. Iterations to a hard pass = the first check round with no hard failure."""
+    """One run's numbers. Iterations to a hard pass = the first check round with no hard failure.
+    A run is accepted when it closed with accept and, if it was graded, its last grade accepts it;
+    the checks that grade failed count in its failures."""
     start = next((e for e in evs if e["event"] == "run_start"), evs[0])
     its = [e for e in evs if e["event"] == "iteration"]
     passed = next((e for e in its if e.get("hard_fail_count") == 0), None)
     closes = [e for e in evs if e["event"] in CLOSING]
     last = closes[-1] if closes and not _is_open(evs) else None
     toks = [e for e in evs if e["event"] == "tokens"]
+    grade = next((e for e in reversed(evs) if e["event"] == "grade"), None)
+    grade_failed = list(grade.get("failed") or []) if grade else []
     failures: dict[str, int] = {}
     for e in its:
-        for k, v in (e.get("findings") or {}).items():
+        for k, v in _failing(e.get("findings")).items():
             failures[k] = failures.get(k, 0) + v
+    for k in grade_failed:
+        failures[k] = failures.get(k, 0) + 1
     rejections: dict[str, int] = {}
     for e in evs:
         if e["event"] == "validator_rejection":
             k = e.get("check") or "?"
             rejections[k] = rejections.get(k, 0) + 1
-    accepted = last is not None and last["event"] == "accept"
+    self_accepted = last is not None and last["event"] == "accept"
+    accepted = self_accepted and (grade is None or grade.get("accepted") is True)
     end = max(e.get("ts", 0) for e in evs if e["event"] not in LATE or e is start)
     return {
         "run": start["run"],
@@ -290,7 +348,11 @@ def summarize_run(evs: list[dict]) -> dict:
         "label": start.get("label", ""),
         "tool_version": start.get("tool_version", ""),
         "accepted": accepted,
+        "self_accepted": self_accepted,
+        "graded": grade is not None,
+        "grade_failed": grade_failed,
         "abandoned": last is not None and last["event"] == "abandon",
+        "open": _is_open(evs),
         "iterations": len(its),
         "iterations_to_hard_pass": passed.get("n", its.index(passed) + 1) if passed else None,
         "iterations_to_accept": last.get("iterations_to_accept") if accepted else None,
@@ -298,7 +360,7 @@ def summarize_run(evs: list[dict]) -> dict:
         "judge_rounds": sum(e["event"] == "judge_round" for e in evs),
         "validator_rejections": sum(rejections.values()),
         "user_rejections": sum(e["event"] == "user_rejection" for e in evs),
-        "wall_clock_s": last.get("wall_clock_s") if accepted else round(end - start.get("ts", 0), 3),
+        "wall_clock_s": last.get("wall_clock_s") if self_accepted else round(end - start.get("ts", 0), 3),
         "tokens_input": sum(e.get("input", 0) for e in toks) if toks else None,
         "tokens_output": sum(e.get("output", 0) for e in toks) if toks else None,
         "failures": failures,
@@ -342,10 +404,13 @@ def _values(dicts) -> dict:
 
 
 def aggregate(runs: list[dict]) -> dict:
-    """Medians over runs; runs that never reached a hard pass or an accept count as worst."""
+    """Medians over runs; runs that never reached a hard pass or an accept count as worst.
+    accepted counts the graders' verdict where there is one, self_accepted the builders' own."""
     return {
         "runs": len(runs),
         "accepted": sum(r["accepted"] for r in runs),
+        "self_accepted": sum(r.get("self_accepted", r["accepted"]) for r in runs),
+        "graded": sum(r.get("graded", False) for r in runs),
         "median_iterations_to_hard_pass": _median([r["iterations_to_hard_pass"] for r in runs], True),
         "median_iterations_to_accept": _median([r["iterations_to_accept"] for r in runs], True),
         "median_hard_fail_count_first": _median([r["hard_fail_count_first"] for r in runs]),
@@ -356,6 +421,7 @@ def aggregate(runs: list[dict]) -> dict:
         "median_tokens_input": _median([r["tokens_input"] for r in runs]),
         "median_tokens_output": _median([r["tokens_output"] for r in runs]),
         "failure_histogram": _histogram(r["failures"] for r in runs),
+        "grade_failure_histogram": _histogram({k: 1 for k in r.get("grade_failed", ())} for r in runs),
         "rejection_histogram": _histogram(r["rejections"] for r in runs),
         "values": _values(r["values"] for r in runs),
     }
@@ -375,8 +441,7 @@ def run_stats(src=None, task: str = "", label: str = "") -> dict:
     for r in runs:
         by_task.setdefault(r["task"] or r["asset"], []).append(r)
     return {
-        "overall": {"tasks": len(by_task), "open_runs": sum(not r["accepted"] and not r["abandoned"] for r in runs),
-                    **aggregate(runs)},
+        "overall": {"tasks": len(by_task), "open_runs": sum(r["open"] for r in runs), **aggregate(runs)},
         "by_task": {k: aggregate(v) for k, v in sorted(by_task.items())},
     }
 

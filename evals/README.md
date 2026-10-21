@@ -7,9 +7,10 @@ compared with it (docs/OVERHAUL.md §1 and §9).
 The measures come from the run ledger: iterations to a hard pass, validator rejections, judge
 rounds, tokens and wall-clock per asset. Taste is measured separately, by the user's blind A/B.
 
-Only task specs (`tasks/*.yaml`) and score summaries (`results/<label>.json`) are committed.
-Assets, renders, references, ledgers and transcripts stay on the PC; `.gitignore` here keeps
-everything else out.
+Only task specs (`tasks/*.yaml`), score summaries (`results/<label>.json`) and a short note on
+each set (`results/<label>.md`) are committed. Assets, renders, references, ledgers and
+transcripts stay on the PC; `.gitignore` here keeps everything else out. The v0.4 baseline is
+`results/v0.4.json`, with `results/v0.4.md`.
 
 ## The tasks
 
@@ -93,8 +94,9 @@ Checks use only tools that exist in v0.4:
 6. Tokens: `opus eval tokens <session transcripts> --log --run <run id> --dir <eval project>`.
    Transcripts are under `%USERPROFILE%\.claude\projects\<eval project folder name>\`; input
    counts fresh, cache-write and cache-read tokens.
-7. `opus eval summarize v0.4 --runs D:\opus-evals\v0.4` writes `results/v0.4.json`. Commit only
-   that file.
+7. `opus eval summarize v0.4 --runs D:\opus-evals\v0.4` writes `results/v0.4.json`. Commit that
+   file and a short `results/v0.4.md` note (per-task table, failures, anything that skews the
+   numbers); nothing else from the run.
 
 ### Without a desktop session (cloud or batch)
 
@@ -111,7 +113,13 @@ python evals/judge.py letter --image <lineup or A/B sheet> --prompt-file <prompt
 It prints the verdict (`top1_names_subject`, `checklist_no` or the letter) with the judge's
 token usage. A cloud run freezes the plugin at the label's commit (a git worktree), gives each
 task a fresh builder session and then an independent grader that re-runs every hard check
-with its own probes; the grader's verdict decides `accepted`.
+with its own probes; the grader's verdict decides `accepted`. Log it for the builder's run:
+
+```
+opus run-log grade accepted=false "failed=blind_read" "note=fresh judge: female character" --run <run id> --dir <eval project>
+```
+
+`failed` lists the hard check ids the grader failed; they count in the failure histogram.
 
 ## Scoring
 
@@ -119,7 +127,7 @@ Per run, from the ledger (`<project>/.opus/runs/<date>.jsonl`):
 
 | Field | Meaning |
 |---|---|
-| `accepted` | Every hard check passed within the caps |
+| `accepted` | Every hard check passed within the caps: the run closed with `accept` and, when it has a `grade`, the last grade accepts it (`self_accepted` is the builder's own accept) |
 | `iterations_to_hard_pass` | The first check round with no hard failure |
 | `iterations_to_accept` | Check rounds when accepted |
 | `hard_fail_count_first` | Hard failures in the first round |

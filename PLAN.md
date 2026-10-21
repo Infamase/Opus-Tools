@@ -5,10 +5,11 @@ needs to produce good **3D models**, **pixel art**, **animation** and **sound** 
 games made with Blender and Unreal, Godot or Unity, packaged as one small install on the
 game-dev PC that works in every project.
 
-Status: plan v0.6 (2026-10-21). **v0.4 of the toolkit is built:** the Phase 0 core, the
+Status: plan v0.6 (2026-10-21). **v0.4.1 of the toolkit is built:** the Phase 0 core, the
 Phase 1 "see it" tools for pixel art and 3D, Sprint 2's proportion and recognizability
-tools, hands that hold things properly, and the overhaul's S0a quick wins (see §7). The
-PC checks and the v0.4 baseline on the 24 eval tasks are still to run.
+tools, hands that hold things properly, the overhaul's S0a quick wins, and the fixes from
+the v0.4 baseline, which ran in the cloud on the 24 eval tasks (see §7). The PC checks are
+still to run.
 
 **3D models and animation now follow [docs/OVERHAUL.md](docs/OVERHAUL.md)** (design v1.1,
 from 9 research digests, 4 competing proposals and 6 reviews). It replaces every 3D and
@@ -530,15 +531,104 @@ integration run.
   Integration added checks that every eval check's arguments exist on its MCP tool and that
   each table's licence ID matches its `data/LICENSES.md` entry.
 
-**Not done yet (needs the PC):** the [PC checks](docs/PC_CHECKS.md) (install, doctor
-green, every tool on Windows, a 1.8 m blockout 180 units tall in Unreal) and the v0.4
-baseline: each of the 24 tasks in a fresh session from `opus eval prompt <id>`, then
-`opus eval summarize v0.4` and commit `evals/results/v0.4.json`.
+**v0.4.1: fixes from the v0.4 baseline (2026-10-21)**
+
+The v0.4 baseline ran in the cloud on a frozen copy of v0.4. Each of the 24 tasks got a
+fresh builder session, and an independent grader then re-ran every hard check with its own
+probes and one fresh judge ([evals/results/v0.4.md](evals/results/v0.4.md)). The builders'
+notes on tool friction and the graders' blind spots became five fix groups. They were built
+in parallel worktrees, each fix with a test that failed on v0.4, and then merged.
+
+- **Baseline (v0.4), recorded in `evals/results/v0.4.json`.**
+  - Acceptance: the grader accepted 22 of 24 tasks; the builders had accepted 23.
+  - Medians: 2 iterations to a hard pass, 3 to accept, 2 judge rounds and 4 validator
+    rejections. Wall-clock was 19.1 min, which is noisy because six sessions shared 4 CPUs.
+    Tokens were 10.1 M input (cache reads included) and 6.0 k output.
+  - The two failures:
+    - `human_hd`, blind read: the fresh judge said "female character", which is not on
+      the name list.
+    - `peasant_outfit`, garment poke-through: 13 mm against a 1 mm limit, and no tool
+      measures it yet.
+  - 65 of the 117 validator rejections were `run_log` calls.
+- **CLI and MCP (CLI-1..6).**
+  - `--json` on every report command.
+  - Axis names (`+Z`, `-X`) and values that start with a dash.
+  - The missing options: `--objects`; `hold --aim-axis/--index/--thumb`;
+    `grip-define --start/--end/--thumb`; `lint --category`; `run-stats --run`.
+  - Errors are one line with exit 2 instead of a traceback.
+  - `run-log --help` lists every event's fields.
+  - A sheet given no frame size is cut into square frames.
+- **Run ledger, provenance and evals (RUN-1..2, LED-1..2, EVAL-1..2, BODY-1).**
+  - An event with no run id is refused while several runs are open.
+  - Field errors name the field and its kind, and findings must be check ids.
+  - An unlicensed build points at `LicenseRef-Own-Work`, and `ledger_record` refuses
+    missing paths.
+  - Camera checks must run at the task's camera: seven specs gained `camera: godot_tp`.
+  - `judge.py` takes comma-separated names and 1–5 questions.
+  - Quadruped blockouts report the withers height.
+- **Lint, penetration and grips (LINT-1..4, GEOM-1, GRIP-1..4).**
+  - Normals are read in world space.
+  - Imported glTF, FBX, OBJ and STL are welded before the checks. Eight eval exports now
+    lint with 0 errors, and `wolf_trot.glb` takes 2.2 s instead of 31.6 s.
+  - Props on a bone count as rigid.
+  - Floating pieces are measured with the gap and the nearest piece: the goblin's tusks at
+    7.5 mm, the knight's rerebraces at 4–4.8 mm.
+  - Flush faces count as contact, so the house roof bays no longer report a 76.6 mm
+    penetration.
+  - Grips accept a prop skinned to the weapon bone, and body depth comes only from
+    counted triangles.
+  - `fp_ads` takes the eye-to-sight distance.
+  - Appended rigs no longer duplicate materials.
+- **Parts and render passes (REP-1..2, PARTS-1, LOOKDEV-1, RENDER-1..2, LOOK-1).**
+  - `model_report` checks skinned meshes and loose islands for contacts and gaps, with a
+    3 mm contact cap. It finds the wolf floater, the goblin's tusks and the knight's
+    plates, with no false floaters on barrel, chest, house, woman or chibi.
+  - Bone-parented and rigid-skinned meshes are object parts.
+  - Penetrations are class `report`.
+  - EEVEE lookdev finds its studio light, or falls back with a warning.
+  - Shaded passes show vertex colours, and there is a true normals pass.
+  - A bone target includes its child bones, and a hidden one gets a cutaway.
+- **Sheets and paths (READ-1, BLIND-1, CAM-1, LOOK-2, PATH-1, REF-1, REP-3).**
+  - Defining names match in any case or by prefix, and names that match nothing count.
+  - Game-size silhouettes turn to the side that shows the most.
+  - Levels with the camera inside the subject are flagged and left off blind sheets.
+  - Look sheets never name the file.
+  - Output paths and work folders are reserved per call.
+  - References with alpha are composited over a light background.
+  - `report["metrics"]` carries the eval metric names.
+- **Integration.**
+  - A `grade` event (`accepted`, `failed` check ids, `note`) records an independent
+    grader's verdict, and the baseline's 24 grades are in its ledger. A graded run counts
+    as accepted only when its last grade says so; `self_accepted` keeps the builder's
+    verdict. The failed checks count in the failure histogram, and prose findings from
+    v0.4 ledgers count as `(prose)`.
+  - The house and dragon blind reads pass framing distances (20,40 and 25,60), because
+    their default close and typical levels put the camera inside the subject.
+  - Blockouts saved over a reserved output path leave no empty `.blend1`.
+  - `model_report`'s text says penetrations are reported, not gated.
+  - `lookdev_sheet` returns the render's warnings.
+  - The suite hash goes from `b3208ab30cbd` to `c4c1e134168e`; the check ids are
+    unchanged.
+- **Tests.** There are 265 tests, up from 204 in v0.4. With Blender 5.2.2, 264 pass and 1 is
+  skipped (the ANSUR rebuild). The integration run caught one clash between the groups: the
+  roof-contact test predated `gap_mm` on contacts. It also caught a ledger test that expected
+  an exception where the CLI now prints a one-line error. Both are fixed.
+- **Still open:**
+  - Running `grip_define` again on an existing grip name adds a `.001` socket instead of
+    replacing it.
+  - Seven `ue_tp_1080` specs rely on the default camera, not an explicit one.
+  - Armour and clothing layers with designed stand-off gaps now raise `floating_part`
+    warnings: 24 on the plate armour. They are warnings only.
+  - `model_report` is slower on large rigs: 6.0 s on the knight against 1.9 s before.
+  - Several probe checks depend on how the probe is written, which is for S0b to pin
+    down (see the results note).
+
+**Not done yet (needs the PC):** the [PC checks](docs/PC_CHECKS.md): install, doctor green,
+every tool on Windows, and a 1.8 m blockout coming into Unreal 180 units tall.
 
 **Next:** the overhaul's sprints, in order (docs/OVERHAUL.md §9):
 
-1. **Finish S0a on the PC:** the PC checks, then the v0.4 baseline run on all 24 eval
-   tasks (iterations to accept, tokens, wall-clock).
+1. **Finish S0a on the PC:** the PC checks. The v0.4 baseline is recorded (v0.4.1 above).
 2. **S0b:** the spec compiler core, kept only if it beats the v0.4 baseline in a measured
    A/B test.
 3. **S1–S11:** HD humans, creatures, design lock and appeal, weapons and first-person,

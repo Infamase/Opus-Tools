@@ -24,8 +24,8 @@ accept:
      measure: "clear width of the door opening"}
   - {id: door_height, tool: probe, metric: door_height_m, op: between, value: [1.95, 2.2], class: hard,
      measure: "clear height of the door opening from the floor"}
-  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
-     op: "==", value: true, names: [house, cottage, medieval house, building], class: hard}
+  - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080, distances: "20,40"},
+     metric: top1_names_subject, op: "==", value: true, names: [house, cottage, medieval house, building], class: hard}
   - {id: readability, tool: readability_check, args: {distances: "15,40", defining: "door,window,roof"},
      metric: defining_under_floor, op: "==", value: 0, class: soft}
   - id: checklist

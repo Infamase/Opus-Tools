@@ -67,7 +67,7 @@ def test_lookdev_with_eevee_writes_a_sheet(crate, tmp_path):
         if "Cannot read" in str(e) or "studio" in str(e):
             raise  # the studio light lookup, not the GPU
         pytest.skip(f"EEVEE can't initialise headless here: {str(e)[-300:]}")
-    assert sheet.exists() and rep["engine"] == "eevee"
+    assert sheet.exists() and rep["engine"] == "eevee" and rep["warnings"] == []  # the studio light was found
     tile = Path(rep["tiles_dir"]) / "shaded_front.png"
     assert tile.exists() and is_red(center(tile))
 

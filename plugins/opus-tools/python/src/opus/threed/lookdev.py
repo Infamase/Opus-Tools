@@ -98,5 +98,6 @@ def lookdev_sheet(
             for o in stats["objects"]
         ],
         "tiles_dir": str(work),
+        "warnings": res.get("warnings") or [],  # e.g. a studio light that fell back to the flat world
     }
     return out_path, report

@@ -94,12 +94,14 @@ def test_several_open_runs_need_a_run_id(project):
     assert [r["iterations"] for r in runs.run_summaries(project, task="chest")] == [0]
 
 
-def test_cli_refuses_an_event_without_a_run_among_several(project):
+def test_cli_refuses_an_event_without_a_run_among_several(project, capsys):
     d = str(project)
     assert cli(["run-log", "run_start", "task=wolf", "--dir", d]) == 0
     assert cli(["run-log", "run_start", "task=chest", "--dir", d]) == 0
-    with pytest.raises(ValueError, match="--run <id>"):
-        cli(["run-log", "iteration", "n=1", "hard_fail_count=0", "--dir", d])
+    capsys.readouterr()
+    assert cli(["run-log", "iteration", "n=1", "hard_fail_count=0", "--dir", d]) == 2  # a one-line error (CLI-4)
+    err = capsys.readouterr().err
+    assert err.startswith("opus run-log: error: 2 runs are open") and "--run <id>" in err
 
 
 def test_bad_events_are_refused(project):
@@ -116,6 +118,75 @@ def test_bad_events_are_refused(project):
         runs.log("iteration", near=project, n=1)
     with pytest.raises(ValueError, match="no run"):
         runs.log("accept", run="nope", near=project)
+
+
+def test_a_grade_decides_accepted(project):
+    """An independent grader's verdict is logged as a grade after the run closed. A graded run
+    is accepted only when its last grade says so, and the checks the grade failed count."""
+    human = runs.log("run_start", near=project, now=T0, task="human_hd", label="v0.4")["run"]
+    runs.log("iteration", run=human, near=project, now=T0 + 60, n=1, hard_fail_count=1, findings="blind_read")
+    runs.log("iteration", run=human, near=project, now=T0 + 120, n=2, hard_fail_count=0)
+    runs.log("accept", run=human, near=project, now=T0 + 200)
+    peasant = runs.log("run_start", near=project, now=T0 + 10, task="peasant_outfit", label="v0.4")["run"]
+    runs.log("iteration", run=peasant, near=project, now=T0 + 70, n=1, hard_fail_count=1, findings="poke_through")
+    runs.log("abandon", run=peasant, near=project, now=T0 + 300, reason="10 rounds")
+    axe = runs.log("run_start", near=project, now=T0 + 20, task="axe", label="v0.4")["run"]
+    runs.log("iteration", run=axe, near=project, now=T0 + 80, n=1, hard_fail_count=0)
+    runs.log("accept", run=axe, near=project, now=T0 + 100)
+    before = {r["task"]: r for r in runs.run_summaries(project)}
+    assert before["human_hd"]["accepted"] and not before["human_hd"]["graded"]
+
+    with pytest.raises(ValueError, match=r"grade: 3 runs in this ledger; pass run=<id>"):
+        runs.log("grade", near=project, accepted=False, failed="blind_read")  # never "the latest run"
+    with pytest.raises(ValueError, match=r"^grade: accepted must be true or false \(got 'maybe'\)"):
+        runs.log("grade", run=human, near=project, accepted="maybe")
+    with pytest.raises(ValueError, match="missing"):
+        runs.log("grade", run=human, near=project, failed="blind_read")
+    with pytest.raises(ValueError, match="not a count"):
+        runs.log("grade", run=human, near=project, accepted=False, failed=2)
+    with pytest.raises(ValueError, match="not prose"):
+        runs.log("grade", run=human, near=project, accepted=False, failed="the judge said female character")
+
+    g = runs.log("grade", run=human, near=project, now=T0 + 900, accepted="false", failed="blind_read x2, blind_read",
+                 note="fresh judge: 'female character'")
+    assert (g["accepted"], g["failed"], g["note"]) == (False, ["blind_read"], "fresh judge: 'female character'")
+    runs.log("grade", run=peasant, near=project, now=T0 + 910, accepted=False, failed=["poke_through"])
+    runs.log("grade", run=axe, near=project, now=T0 + 920, accepted=False, failed="lint")
+    runs.log("grade", run=axe, near=project, now=T0 + 930, accepted="yes", failed="none")  # the last grade counts
+
+    r = {x["task"]: x for x in runs.run_summaries(project)}
+    h = r["human_hd"]
+    assert (h["accepted"], h["self_accepted"], h["graded"], h["abandoned"], h["open"]) == (False, True, True, False, False)
+    assert h["iterations_to_accept"] is None and h["iterations_to_hard_pass"] == 2
+    assert h["wall_clock_s"] == 200  # the builder's time: the grade comes later
+    assert h["failures"] == {"blind_read": 2} and h["grade_failed"] == ["blind_read"]
+    assert (r["peasant_outfit"]["accepted"], r["peasant_outfit"]["self_accepted"]) == (False, False)
+    assert r["axe"]["accepted"] and r["axe"]["iterations_to_accept"] == 1 and r["axe"]["failures"] == {}
+
+    o = runs.run_stats(project)["overall"]
+    assert (o["runs"], o["accepted"], o["self_accepted"], o["graded"], o["open_runs"]) == (3, 1, 2, 3, 0)
+    assert o["failure_histogram"] == {"blind_read": 2, "poke_through": 2}
+    assert o["grade_failure_histogram"] == {"blind_read": 1, "poke_through": 1}
+    assert o["median_iterations_to_accept"] is None  # 1 and two that were never accepted
+
+
+def test_cli_and_help_take_a_grade(project, capsys):
+    d = str(project)
+    assert cli(["run-log", "run_start", "task=chair", "--dir", d]) == 0
+    run = json.loads(capsys.readouterr().out)["run"]
+    assert cli(["run-log", "accept", "--run", run, "--dir", d]) == 0
+    capsys.readouterr()
+    assert cli(["run-log", "grade", "accepted=false", "failed=seat_height, lint", "note=seat 0.52 m, x=1 vs spec",
+                "--run", run, "--dir", d]) == 0
+    g = json.loads(capsys.readouterr().out)
+    assert g == runs.read_events(project)[-1]
+    assert (g["event"], g["accepted"], g["failed"], g["note"]) == ("grade", False, ["seat_height", "lint"],
+                                                                     "seat 0.52 m, x=1 vs spec")
+    assert cli(["run-stats", "--dir", d]) == 0
+    assert json.loads(capsys.readouterr().out)["overall"]["accepted"] == 0
+    with pytest.raises(SystemExit):
+        cli(["run-log", "--help"])
+    assert "accepted* (true/false)" in capsys.readouterr().out
 
 
 def test_findings_and_values_parse():
@@ -140,6 +211,17 @@ def test_findings_are_check_ids_not_prose():
         runs.parse_findings(["the paws look like shoes"])
     with pytest.raises(ValueError, match="not prose"):
         runs.parse_findings({"paws look like shoes": 1})
+
+
+def test_findings_logged_before_v041_still_summarize(project):
+    """v0.4 ledgers took prose and "none" as findings; they count as one (prose) entry each and
+    as nothing, so the failure histogram stays a list of check ids."""
+    run = runs.log("run_start", near=project, now=T0, task="peasant_outfit")["run"]
+    old = {"event": "iteration", "run": run, "ts": T0 + 1, "n": 1, "hard_fail_count": 1,
+           "findings": {"poke_through(75mm lunge hip": 1, "37mm rest inner thigh)": 1, "none": 1, "lint": 2}}
+    with open(next((project / ".opus" / "runs").glob("*.jsonl")), "a", encoding="utf-8") as f:
+        f.write(json.dumps(old) + "\n")
+    assert runs.run_summaries(project)[0]["failures"] == {runs.PROSE: 2, "lint": 2}
 
 
 def test_run_log_names_the_field_that_is_wrong(project):
@@ -303,16 +385,21 @@ def test_run_tools_over_mcp(project):
         ("run_log", {"event": "iteration", "n": 1, "tier": "T2", "hard_fail_count": 1, "findings": "grip"}),
         ("run_log", {"event": "iteration", "n": 2, "hard_fail_count": 0}),
         ("run_log", {"event": "tokens", "input_tokens": 900, "output_tokens": 90}),
+        ("run_log", {"event": "judge_round", "kind": "blind_read", "questions": 1, "failed": 0}),
         ("run_log", {"event": "accept", "values": "grip_verdict=good grip; tris=540"}),
         ("run_log", {"event": "iteration", "n": 3, "hard_fail_count": 0}),
+        ("run_log", {"event": "grade", "accepted": False, "failed": "grip", "note": "the palm misses the haft"}),
         ("run_stats", {}),
     ])
     assert {"run_log", "run_stats"} <= tools
-    for r in results[:5]:
+    for r in results[:6] + results[7:]:
         assert not r.is_error, r.content[0].text
-    assert json.loads(results[4].content[0].text)["values"] == {"grip_verdict": "good grip", "tris": 540}
-    assert results[5].is_error and "no open run" in results[5].content[0].text
-    stats = json.loads(results[6].content[0].text)
+    assert json.loads(results[4].content[0].text)["failed"] == 0
+    assert json.loads(results[5].content[0].text)["values"] == {"grip_verdict": "good grip", "tris": 540}
+    assert results[6].is_error and "no open run" in results[6].content[0].text
+    assert json.loads(results[7].content[0].text)["failed"] == ["grip"]
+    stats = json.loads(results[8].content[0].text)
     axe = stats["by_task"]["axe"]
     assert (axe["median_iterations_to_hard_pass"], axe["median_tokens_input"]) == (2, 900)
-    assert axe["failure_histogram"] == {"grip": 1}
+    assert (axe["accepted"], axe["self_accepted"], axe["graded"]) == (0, 1, 1)
+    assert axe["failure_histogram"] == {"grip": 2}

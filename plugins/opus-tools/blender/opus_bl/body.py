@@ -906,6 +906,8 @@ def build(
     tris = sum(len(p.vertices) - 2 for p in mesh.polygons)
     if out_blend:
         os.makedirs(os.path.dirname(os.path.abspath(out_blend)), exist_ok=True)
+        if os.path.isfile(out_blend) and os.path.getsize(out_blend) == 0:
+            os.remove(out_blend)  # reserved empty by output_path: saving over it would leave an empty .blend1
         bpy.ops.wm.save_as_mainfile(filepath=out_blend)
     if out_glb:
         os.makedirs(os.path.dirname(os.path.abspath(out_glb)), exist_ok=True)

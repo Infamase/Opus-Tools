@@ -22,7 +22,7 @@ accept:
   - {id: clipping, tool: grip_check, args: {side: l}, metric: body_clipping_verts, op: "==", value: 0, class: hard}
   - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: godot_tp}, metric: top1_names_subject,
      op: "==", value: true, names: [shield, round shield, viking shield], class: hard}
-  - {id: readability, tool: readability_check, args: {distances: "6,20", defining: "boss,rim"},
+  - {id: readability, tool: readability_check, args: {camera: godot_tp, distances: "6,20", defining: "boss,rim"},
      metric: defining_under_floor, op: "==", value: 0, class: soft}
   - id: checklist
     tool: art_director

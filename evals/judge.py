@@ -80,24 +80,32 @@ def _tail(answer: str, key: str) -> str:
     return hits[-1].strip() if hits else ""
 
 
+def check_args(mode: str, questions: list[str], names: str = "") -> list[str]:
+    """Refuse arguments the mode can't use, and return the accepted names (lowercase), split on
+    '|' or ','. A checklist takes 1-5 questions: a re-check asks only the questions that failed."""
+    if mode == "checklist" and not 1 <= len(questions) <= 5:
+        raise SystemExit("checklist mode takes 1-5 questions")
+    return [n.strip().lower() for n in re.split(r"[|,]", names or "") if n.strip()]
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("mode", choices=["blind", "checklist", "letter"])
     ap.add_argument("--image", action="append", required=True)
     ap.add_argument("--prompt-file", help="blind and letter modes: the prompt the tool returned")
-    ap.add_argument("--question", action="append", default=[], help="checklist mode, 2-5 times")
-    ap.add_argument("--names", default="", help="blind mode: accepted names, '|'-separated (never shown to the judge)")
+    ap.add_argument("--question", action="append", default=[], help="checklist mode, 1-5 times")
+    ap.add_argument("--names", default="", help="blind mode: accepted names, separated by '|' or ',' "
+                                                "(never shown to the judge)")
     ap.add_argument("--model", default=MODEL)
     ap.add_argument("--timeout", type=int, default=600)
     ap.add_argument("--log", help="append the result to this JSONL file")
     a = ap.parse_args(argv)
+    accepted = check_args(a.mode, a.question, a.names)
     images = [Path(i).expanduser().resolve() for i in a.image]
     with tempfile.TemporaryDirectory(prefix="judge_") as tmp:
         work = Path(tmp)
         names = _names(images, work)
         if a.mode == "checklist":
-            if not 2 <= len(a.question) <= 5:
-                raise SystemExit("checklist mode takes 2-5 questions")
             qs = "\n".join(f"Q{i}. {q}" for i, q in enumerate(a.question, 1))
             lines = "\n".join(f"Q{i}: Yes|No|Unclear" for i in range(1, len(a.question) + 1))
             prompt = CHECKLIST.format(images=", ".join(names), questions=qs, answer_lines=lines)
@@ -112,7 +120,6 @@ def main(argv=None) -> int:
     out = {"mode": a.mode, "model": a.model, **res}
     if a.mode == "blind":
         guesses = [_tail(res["answer"], f"GUESS{i}") for i in (1, 2, 3)]
-        accepted = [n.strip().lower() for n in a.names.split("|") if n.strip()]
         top1 = guesses[0].lower()
         out.update(guesses=guesses,
                    top1_names_subject=bool(accepted) and any(re.search(rf"\b{re.escape(n)}s?\b", top1) for n in accepted))

@@ -129,6 +129,7 @@ def test_record_with_inputs_and_tools_unions_flags(project):
 
 
 def test_lineage_follows_the_ledger(project):
+    (project / "nowhere.glb").write_bytes(b"x")  # on disk, not in the ledger yet
     record(str(project / "base.glb"), "itch pack", license="unstated")
     record(str(project / "anim.glb"), "retarget", inputs=[{"source": "ACCAD", "licence_id": "CC-BY-3.0"}])
     e = record(str(project / "derived.glb"), "spec_build",
@@ -231,6 +232,47 @@ def test_unmarked_project_dir_keeps_one_ledger(tmp_path, monkeypatch):
     assert (tmp_path / ".opus" / "ledger.jsonl").exists() and not (tmp_path / "models" / ".opus").exists()
     rep = check(tmp_path, commercial=True)
     assert rep["assets"] == 2 and [b["asset"] for b in rep["blocked"]] == ["models/wolf.png"]
+
+
+def test_record_refuses_paths_that_do_not_exist(project, tmp_path_factory, monkeypatch):
+    """A relative path read from the wrong folder used to record asset '.' in a stray
+    sword/sword.blend/.opus ledger, or a sword/sword/sword.blend that doesn't exist."""
+    elsewhere = tmp_path_factory.mktemp("elsewhere")
+    monkeypatch.delenv("OPUS_PROJECT_DIR", raising=False)
+    monkeypatch.chdir(elsewhere)
+    with pytest.raises(FileNotFoundError, match=r"sword\.blend does not exist"):
+        record("sword/sword.blend", "built", licence_id="LicenseRef-Own-Work")
+    (elsewhere / "rock.glb").write_bytes(b"x")  # a real file, but no project above it
+    with pytest.raises(ValueError, match="not inside a project: no opus.project.yaml or project.godot above"):
+        record("rock.glb", "built", licence_id="LicenseRef-Own-Work")
+    assert not list(elsewhere.rglob(".opus"))
+
+    (project / "sword").mkdir()
+    (project / "sword" / "sword.blend").write_bytes(b"x")
+    monkeypatch.chdir(project / "sword")
+    with pytest.raises(FileNotFoundError):
+        record("sword/sword.blend", "built", licence_id="LicenseRef-Own-Work")
+    with pytest.raises(FileNotFoundError, match="input 'sword/hilt.blend' does not exist and is not in the ledger"):
+        record("sword.blend", "built", licence_id="LicenseRef-Own-Work", inputs=[{"asset": "sword/hilt.blend"}])
+    assert ledger.entries(project) == []
+    e = record("sword.blend", "built", licence_id="LicenseRef-Own-Work", inputs=[{"asset": "base.glb"}])
+    assert e["asset"] == "sword/sword.blend" and e["inputs"][0]["notes"] == "not in the ledger"
+    assert [x["asset"] for x in ledger.entries(project)] == ["sword/sword.blend"]
+    assert not (project / "sword" / ".opus").exists()
+
+
+def test_an_unlicensed_build_points_at_own_work(project):
+    record(str(project / "kit.glb"), "built here")
+    record(str(project / "pal.hex"), "built here", licence_id="LicenseRef-Proprietary")
+    record(str(project / "base.glb"), "kitbash", inputs=[{"source": "forum post", "license": "ask me"}])
+    why = {b["asset"]: b["reasons"] for b in check(project)["blocked"]}
+    assert why["kit.glb"] == ["licence not classified: no licence recorded; record its licence_id; "
+                              "if it was made in this project, record licence_id LicenseRef-Own-Work"]
+    assert why["pal.hex"] == ["licence not classified: its licence LicenseRef-Proprietary; add it to data/licences.yaml; "
+                              "if it was made in this project, record licence_id LicenseRef-Own-Work"]
+    assert not any("Own-Work" in r for r in why["base.glb"])  # made from inputs: their licences decide
+    record(str(project / "kit.glb"), "built here", licence_id="LicenseRef-Own-Work")
+    assert {b["asset"] for b in check(project)["blocked"]} == {"pal.hex", "base.glb"}
 
 
 def test_cmu_data_may_not_ship_as_an_asset_pack(project):

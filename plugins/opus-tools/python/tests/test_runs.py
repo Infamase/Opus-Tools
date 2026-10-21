@@ -47,12 +47,12 @@ def test_ledger_round_trip(project):
     assert r["failures"] == {"floating_parts": 1, "grip": 2} and r["rejections"] == {"mesh_lint": 1}
 
 
-def test_events_go_to_the_latest_open_run(project):
+def test_events_go_to_the_open_run(project):
     a = runs.log("run_start", near=project, now=T0, task="barrel", asset="barrel.blend")["run"]
     b = runs.log("run_start", near=project, now=T0 + 1, task="chest", asset="chest.blend")["run"]
-    assert runs.log("iteration", near=project, now=T0 + 2, n=1, hard_fail_count=1)["run"] == b
-    runs.log("accept", near=project, now=T0 + 3)
-    assert runs.log("iteration", near=project, now=T0 + 4, n=1, hard_fail_count=0)["run"] == a
+    assert runs.log("iteration", run=b, near=project, now=T0 + 2, n=1, hard_fail_count=1)["run"] == b
+    runs.log("accept", run=b, near=project, now=T0 + 3)
+    assert runs.log("iteration", near=project, now=T0 + 4, n=1, hard_fail_count=0)["run"] == a  # the one open run
     runs.log("abandon", near=project, now=T0 + 5, reason="cap")
     with pytest.raises(ValueError, match="no open run"):
         runs.log("iteration", near=project, n=2, hard_fail_count=0)
@@ -70,6 +70,36 @@ def test_events_go_to_the_latest_open_run(project):
     barrel = stats["by_task"]["barrel"]
     assert barrel["accepted"] == 0 and barrel["median_tokens_input"] == 7
     assert barrel["median_wall_clock_s"] == 5  # tokens read later don't stretch the run
+
+
+def test_several_open_runs_need_a_run_id(project):
+    """Parallel sessions share one ledger: with two runs open, an event without a run id
+    would land in the other session's run, so it is refused and the open runs are named."""
+    wolf = runs.log("run_start", near=project, now=T0, task="wolf", asset="wolf.blend")["run"]
+    chest = runs.log("run_start", near=project, now=T0 + 60, task="chest", asset="chest.blend")["run"]
+    with pytest.raises(ValueError, match="2 runs are open") as err:
+        runs.log("iteration", near=project, now=T0 + 120, n=1, hard_fail_count=0)
+    msg = str(err.value)
+    assert f"{wolf} (task wolf, started " in msg and f"{chest} (task chest, started " in msg and "pass run=<id>" in msg
+    for event, fields in (("judge_round", {"kind": "checklist"}), ("accept", {}), ("abandon", {"reason": "x"})):
+        with pytest.raises(ValueError, match="runs are open"):
+            runs.log(event, near=project, now=T0 + 130, **fields)
+    assert len(runs.read_events(project)) == 2  # nothing was misfiled
+    assert runs.log("iteration", run=wolf, near=project, now=T0 + 140, n=1, hard_fail_count=0)["run"] == wolf
+    # usage and the user's verdict arrive late and still go to the newest run
+    assert runs.log("tokens", near=project, now=T0 + 150, input=5, output=1)["run"] == chest
+    runs.log("abandon", run=chest, near=project, now=T0 + 160, reason="cap")
+    assert runs.log("iteration", near=project, now=T0 + 170, n=2, hard_fail_count=0)["run"] == wolf  # one open run
+    assert runs.run_stats(project)["by_task"]["wolf"]["runs"] == 1
+    assert [r["iterations"] for r in runs.run_summaries(project, task="chest")] == [0]
+
+
+def test_cli_refuses_an_event_without_a_run_among_several(project):
+    d = str(project)
+    assert cli(["run-log", "run_start", "task=wolf", "--dir", d]) == 0
+    assert cli(["run-log", "run_start", "task=chest", "--dir", d]) == 0
+    with pytest.raises(ValueError, match="--run <id>"):
+        cli(["run-log", "iteration", "n=1", "hard_fail_count=0", "--dir", d])
 
 
 def test_bad_events_are_refused(project):
@@ -96,6 +126,36 @@ def test_findings_and_values_parse():
     assert runs.parse_findings('{"grip": 2}') == {"grip": 2}
     assert runs.parse_values("tris=3120, ok=true, top1=dire wolf") == {"tris": 3120, "ok": True, "top1": "dire wolf"}
     assert runs.parse_values("top1=wolf, then dog; iou=0.82") == {"top1": "wolf, then dog", "iou": 0.82}
+
+
+def test_findings_are_check_ids_not_prose():
+    for nothing in ("none", "None", "0", "-", "", "  "):
+        assert runs.parse_findings(nothing) == {}, nothing
+    assert runs.parse_findings("blind_read, sheet/front x2, lint.errors:3, a, , b,") == {
+        "blind_read": 1, "sheet/front": 2, "lint.errors": 3, "a": 1, "b": 1}
+    with pytest.raises(ValueError, match=r"failing check ids such as 'floating_parts, grip x2', not prose "
+                                         r"\(got 'blind read failed'\)"):
+        runs.parse_findings("blind read failed, the judge said the paws look like shoes")
+    with pytest.raises(ValueError, match="not prose"):
+        runs.parse_findings(["the paws look like shoes"])
+    with pytest.raises(ValueError, match="not prose"):
+        runs.parse_findings({"paws look like shoes": 1})
+
+
+def test_run_log_names_the_field_that_is_wrong(project):
+    run = runs.log("run_start", near=project, now=T0, task="pine_trees")["run"]
+    with pytest.raises(ValueError, match=r"^judge_round: failed must be an integer \(got 'No'\); "
+                                         r"fields: kind \(text\), questions \(integer\), failed \(integer\)$"):
+        runs.log("judge_round", run=run, near=project, kind="checklist", questions="3", failed="No")
+    with pytest.raises(ValueError, match=r"iteration: n must be an integer \(got 'two'\); fields: n \(integer\), "
+                                         r"tier \(text\), hard_fail_count \(integer\), findings \(failing check ids\)"):
+        runs.log("iteration", run=run, near=project, n="two", hard_fail_count=0)
+    with pytest.raises(ValueError, match=r"accept: wall_clock_s must be a number \(got 'soon'\)"):
+        runs.log("accept", run=run, near=project, wall_clock_s="soon")
+    with pytest.raises(ValueError, match="^iteration: findings are failing check ids"):
+        runs.log("iteration", run=run, near=project, n=1, hard_fail_count=1, findings="blind read failed")
+    assert runs.log("iteration", run=run, near=project, now=T0 + 1, n=1, hard_fail_count=0, findings="none")["findings"] == {}
+    assert runs.run_stats(project)["by_task"]["pine_trees"]["failure_histogram"] == {}
 
 
 def _synthetic(project):

@@ -22,6 +22,7 @@ from pathlib import Path
 import bmesh
 import bpy
 from mathutils import Matrix, Vector
+from mathutils.bvhtree import BVHTree
 
 # ---------------------------------------------------------------- canons
 
@@ -788,7 +789,8 @@ def build(
     out_glb: str = "",
     name: str = "",
 ) -> dict:
-    """Build a rigged blockout. ``height`` is total height in meters (default: the canon's)."""
+    """Build a rigged blockout. ``height`` is total height in meters (default: the canon's),
+    to the ear tips on a quadruped, whose report gives ``landmarks_m.withers_m``."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
     membranes, hand_prims, rolls, limbs = [], [], {}, None
     if archetype == "humanoid":
@@ -856,6 +858,12 @@ def build(
             hand=c["hand"] * s, foot=c["foot"] * s, leg=(c["hip"] - 0.15 - c["ankle"]) * s,
         )
         landmarks = {k: round(v, 4) for k, v in landmarks.items()}
+    elif archetype == "quadruped":
+        # height is the overall height (ear tips); the withers are the top of the back on the
+        # midline above the front leg's top joint, the height animals are sized by
+        tree = BVHTree.FromPolygons([v.co for v in mesh.vertices], [p.vertices for p in mesh.polygons])
+        top = tree.ray_cast(Vector((0.0, joints["fshoulder_l"].y, target + 1.0)), Vector((0.0, 0.0, -1.0)))[0]
+        landmarks = {"withers_m": round(top.z, 4) if top else None, "height_m": round(target, 4)}
     hindlimb = None
     if limbs:
         # the built hind leg against the table: femur, tibia, metatarsal, then the digits

@@ -10,6 +10,7 @@ CREDITS.md with the exact attribution strings.
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from functools import lru_cache
@@ -18,7 +19,7 @@ from pathlib import Path
 import yaml
 
 from opus.bible import load_bible
-from opus.paths import data_dir, opus_dir, project_base
+from opus.paths import PROJECT_MARKERS, data_dir, find_project_root, opus_dir, project_base
 
 FLAGS = ("attribution", "nc", "sa", "nd", "no-redistribute-as-asset", "use-restricted", "unknown")
 
@@ -343,8 +344,21 @@ def record(
     license, role, attribution}``, or ``{asset, role}`` for an asset already in the ledger,
     whose flags carry over. ``tools`` are ``{name, licence_id}``. ``attribution`` is the
     exact credit line, when the terms prescribe one.
+
+    ``asset`` must exist (a relative path is read from the cwd) inside a project, or inside
+    $OPUS_PROJECT_DIR. Input assets are relative to the project root and must exist there or
+    be in the ledger already.
     """
-    root = project_base(asset)
+    path = Path(asset).expanduser().resolve()
+    if not path.exists():
+        raise FileNotFoundError(f"{path} does not exist")
+    root = find_project_root(path.parent)
+    if root is None:
+        env = os.environ.get("OPUS_PROJECT_DIR", "").strip()
+        if not env:
+            raise ValueError(f"not inside a project: no {' or '.join(PROJECT_MARKERS)} above {path.parent}; "
+                             "run project_bible init in the project folder or set OPUS_PROJECT_DIR")
+        root = Path(env).expanduser().resolve()
     latest = {e["asset"]: e for e in _read(root)}
     ins = []
     for p in inputs or []:
@@ -352,6 +366,9 @@ def record(
         if p.get("asset"):
             rel = _rel(p["asset"], root)
             up = latest.get(rel)
+            if up is None and not (root / rel).exists():
+                raise FileNotFoundError(f"input {p['asset']!r} does not exist and is not in the ledger "
+                                        f"(input assets are relative to the project root {root})")
             p.update(asset=rel, source=p.get("source") or rel)
             if up is None:
                 p.update(licence_id=None, flags=["unknown"], stamp=[], notes=p.get("notes") or MISSING)
@@ -361,7 +378,7 @@ def record(
         else:
             ins.append(_part(p))
     entry = _sum({
-        "asset": _rel(Path(asset).expanduser().resolve(), root),
+        "asset": _rel(path, root),
         "source": source,
         "license": license,
         "licence_id": licence_id or None,
@@ -414,14 +431,17 @@ def reasons(entry: dict, commercial: bool = False, publish_assets: bool = False)
     """Why ``entry`` blocks an export under the policy, and what to check before shipping."""
     pol = {"commercial": commercial, "publish_assets": publish_assets}
     why, warn = [], []
-    for label, lid, flags in _parts(entry):
+    for n, (label, lid, flags) in enumerate(_parts(entry)):
         for flag in flags:
             if flag not in BLOCKS:
                 continue
             key, what = BLOCKS[flag]
             if key is None:
                 missing = lid and not all(_canon(i) for i in _ids(lid))
-                why.append(f"{what}: {label}; " + ("add it to data/licences.yaml" if missing else "record its licence_id"))
+                fix = "add it to data/licences.yaml" if missing else "record its licence_id"
+                if n == 0 and not entry.get("inputs"):  # its own licence, and nothing it was made from
+                    fix += "; if it was made in this project, record licence_id LicenseRef-Own-Work"
+                why.append(f"{what}: {label}; {fix}")
             elif pol[key]:
                 why.append(f"{what}: {label}; {key}: true blocks it")
             elif flag == "use-restricted":

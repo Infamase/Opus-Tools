@@ -22,7 +22,7 @@ accept:
   - {id: symmetric, tool: model_report, metric: symmetric, op: "==", value: true, class: soft}
   - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: godot_tp}, metric: top1_names_subject,
      op: "==", value: true, names: [barrel, cask, keg], class: hard}
-  - {id: readability, tool: readability_check, args: {distances: "6,20", defining: "hoop"},
+  - {id: readability, tool: readability_check, args: {camera: godot_tp, distances: "6,20", defining: "hoop"},
      metric: defining_under_floor, op: "==", value: 0, class: soft}
 score: [accepted, iterations_to_hard_pass, iterations_to_accept, hard_fail_count_first, validator_rejections, judge_rounds,
         user_rejections, wall_clock_s, tokens_input, tokens_output, blind_read_top1, tris]

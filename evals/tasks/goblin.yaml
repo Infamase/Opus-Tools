@@ -22,7 +22,7 @@ accept:
      op: "==", value: 0, class: soft, note: "the big head, ears, hands and feet are declared in the brief"}
   - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: godot_tp}, metric: top1_names_subject,
      op: "==", value: true, names: [goblin, hobgoblin], class: hard}
-  - {id: readability, tool: readability_check, args: {distances: "6,20", defining: "head,ear_l,ear_r,nose,hand_r,dagger"},
+  - {id: readability, tool: readability_check, args: {camera: godot_tp, distances: "6,20", defining: "head,ear_l,ear_r,nose,hand_r,dagger"},
      metric: defining_under_floor, op: "==", value: 0, class: soft}
   - id: checklist
     tool: art_director

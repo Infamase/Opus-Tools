@@ -145,6 +145,17 @@ def summarize(rep: dict, max_parts: int = 40) -> str:
         lines.append(f"  ... and {len(rep['parts']) - max_parts} more")
     if rep["contacts"]:
         lines.append("Contacts: " + "; ".join(f"{c['a']} + {c['b']} ({c['kind']})" for c in rep["contacts"][:20]))
+    for p in rep.get("penetrations", [])[:10]:
+        at = ", ".join(f"{v:.3f}" for v in p["at_m"])
+        if p["kind"] == "through":
+            other = p["b"] if p["thin_part"] == p["a"] else p["a"]
+            what = (f"{other} passes right through {p['thin_part']} (a {p['thickness_mm']:g} mm plate; "
+                    f"{p['past_sheet_mm']:g} mm to pull it clear)")
+        elif p["kind"] == "embedded":
+            what = f"{p['inside']} is buried inside {p['b'] if p['inside'] == p['a'] else p['a']}"
+        else:
+            what = f"{p['a']} and {p['b']} cut into each other ({p['triangles']} crossing triangle pairs)"
+        lines.append(f"Penetration: {what}, ~{p['depth_mm']:g} mm deep, at ({at}) m")
     for g in rep["gaps"][:10]:
         lines.append(f"Floating: {g['part']} is {g['gap_m'] * 100:.1f} cm from {g['nearest']}")
     s = rep["symmetry"]

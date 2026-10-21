@@ -84,7 +84,21 @@ def _aim(cam, view, lo, hi, margin=1.15):
     cam.data.clip_end = dist + radius * 4 + 10
 
 
-def _world(color, hdri: str | None = None):
+def _studio_light(name: str) -> str:
+    """Path of a bundled world studio light ('' when missing). Blender 5.2's
+    ``system_resource`` returns '' for the file itself, though it finds its folder."""
+    light = bpy.context.preferences.studio_lights.get(name)
+    if light is not None and light.path and os.path.isfile(light.path):
+        return light.path
+    folder = bpy.utils.system_resource("DATAFILES", path="studiolights/world")
+    path = os.path.join(folder, name) if folder else ""
+    return path if path and os.path.isfile(path) else ""
+
+
+def _world(color, hdri: str | None = None) -> str | None:
+    """A flat world of ``color``; with ``hdri``, the asset is lit by that studio light while
+    the camera still sees the flat color. Returns a warning when the light is missing (the
+    flat world lights the asset then)."""
     scene = bpy.context.scene
     w = bpy.data.worlds.get("opus_world") or bpy.data.worlds.new("opus_world")
     scene.world = w
@@ -94,14 +108,13 @@ def _world(color, hdri: str | None = None):
     out = nt.nodes.new("ShaderNodeOutputWorld")
     cam_bg = nt.nodes.new("ShaderNodeBackground")
     cam_bg.inputs["Color"].default_value = (*color[:3], 1.0)
-    if not hdri:
+    light = _studio_light(hdri) if hdri else ""
+    if not light:
         nt.links.new(cam_bg.outputs["Background"], out.inputs["Surface"])
-        return
+        return f"studio light {hdri} not found; the shaded pass is lit by the flat background" if hdri else None
     # light the asset with a bundled studio HDRI, but show a flat background to the camera
     env = nt.nodes.new("ShaderNodeTexEnvironment")
-    env.image = bpy.data.images.load(
-        bpy.utils.system_resource("DATAFILES", path=f"studiolights/world/{hdri}"), check_existing=True
-    )
+    env.image = bpy.data.images.load(light, check_existing=True)
     light_bg = nt.nodes.new("ShaderNodeBackground")
     nt.links.new(env.outputs["Color"], light_bg.inputs["Color"])
     path = nt.nodes.new("ShaderNodeLightPath")
@@ -110,6 +123,7 @@ def _world(color, hdri: str | None = None):
     nt.links.new(light_bg.outputs["Background"], mix.inputs[1])
     nt.links.new(cam_bg.outputs["Background"], mix.inputs[2])
     nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
+    return None
 
 
 def _neutral_output():
@@ -150,6 +164,50 @@ def _workbench(light="STUDIO", color_type="OBJECT", single=(0.8, 0.8, 0.8), cavi
     scene.view_settings.view_transform = "Standard"
     _soft_edges()
     _world(bg)
+
+
+def _upstream(socket) -> list:
+    """Every node that feeds ``socket``, through any chain of links."""
+    seen, todo = [], [link.from_node for link in socket.links]
+    while todo:
+        n = todo.pop()
+        if n not in seen:
+            seen.append(n)
+            todo += [link.from_node for s in n.inputs for link in s.links]
+    return seen
+
+
+def shaded_color_type(targets) -> str:
+    """Workbench color type for a shaded pass. "TEXTURE" shows image textures and plain
+    material colors, but renders a material that takes Base Color from a color attribute
+    plain grey. When the targets' materials feed Base Color from a Color Attribute (or
+    Attribute) node and none uses an image texture, this returns Workbench's attribute type
+    ("VERTEX", shown as Attribute) and makes the attribute each material reads the active
+    one, which is the one Workbench shows (a part map activates its own)."""
+    reads = {}  # mesh object -> the color attribute its material reads
+    for o in targets:
+        if o.type != "MESH":
+            continue
+        attrs = o.data.color_attributes
+        for slot in o.material_slots:
+            nt = slot.material.node_tree if slot.material is not None else None
+            if nt is None:
+                continue
+            if any(n.type == "TEX_IMAGE" and n.image is not None for n in nt.nodes):
+                return "TEXTURE"
+            for n in nt.nodes:
+                sock = n.inputs.get("Base Color") or (n.inputs.get("Color") if n.type.startswith("BSDF") else None)
+                for up in _upstream(sock) if sock is not None else []:
+                    name = None
+                    if up.type == "VERTEX_COLOR":
+                        name = up.layer_name or attrs.default_color_name
+                    elif up.type == "ATTRIBUTE" and up.attribute_type == "GEOMETRY":
+                        name = up.attribute_name
+                    if name and attrs.get(name) is not None:
+                        reads.setdefault(o, name)
+    for o, name in reads.items():
+        o.data.color_attributes.active_color = o.data.color_attributes[name]
+    return "VERTEX" if reads else "TEXTURE"
 
 
 def _soft_edges():
@@ -224,7 +282,20 @@ def _diagnostic_material(kind: str):
     nt = mat.node_tree
     nt.nodes.clear()
     out = nt.nodes.new("ShaderNodeOutputMaterial")
-    if kind == "normals":
+    if kind == "normal_rgb":  # world normal as a color (normal * 0.5 + 0.5), so faces read apart; backfaces red
+        geo = nt.nodes.new("ShaderNodeNewGeometry")
+        rgb = nt.nodes.new("ShaderNodeVectorMath")
+        rgb.operation = "MULTIPLY_ADD"
+        rgb.inputs[1].default_value = rgb.inputs[2].default_value = (0.5, 0.5, 0.5)
+        nt.links.new(geo.outputs["Normal"], rgb.inputs[0])
+        front = nt.nodes.new("ShaderNodeEmission")
+        nt.links.new(rgb.outputs["Vector"], front.inputs["Color"])
+        mix = nt.nodes.new("ShaderNodeMixShader")
+        nt.links.new(geo.outputs["Backfacing"], mix.inputs[0])
+        nt.links.new(front.outputs[0], mix.inputs[1])
+        nt.links.new(_emission(nt, (1.0, 0.12, 0.12)).outputs[0], mix.inputs[2])
+        nt.links.new(mix.outputs[0], out.inputs["Surface"])
+    elif kind == "normals":  # face orientation: blue out, red flipped
         geo = nt.nodes.new("ShaderNodeNewGeometry")
         mix = nt.nodes.new("ShaderNodeMixShader")
         nt.links.new(geo.outputs["Backfacing"], mix.inputs[0])
@@ -365,12 +436,12 @@ def run(
         o.color = CLAY
     _show(wires + [ref, grid], False)
 
-    tiles = []
+    tiles, warnings = [], []
     for pass_name, views in plan or DEFAULT_PLAN:
         override = None
         if pass_name == "shaded":
             if engine == "workbench":
-                _workbench(light="STUDIO", color_type="TEXTURE", cavity=True, outline=True)
+                _workbench(light="STUDIO", color_type=shaded_color_type(targets), cavity=True, outline=True)
             else:
                 if engine == "eevee":
                     scene.render.engine = "BLENDER_EEVEE"
@@ -378,7 +449,9 @@ def run(
                 else:
                     _cycles(48, denoise=True)
                 scene.view_settings.view_transform = "AgX"
-                _world(BG, hdri="studio.exr")
+                warning = _world(BG, hdri="studio.exr")
+                if warning:
+                    warnings.append(warning)
         elif pass_name == "clay_wire":
             _workbench(light="STUDIO", color_type="OBJECT", cavity=True, outline=True)
             _show(wires, True)
@@ -411,4 +484,5 @@ def run(
         "engine": engine,
         "reference": "cube_10cm" if small else "human_1.8m",
         "grid_cell_m": cell,
+        "warnings": warnings,
     }

@@ -120,7 +120,7 @@ def test_box_pushed_through_a_thin_plate_is_a_penetration(work):
     assert p["past_sheet_mm"] == pytest.approx(11.0, abs=0.5)  # box top 10 mm above, plate bottom 1 mm below
     assert p["triangles"] > 0 and p["depth_mm"] >= 11.0
     assert p["at_m"] == pytest.approx([0.01, 0.005, 0.0], abs=0.003)
-    assert p["check"] == "penetration" and p["class"] == "hard" and p["pass"] is False
+    assert p["check"] == "penetration" and p["class"] == "report" and p["pass"] is False
     pin = pens[frozenset(("Box", "Pin"))]
     # its deepest corner is 15 mm from the box's sides and bottom
     assert pin["kind"] == "embedded" and pin["inside"] == "Pin" and pin["triangles"] == 0

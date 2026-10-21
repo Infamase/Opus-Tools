@@ -116,6 +116,26 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--object", default="")
     s.add_argument("--fp", action="store_true")
 
+    s = sub.add_parser("lineup", help="asset beside human-made exemplars at game size, in both orders")
+    s.add_argument("images", nargs="+")
+    s.add_argument("--exemplars", nargs="+", required=True)
+    s.add_argument("--height", type=int, default=96)
+    s.add_argument("--seed", type=int, default=-1)
+    s.add_argument("--background", default="#808080")
+    s.add_argument("--fit", default="height", choices=["height", "long_edge"])
+    s.add_argument("--view", default="three_quarter")
+    s.add_argument("--pass", dest="render_pass", default="shaded", choices=["shaded", "clay", "silhouette"])
+
+    s = sub.add_parser("ab", help="blind A/B pair of two candidates, in both orders")
+    s.add_argument("first", metavar="A")
+    s.add_argument("second", metavar="B")
+    s.add_argument("--question", default="")
+    s.add_argument("--height", type=int, default=0)
+    s.add_argument("--seed", type=int, default=-1)
+    s.add_argument("--background", default="#808080")
+    s.add_argument("--view", default="three_quarter")
+    s.add_argument("--pass", dest="render_pass", default="shaded", choices=["shaded", "clay", "silhouette"])
+
     s = sub.add_parser("bible", help="show or create opus.project.yaml")
     s.add_argument("action", choices=["show", "init"])
     s.add_argument("--dir", default=".")
@@ -207,6 +227,15 @@ def main(argv: list[str] | None = None) -> int:
         else:
             sheet, rep = grip.grip_check(a.path, a.side, a.object, a.fp)
             _print(rep["text"] + f"\n\nsheet: {sheet}")
+    elif a.cmd in ("lineup", "ab"):
+        from opus import critique
+
+        if a.cmd == "lineup":
+            rep = critique.lineup_sheet(a.images, a.exemplars, a.height, a.seed, a.background, a.fit, a.view, a.render_pass)
+        else:
+            rep = critique.ab_sheet(a.first, a.second, a.height, a.seed, a.background, a.question or critique.AB_QUESTION,
+                                    view=a.view, render_pass=a.render_pass)
+        _print(rep)
     elif a.cmd == "bible":
         from opus.bible import init_bible, load_bible
 

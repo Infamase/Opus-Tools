@@ -1,6 +1,6 @@
 ---
 name: 3d-modeling
-description: Build, check and fix 3D models for games (Unreal, Godot, Unity) in Blender 5.x, low-poly and HD, with the Opus 3D tools. Characters and creatures start from canon-proportioned rigged blockouts (body_blockout) and are verified with proportion_check, reference_match and a blind read; look_at and model_report show any angle and the part structure; grip_define, grip_hold and grip_check put weapons, tools and props in hands correctly (first-person views included); lookdev_sheet and mesh_lint check the result. Use whenever creating, editing, importing or reviewing 3D models, props, environments, characters, creatures, or anything a character holds.
+description: Build, check and fix 3D models for games (Unreal, Godot, Unity) in Blender 5.x, low-poly and HD, with the Opus 3D tools. Characters and creatures start from canon-proportioned rigged blockouts (body_blockout) and are verified with proportion_check, reference_match and a blind read; look_at and model_report show any angle and the part structure; grip_define, grip_hold and grip_check put weapons, tools and props in hands correctly (first-person views included); lookdev_sheet and mesh_lint check the result. Reviews go numbers first, then yes/no checklist questions for a fresh judge, a blind read, a lineup_sheet beside human-made exemplars at game size, and ab_sheet in both orders to choose between versions. Use whenever creating, editing, importing or reviewing 3D models, props, environments, characters, creatures, or anything a character holds.
 ---
 
 # 3D modeling with Opus Tools
@@ -51,11 +51,8 @@ size (see Conventions).
    region highlighted, `"parts"` for a labeled map.
 6. **`model_report`**: parts that should touch must be in contact, nothing floating by
    accident, symmetric where intended, center of mass over the feet.
-7. **Blind read.** `blind_read_sheet`, then give its prompt to a fresh subagent (the
-   `art-director` agent) **without saying what the model is**. If its top guess isn't the
-   subject, the defining features aren't reading: exaggerate them (bigger, clearer in
-   silhouette, more contrast), then test again. Without subagents, skip this step and say so.
-8. **`lookdev_sheet`** and **`mesh_lint`** (category `character` or `hero_character`) last.
+7. **`lookdev_sheet`** and **`mesh_lint`** (category `character` or `hero_character`).
+8. **Review** with the protocol below: checklist, blind read, lineup.
 
 ## Hands that hold things (first person especially)
 
@@ -96,11 +93,60 @@ bone filter; Unity: an Avatar Mask). Check one attach in the engine before doing
    (prop_small, prop_large, environment_piece).
 3. `model_report` for assemblies: every part attached, nothing floating, bases resting on
    the floor.
-4. Fix, save, repeat. Show the user the final sheet. To pick between two versions, ask the
-   `art-director` agent.
+4. Fix, save, repeat until the numbers are clean, then review with the protocol below.
+   Show the user the final sheet.
 
 Use `engine: "eevee"` in `lookdev_sheet` for HD/PBR assets, where material response matters.
 Workbench is the fast default for low-poly and form checks.
+
+## Review protocol: numbers before opinions
+
+A judge asked for an open opinion agrees with people poorly (κ 0.51–0.66); the same judge
+answering narrow yes/no questions reaches κ 0.79 (people among themselves: 0.88). So measure
+first, then ask narrow questions, then compare with human-made work.
+
+1. **Numbers first.** `proportion_check`, `reference_match`, `model_report`, `grip_check`,
+   `readability_check` and `mesh_lint` are clean (or the finding is deliberate) before any
+   judge sees the asset. Numeric fixes cost no judge calls.
+2. **Checklist.** From the feature brief, write 2–5 yes/no questions, one criterion each,
+   about something the images can show: "In the front view, is the visor slit visible as a
+   dark line across the helmet?", "Does the tail taper to a point over its last third?";
+   never "Does the knight look good?" or two criteria in one question. Render with
+   `look_at`, views `"45,35; 220,65; 0,10; top"` (iso, rear, front, top), once with
+   `render_pass` `clay` and once `normals`; add one zoom crop (`target`, `zoom`) for a
+   detail question and at most one view at the game camera. Give a fresh `art-director`
+   subagent only the image paths and the numbered questions, in checklist mode: no code, no
+   .blend, no word about who made it, and no file names that hint at versions or fixes (name
+   working files by subject, `knight.blend`, not `knight_v3_fixed.blend`). It reasons before
+   each answer, and "unclear" counts as No. Fix what failed, then ask only the failed
+   questions again.
+3. **Blind read.** `blind_read_sheet` in its game-size mode; give its prompt to a fresh
+   `art-director` **without saying what the model is**. Its top guess must name the subject.
+   If not, `readability_check` shows which defining features vanish at the game camera:
+   exaggerate them (bigger, clearer in silhouette, more contrast), then test again.
+4. **Lineup.** `lineup_sheet` puts the asset beside 2–3 human-made exemplars of the same
+   style and camera, all at true game size: `height_px` is the asset's on-screen height,
+   height_m × screen_px / (2 · distance · tan(vfov / 2)). Exemplars, never generated images:
+   - the user's references and screenshots of games they like (private, never committed);
+   - downloaded CC0 packs such as Kenney and KayKit; pass their .glb next to your .blend
+     and both are rendered alike. Quaternius packs too, kept local (no redistribution);
+   - Met public-domain photos (`isPublicDomain` true) for weapons, armor and props.
+
+   Give `prompts[0]` and `prompts[1]` to two separate fresh `art-director` subagents. Map
+   each answer through its sheet's `key`: a pick counts only when both orders name the same
+   source. If ours is singled out, compare it with the exemplars on what the judges named
+   (shape, detail density, palette, finish), fix that, and line up again.
+5. **Choosing between versions** (variants, or a fix against the previous version):
+   `ab_sheet` with a question from the brief. Always include the incumbent (the current
+   best). Each of its two prompts goes to its own fresh judge; a candidate wins only if both
+   orders pick it, otherwise the incumbent stays. More candidates: single elimination, every
+   match in both orders (8 candidates cost at most 14 judge calls).
+6. **Caps.** Judge rounds: 2 by default, 5 at most. Numeric fix rounds: up to 10 per
+   finding. Escalate to the user only after 10 numeric rounds without progress, or when
+   fixing one finding keeps breaking another: show them an `ab_sheet` of the two best
+   versions (`height_px` 0 shows detail) and let them choose. Their choice is final.
+
+Without subagents, skip the judge steps and say so; never answer your own checklist.
 
 ## Making it look intentional, not generic
 

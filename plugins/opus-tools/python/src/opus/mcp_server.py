@@ -32,6 +32,7 @@ it with an inspector, fix what the report and image show, and repeat before show
 - Hands holding things (first person especially): grip_define marks the handle, grip_hold
   puts it in the hand and closes the fingers on it, grip_check measures any held object.
   Never place held objects by eye.
+- lineup_sheet / ab_sheet: letter-only sheets in both orders for a fresh art-director judge.
 - project_bible holds the project's style rules and budgets; read it before making assets.
 Paths may be absolute or relative to the project folder.
 """
@@ -478,6 +479,77 @@ def grip_check(path: str, side: str = "r", object: str = "", fp: bool = False) -
     sheet, rep = run(_path(path), side, object, fp)
     text = rep.pop("text")
     return [Image(path=sheet), text + "\n\n" + _json(rep)]
+
+
+# ---------------------------------------------------------------- judging
+
+def _paths(text: str) -> list[Path]:
+    return [_path(s.strip()) for s in text.replace("\n", ",").split(",") if s.strip()]
+
+
+def _judge_bg(background: str, near: Path) -> str:
+    return background or load_bible(near)["pixel"].get("game_background") or "#808080"
+
+
+@server.tool(structured_output=False)
+def lineup_sheet(
+    images: str,
+    exemplars: str,
+    height_px: int = 96,
+    seed: int = -1,
+    background: str = "",
+    fit: str = "height",
+    view: str = "three_quarter",
+    render_pass: str = "shaded",
+) -> list:
+    """Line the asset up beside 2-3 human-made exemplars at true game size, for the question
+    "which one doesn't belong / looks least professionally made?".
+
+    images: the asset render(s); exemplars: human-made work of the same style and camera (the
+    user's references, renders of CC0 packs such as Kenney or KayKit, Met public-domain
+    photos). Both are comma-separated image files or 3D files (.blend/.glb/.gltf/.fbx/.obj,
+    all rendered alike from ``view`` with ``render_pass``: shaded | clay | silhouette).
+    Backgrounds are cut away; every subject is scaled nearest-neighbour to height_px (its
+    on-screen height in the game; fit="long_edge" for objects lying flat) and placed in a
+    seeded random order labelled only A, B, C...; a second sheet holds the reversed order.
+    Give prompts[0] and prompts[1] each to its own fresh art-director subagent, with nothing
+    else; map each answer through that sheet's key and count a pick only when both name the
+    same source. The key is for you only. background defaults to the bible's game background.
+    """
+    from opus.critique import lineup_sheet as run
+
+    imgs = _paths(images)
+    if not imgs:
+        raise ValueError("give at least one asset image")
+    rep = run(imgs, _paths(exemplars), height_px, seed, _judge_bg(background, imgs[0]), fit, view, render_pass)
+    return [Image(path=rep["sheets"][0]), _json(rep)]
+
+
+@server.tool(structured_output=False)
+def ab_sheet(
+    a: str,
+    b: str,
+    question: str = "",
+    height_px: int = 0,
+    seed: int = -1,
+    background: str = "",
+    view: str = "three_quarter",
+    render_pass: str = "shaded",
+) -> list:
+    """A blind A/B pair of two candidates (image or 3D files): two sheets, A|B and swapped,
+    labelled only A and B. Always include the incumbent. question: what the judge decides,
+    best taken from the feature brief ("Which one shows the visor slit more clearly?");
+    default: which looks more professionally made. height_px > 0 shows both at that game
+    size, 0 shows them large. Give each prompt to its own fresh art-director subagent; a
+    candidate wins only if both answers map to it through the key (otherwise keep the
+    incumbent). Also the sheet to show the user when a choice is escalated.
+    """
+    from opus.critique import AB_QUESTION, ab_sheet as run
+
+    pa = _path(a)
+    rep = run(pa, _path(b), height_px, seed, _judge_bg(background, pa), question or AB_QUESTION, view=view,
+              render_pass=render_pass)
+    return [Image(path=rep["sheets"][0]), _json(rep)]
 
 
 # ---------------------------------------------------------------- project

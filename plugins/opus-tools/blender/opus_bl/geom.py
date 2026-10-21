@@ -586,6 +586,15 @@ def _past_sheet(side: Solid, other: Solid, cand: np.ndarray, seeds: np.ndarray) 
     return float(depth[reach].max()) if reach.any() else 0.0
 
 
+def _spread(pts: np.ndarray) -> float:
+    """How far points stray from their best-fit plane (0 for fewer than four)."""
+    if len(pts) < 4:
+        return 0.0
+    c = pts.mean(axis=0)
+    n = np.linalg.svd(pts - c, full_matrices=False)[2][-1]
+    return float(np.abs((pts - c) @ n).max())
+
+
 def penetration(a: Solid, b: Solid, skip_b: bool = False) -> dict | None:
     """How ``a`` and ``b`` interpenetrate, or None when their surfaces don't cross and
     neither holds a vertex of the other.
@@ -624,6 +633,11 @@ def penetration(a: Solid, b: Solid, skip_b: bool = False) -> dict | None:
     pad = diag + max(a.size, b.size) * 1e-6
     lo, hi = lo - pad, hi + pad
     depth = max(0.0, -float(sa.min(initial=0.0)), -float(sb.min(initial=0.0)))
+    # surfaces that meet only in one plane with no vertex past it (kit pieces abutting end to
+    # end) are in contact: float noise in that plane must not count as one part having gone
+    # behind the other's plate sheets
+    noise = 1e-6 * max(a.size, b.size, float(np.abs(np.r_[a.box, b.box]).max()))
+    flush = depth <= noise and _spread(pts) <= noise
     # how far each surface reaches into the other near the crossing
     if len(pairs):
         h = max(diag, pad) / 8
@@ -638,7 +652,7 @@ def penetration(a: Solid, b: Solid, skip_b: bool = False) -> dict | None:
         out["inside"] = "a" if (sa < 0).any() else "b"
     # a thin part: how far the other part went past the plate, to its shallower side
     for name, x, y, ytris in (("a", a, b, pairs[:, 1]), ("b", b, a, pairs[:, 0])):
-        sh = x.shell() if len(pairs) else None
+        sh = x.shell() if len(pairs) and not flush else None
         if sh is None:
             continue
         reach = max(diag * 4, y.size * 0.25)

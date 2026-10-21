@@ -39,6 +39,7 @@ CLOSE_RATIO = {"default": (1.0, 1.1, 0.8)}
 CLOSE_LIMIT = {"default": (90.0, 105.0, 80.0)}
 SKIN, BODY, INSIDE, TOUCH, HELD = (0.86, 0.72, 0.62), (0.62, 0.58, 0.55), (0.92, 0.16, 0.12), (0.22, 0.8, 0.32), (0.45, 0.56, 0.72)
 REF_PALM = 0.094  # palm length (wrist to knuckles) of a 1.8 m adult, meters
+WEAPON_BONES = ("weapon_r", "weapon_l")  # the bones hold() adds for what a hand holds
 
 
 # ---------------------------------------------------------------- rig discovery
@@ -103,7 +104,51 @@ def _armature(objs, name: str = ""):
 
 
 def _skinned_meshes(arm) -> list:
-    return [o for o in bpy.context.scene.objects if o.type == "MESH" and o.find_armature() == arm]
+    """The body: the meshes ``arm`` deforms, less props skinned rigidly to a bone."""
+    return _skin_split(arm)[0]
+
+
+_SPLIT: dict = {}
+
+
+def _skin_split(arm) -> tuple[list, list]:
+    """The meshes ``arm`` deforms, as (body, held props). A prop is skinned rigidly: 99% or
+    more of its vertices led by one bone that is weapon_r or weapon_l or below one, or that
+    leads no vertex of the body's other meshes (a sword skinned whole to its own bone)."""
+    meshes = [o for o in bpy.context.scene.objects if o.type == "MESH" and o.find_armature() == arm]
+    key = (arm.as_pointer(), tuple((o.as_pointer(), len(o.data.vertices), len(o.vertex_groups)) for o in meshes))
+    if key not in _SPLIT:
+        lead = {o: _lead_bone(o) for o in meshes}
+        rigid = {o for o in meshes if lead[o][0] is not None and lead[o][1] >= 0.99}
+        body_bones = set().union(*(lead[o][2] for o in meshes if o not in rigid))
+
+        def prop(o):
+            b = arm.data.bones.get(lead[o][0])
+            if b is None:
+                return False
+            if any(x.name in WEAPON_BONES for x in (b, *b.parent_recursive)):
+                return True
+            return bool(body_bones) and b.name not in body_bones
+
+        props = [o for o in meshes if o in rigid and prop(o)]
+        _SPLIT.clear()
+        _SPLIT[key] = ([o for o in meshes if o not in props], props)
+    return _SPLIT[key]
+
+
+def _lead_bone(obj) -> tuple[str | None, float, set]:
+    """The vertex group that leads (weighs most on) the most vertices of ``obj``, the share of
+    vertices it leads, and every group that leads at least one."""
+    names = {g.index: g.name for g in obj.vertex_groups}
+    counts: dict = {}
+    for v in obj.data.vertices:
+        best = max(v.groups, key=lambda g: g.weight, default=None)
+        name = names.get(best.group) if best is not None and best.weight > 0 else None
+        counts[name] = counts.get(name, 0) + 1
+    if not counts:
+        return None, 0.0, set()
+    top = max(counts, key=counts.get)
+    return top, counts[top] / len(obj.data.vertices), {n for n in counts if n}
 
 
 def _world_bone(arm, name: str):
@@ -800,12 +845,14 @@ def object_target(arm, info, root, pose: str, aim_axis: str, up_axis: str, props
     src = Matrix((aim_l, up_l, aim_l.cross(up_l))).transposed()
     dst = Matrix((F, U, F.cross(U))).transposed()
     rot = (dst @ src.inverted()).to_4x4() @ Matrix.Diagonal((*root.matrix_world.to_scale(), 1.0))
-    if pose == "fp_ads":
+    if pose == "fp_ads":  # offset: [forward], the eye to the sight (m at 1.8 m height)
+        if offset and any(abs(float(x)) > 1e-9 for x in list(offset)[1:]):
+            raise ValueError("fp_ads keeps the sight on the eye line: give offset as [forward, 0, 0]")
         sights = [o for o in _hierarchy(root) if o.type == "EMPTY" and o.name.lower().startswith(("socket_sight", "sight"))]
         if not sights:
             raise ValueError("fp_ads needs an empty named SOCKET_sight on the object, on the sight line")
         sight_local = root.matrix_world.inverted() @ sights[0].matrix_world.translation
-        target = eye + F * (0.2 * s)
+        target = eye + F * (float(offset[0]) if offset else 0.2) * s
         return Matrix.Translation(target - (rot @ sight_local.to_4d()).xyz) @ rot
     if pose == "fp_hip":  # offset: forward, right, down from the eye (m at 1.8 m height)
         fwd, right, down = offset or (0.5, 0.2, 0.18)
@@ -931,7 +978,9 @@ def body_clipping(arm, info, held, tol: float) -> dict:
         if (d < -tol).any():
             depth = max(depth, -float(d.min()))
         pen = geom.penetration(held, geom.Solid(co, tris, flags=hand), skip_b=True)
-        if pen is not None and pen["depth"] > tol:
+        # depth only from what is counted: an object vertex in the fist, nearest a wrist
+        # triangle rather than a hand one, reads as embedded with nothing crossing
+        if pen is not None and pen["depth"] > tol and pen["triangles"]:
             crossing += pen["triangles"]
             depth = max(depth, pen["depth"])
             skin = np.nonzero(~hand)[0]
@@ -1224,6 +1273,7 @@ def _append_objects(path: str) -> list:
     """Bring every object of another file into this scene; returns the new objects."""
     ext = os.path.splitext(path)[1].lower()
     before = set(bpy.context.scene.objects)
+    had = set(bpy.data.materials), set(bpy.data.images)
     coll = bpy.data.collections.new("held")
     bpy.context.scene.collection.children.link(coll)
     if ext == ".blend":
@@ -1241,8 +1291,50 @@ def _append_objects(path: str) -> list:
             bpy.ops.wm.obj_import(filepath=path)
         else:
             raise ValueError(f"unsupported file type: {ext}")
+    _merge_copies(bpy.data.images, had[1], _image_key)
+    _merge_copies(bpy.data.materials, had[0], _material_key)
     bpy.context.view_layer.update()
     return [o for o in bpy.context.scene.objects if o not in before]
+
+
+def _merge_copies(blocks, had: set, key) -> None:
+    """Fold each new ``<name>.NNN`` datablock into the ``<name>`` this file already had when the
+    two are the same (``key``): appending a prop that shares a material with the rig would
+    otherwise leave both, and the material budget counts two."""
+    for new in [b for b in blocks if b not in had]:
+        base, dot, num = new.name.rpartition(".")
+        old = blocks.get(base) if dot and num.isdigit() and len(num) >= 3 else None
+        if old is not None and old in had and key(old) == key(new):
+            new.user_remap(old)
+            blocks.remove(new)
+
+
+def _image_key(img) -> tuple:
+    path = os.path.normcase(os.path.normpath(bpy.path.abspath(img.filepath))) if img.filepath else ""
+    packed = img.packed_file.size if img.packed_file is not None else None
+    return img.source, path, packed, tuple(img.size)
+
+
+def _value(v):
+    if isinstance(v, float):
+        return round(v, 5)
+    if hasattr(v, "__len__") and not isinstance(v, str):
+        return tuple(_value(x) for x in v)
+    return v if isinstance(v, (int, bool, str)) else None
+
+
+def _material_key(mat) -> tuple:
+    """What a material looks like: its node types, the images they use and their settings."""
+    nodes = []
+    if mat.node_tree is not None:
+        for n in mat.node_tree.nodes:
+            ins = tuple(_value(getattr(s, "default_value", None)) for s in n.inputs if not s.is_linked)
+            img = getattr(n, "image", None)
+            nodes.append((n.bl_idname, img.as_pointer() if img is not None else 0, ins))
+        links = len(mat.node_tree.links)
+    else:
+        links = 0
+    return tuple(sorted(nodes, key=repr)), links, _value(tuple(mat.diffuse_color))
 
 
 def hold(

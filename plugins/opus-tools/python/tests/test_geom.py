@@ -137,6 +137,17 @@ def test_parts_that_only_touch_are_not_penetrations(work):
     assert rep["gaps"] == []
 
 
+def test_abutting_roof_bays_touch_without_penetrating(tmp_path):
+    """Two bays of a kit roof meet at x = 4 m with no vertex past it; float noise in that plane
+    put one slab 'behind' the other's sheets, a 76 mm penetration."""
+    roof = tmp_path / "roof_pair.blend"
+    subprocess.run([BLENDER, "-b", "--factory-startup", "--python", str(SCRIPTS / "roof_pair.py"), "--", str(roof)],
+                   check=True, capture_output=True, timeout=300)
+    rep = run_task("report", {"path": str(roof)})
+    assert rep["penetrations"] == []
+    assert {"a": "roof_back_01", "b": "roof_back_02", "kind": "touching"} in rep["contacts"]
+
+
 def test_grip_check_catches_a_plate_cut_through_the_forearm(tmp_path):
     rig = tmp_path / "human.blend"
     run_task("body", {"archetype": "humanoid", "preset": "realistic", "target_tris": 6000, "out_blend": str(rig)})

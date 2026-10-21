@@ -6,7 +6,9 @@ writes the sheets and summaries.
 
 from __future__ import annotations
 
+import fnmatch
 import json
+import math
 import time
 from pathlib import Path
 
@@ -113,7 +115,8 @@ def look_at(
         timeout=timeout,
     )
     focus = f" · framed on {target}" if target else ""
-    sheet = im.Sheet(title=f"Look · {path.name}", subtitle=f"{pass_} pass{focus} · zoom {zoom:g} · {res['mode']} parts: {len(res['parts'])}")
+    # no file name: judges get these sheets (and model_report's part map), and a name gives the answer away
+    sheet = im.Sheet(title="Look", subtitle=f"{pass_} pass{focus} · zoom {zoom:g} · {res['mode']} parts: {len(res['parts'])}")
     tiles = [im.Tile(_labeled(t["path"], t["labels"]), _view_title(t)) for t in res["tiles"]]
     per_row = 2 if pass_ == "parts" else 4  # labeled tiles need room to stay readable
     for i in range(0, len(tiles), per_row):
@@ -128,8 +131,19 @@ def _fmt_size(s) -> str:
     return " x ".join(f"{v:.2f}" for v in s) + " m"
 
 
+def report_metrics(rep: dict) -> dict:
+    """The model_report numbers eval checks compare (evals/README.md). ``missing_contacts`` is
+    not here: it needs the check's list of pairs that must touch, looked up in ``contacts``."""
+    size = rep["bounds_m"]["size"]
+    return {"floating_parts": len(rep["gaps"]), "penetrations": len(rep.get("penetrations", [])),
+            "on_floor": rep["on_floor"], "com_over_footprint": rep["balance"].get("com_over_footprint"),
+            "symmetric": rep["symmetry"]["symmetric"], "rig_style": (rep.get("rig") or {}).get("style"),
+            "width_m": size[0], "length_m": size[1], "height_m": size[2], "longest_m": max(size)}
+
+
 def summarize(rep: dict, max_parts: int = 40) -> str:
     b = rep["bounds_m"]
+    m = rep.get("metrics") or report_metrics(rep)
     lines = [
         f"Asset {_fmt_size(b['size'])} (W x D x H) · {'on the floor' if rep['on_floor'] else 'NOT on the floor (lowest z %.3f m)' % b['min'][2]}"
         f" · {'centered' if rep['centered_x'] else 'off-center in X'}",
@@ -160,6 +174,7 @@ def summarize(rep: dict, max_parts: int = 40) -> str:
         else:
             what = f"{p['a']} and {p['b']} cut into each other ({p['triangles']} crossing triangle pairs)"
         lines.append(f"Penetration: {what}, ~{p['depth_mm']:g} mm deep, at ({at}) m")
+    lines.append(f"Floating parts: {m['floating_parts']} · penetrations: {m['penetrations']} · longest {m['longest_m']:.2f} m")
     for g in rep["gaps"][:10]:
         lines.append(f"Floating: {g['part']} is {g['gap_m'] * 100:.1f} cm from {g['nearest']}")
     s = rep["symmetry"]
@@ -189,6 +204,7 @@ def model_report(
     """Structure report plus a labeled part map. Returns (sheet, report with ``text``)."""
     path = Path(path).expanduser().resolve()
     rep = run_task("report", {"path": str(path), "objects": objects or None}, timeout=timeout)
+    rep["metrics"] = report_metrics(rep)
     rep["text"] = summarize(rep)
     sheet_path, _ = look_at(
         path, views=views or ["front", "right", "three_quarter"], pass_="parts", objects=objects, size=size,
@@ -217,7 +233,10 @@ def blind_read_sheet(
     """Unlabeled silhouettes and clay views under a neutral file name, for a reviewer who must
     identify the model without being told what it is. ``game_size`` adds the silhouette and a
     clay view at TRUE game pixel size for a camera profile (default: the bible's) at its
-    distances, upscaled nearest-neighbor. Returns (sheet, prompt for the reviewer)."""
+    distances, upscaled nearest-neighbor. A perspective camera's silhouette is taken from
+    whichever of front, right and 3/4 fills the most; distances where the frame clips the
+    subject or the camera stands inside it are left out, and the prompt's caveat names them
+    for the caller. Returns (sheet, prompt for the reviewer)."""
     import hashlib
 
     path = Path(path).expanduser().resolve()
@@ -241,14 +260,31 @@ def blind_read_sheet(
                       f"For the caller: {profile.note}.")
         shot = _profile_shot(profile)
         turned = dict(shot) if profile.projection == "ortho" else {"azimuth": shot["azimuth"] + 35.0, "elevation": shot["elevation"]}
+        sil = dict(shot)
+        if profile.projection == "persp":  # the side that shows the most: an axe seen edge-on from the front is a stick
+            filled = [int((np.asarray(t.image.convert("L")) < 128).sum()) for t in tiles[:3]]
+            sil["azimuth"] = float(res["tiles"][int(np.argmax(filled))]["azimuth"])
         g = run_task("readability", {
             "path": str(path), "out_dir": str(work / "game"), "camera": camera_args(profile),
             "levels": _levels(profile, distances), "objects": objects or None,
-            "shots": [{"key": "sil", **shot, "passes": ["silhouette"]}, {"key": "clay", **turned, "passes": ["clay"]}],
+            "shots": [{"key": "sil", **sil, "passes": ["silhouette"]}, {"key": "clay", **turned, "passes": ["clay"]}],
         }, timeout=timeout)
+        # a frame the subject overflows, or one taken from inside it, misleads the judge: leave it out
+        left_out = {}
+        for r in g["renders"]:
+            dist = r["distance_m"] if profile.projection == "persp" else None
+            why = ("camera inside the subject" if camera_inside(g["size_m"], r["azimuth"], r["elevation"], dist)
+                   else "clipped by the frame" if r["clipped"] else "")
+            if why and r["level"] not in left_out:
+                left_out[r["level"]] = _level_name({"level": r["level"], "distance_m": dist}) + f" ({why})"
+        if left_out:
+            kept = len({r["level"] for r in g["renders"]} - set(left_out))
+            caveat += (f"\n\nFor the caller (leave this out of the reviewer's prompt): the game-size rows leave out "
+                       f"{'; '.join(left_out.values())}"
+                       + ("." if kept else ", so the sheet has no game-size rows; give distances that frame the whole subject."))
         for key, label in (("sil", "Silhouette at game size"), ("clay", "Form at game size")):
             row = []
-            for i, r in enumerate(r for r in g["renders"] if r["shot"] == key):
+            for i, r in enumerate(r for r in g["renders"] if r["shot"] == key and r["level"] not in left_out):
                 img, how = _fit(Image.open(next(iter(r["files"].values()))).convert("RGB"), 250, 340, smooth=key == "clay")
                 # No meters on a blind sheet: a judge reads "15 m" as the subject's size, not the camera's distance
                 where = "screen" if profile.projection == "ortho" else (
@@ -291,6 +327,35 @@ def _levels(profile, distances=None) -> list[list]:
 
 def _profile_shot(profile) -> dict:
     return {"azimuth": AZIMUTH.get(profile.view, 0.0), "elevation": float(profile.elevation_deg)}
+
+
+def camera_inside(size_m, azimuth: float, elevation: float, distance_m: float | None) -> bool:
+    """Whether the game camera, ``distance_m`` from the subject's bounding-box center along the
+    view direction (where ``opus_bl.readability`` puts it), stands inside that box. An
+    orthographic camera (no distance) never does."""
+    if not distance_m:
+        return False
+    az, el = math.radians(azimuth), math.radians(elevation)
+    d = (math.sin(az) * math.cos(el), -math.cos(az) * math.cos(el), math.sin(el))
+    return all(abs(v * distance_m) < s / 2 for v, s in zip(d, size_m))
+
+
+def match_parts(name: str, parts: list[dict]) -> list[int]:
+    """The parts a defining name means, ignoring case: the part with that name, else the
+    object's parts, else every part whose name starts with it or matches it as a glob ('hoop'
+    is hoop_top + hoop_mid + hoop_bottom, 'band_*' is band_body + band_lid)."""
+    key = name.strip().casefold()
+    if not key:
+        return []
+    is_glob = any(ch in key for ch in "*?[")
+    tests = (lambda s: s.casefold() == key,
+             (lambda s: fnmatch.fnmatchcase(s.casefold(), key)) if is_glob else (lambda s: s.casefold().startswith(key)))
+    for test in tests:
+        for field in ("name", "object"):
+            idx = [i for i, p in enumerate(parts) if test(p[field])]
+            if idx:
+                return idx
+    return []
 
 
 def decode_parts(rgba: np.ndarray, colors8: list, tol: int = 3) -> tuple[np.ndarray, int]:
@@ -437,11 +502,16 @@ def readability_text(rep: dict) -> str:
     for lv in rep["levels"]:
         exp = f" (height x px/m = {lv['expected_height_px']:.0f}, ratio {lv['height_ratio']:.3f})" if "height_ratio" in lv else ""
         lines.append(f"- {_level_name(lv)}: {lv['px_per_m']:.0f} px/m, subject {lv['height_px']} px tall{exp}"
+                     f"{' CAMERA INSIDE the subject' if lv.get('camera_inside') else ''}"
                      f"{' CLIPPED by the frame' if lv['clipped'] else ''}, Johnson: {lv['johnson']}; "
                      f"{lv['parts_below_floor']} of {lv['parts_total']} parts under {rep['floor_px']:g} px, "
                      f"{lv['parts_hidden']} hidden or vanished")
         for dfn in lv["defining"]:
-            lines.append(f"    * {dfn['part']}: {dfn['min_width_px']} px wide, {dfn['extent_px']} px long ({dfn['status']})")
+            if dfn["status"] == "not_found":
+                lines.append(f"    * {dfn['part']}: not found (no part, bone or object by that name)")
+                continue
+            group = f" ({', '.join(dfn['matched'])})" if dfn.get("matched", [dfn["part"]]) != [dfn["part"]] else ""
+            lines.append(f"    * {dfn['part']}{group}: {dfn['min_width_px']} px wide, {dfn['extent_px']} px long ({dfn['status']})")
     lines += [f"WARNING (soft): {w}" for w in rep["warnings"]]
     lines.append(SOFT_NOTE)
     return "\n".join(lines)
@@ -462,7 +532,10 @@ def readability_check(
     profile's FOV and resolution at each distance, cropped to the subject, mask mode) and
     measures per part the visible pixels, min width and extent, plus the subject's height
     against Johnson's criteria. ``defining`` lists the feature brief's 5-7 defining parts (part,
-    bone or object names); those under ``floor_px`` or gone get soft warnings."""
+    bone or object names in any case; a prefix or glob such as 'hoop' or 'band_*' measures every
+    part it matches as one group); those under ``floor_px``, gone or not found get soft warnings,
+    and names that match nothing are listed in ``defining_not_found``. A level whose camera
+    stands inside the subject's bounds is flagged ``camera_inside``."""
     path = Path(path).expanduser().resolve()
     profile = camera_profile(load_bible(path), camera)
     levels = _levels(profile, distances)
@@ -472,23 +545,19 @@ def readability_check(
                                    "levels": levels, "objects": objects or None, "shots": [shot]}, timeout=timeout)
     parts = res["parts"]
     colors8 = [p["color8"] for p in parts]
-    groups, unknown = {}, []
-    for name in defining or []:
-        idx = [i for i, p in enumerate(parts) if p["name"] == name] or [i for i, p in enumerate(parts) if p["object"] == name]
-        if idx:
-            groups[name] = idx
-        else:
-            unknown.append(name)
+    groups = {name: match_parts(name, parts) for name in defining or [] if name.strip()}
+    unknown = [name for name, idx in groups.items() if not idx]
     def_idx = {i for idx in groups.values() for i in idx}
     height_m = res["size_m"][2]
     first = res["renders"][0]
     rep = {"file": str(path), "camera": profile.summary(), "view": {"azimuth": first["azimuth"], "elevation": first["elevation"]},
            "subject": {"height_m": height_m, "size_m": res["size_m"], "mode": res["mode"], "parts": len(parts)},
-           "floor_px": floor_px, "levels": [], "warnings": [], "soft": SOFT_NOTE}
+           "floor_px": floor_px, "levels": [], "warnings": [], "soft": SOFT_NOTE, "defining_not_found": unknown}
     if profile.fallback:
         rep["warnings"].append(profile.note)
     if unknown:
-        rep["warnings"].append(f"defining parts not found: {unknown}; parts are {[p['name'] for p in parts][:40]}")
+        rep["warnings"].append(f"defining parts not found: {unknown}, so they count as gone at every distance; "
+                               f"parts are {[p['name'] for p in parts][:40]}")
     full, images = [], []
     for r in res["renders"]:
         rgba = im.load_rgba(r["files"]["parts"])
@@ -501,11 +570,15 @@ def readability_check(
         hull = {k: v[1] for k, v in r.get("parts_projected", {}).items()}
         rows = [{"part": p["name"], **_measure(labels, [i], hull.get(p["name"], 0.0), floor_px), "defining": i in def_idx}
                 for i, p in enumerate(parts)]
-        dfn = [{"part": n, **_measure(labels, idx, sum(hull.get(parts[i]["name"], 0.0) for i in idx), floor_px)}
+        dfn = [{"part": n, "matched": [parts[i]["name"] for i in idx],
+                **(_measure(labels, idx, sum(hull.get(parts[i]["name"], 0.0) for i in idx), floor_px) if idx else
+                   {"area_px": 0, "min_width_px": 0, "extent_px": 0, "status": "not_found"})}
                for n, idx in groups.items()]
-        level = {"level": r["level"], "distance_m": r["distance_m"] if profile.projection == "persp" else None,
+        dist = r["distance_m"] if profile.projection == "persp" else None
+        level = {"level": r["level"], "distance_m": dist,
                  "px_per_m": round(ppm, 2), "height_px": h_px, "width_px": int(np.ptp(cols_) + 1) if len(cols_) else 0,
-                 "clipped": r["clipped"], "johnson": johnson(h_px), "unmatched_px": unmatched,
+                 "clipped": r["clipped"], "camera_inside": camera_inside(res["size_m"], r["azimuth"], r["elevation"], dist),
+                 "johnson": johnson(h_px), "unmatched_px": unmatched,
                  "parts_total": len(parts), "parts_hidden": sum(x["status"] in ("hidden", "vanished") for x in rows),
                  "parts_below_floor": sum(x["status"] == "thin" for x in rows), "defining": dfn}
         if abs(first["elevation"]) < 1e-6:
@@ -515,11 +588,15 @@ def readability_check(
         if unmatched:
             rep["warnings"].append(f"{where}: {unmatched} subject pixels match no part color, so the part map did not "
                                    "render exact ID colors; part sizes and hidden parts here are unreliable")
+        if level["camera_inside"]:
+            rep["warnings"].append(f"camera inside the subject at {dist:g} m: sizes describe its inside")
         if r["clipped"]:
             rep["warnings"].append(f"{where}: the subject overflows the {profile.res_w}x{profile.res_h} frame; sizes are cut")
         if h_px < JOHNSON_PX["identify"]:
             rep["warnings"].append(f"{where}: the whole subject is {h_px} px tall, under ~13 px (Johnson identify)")
         for x in dfn:
+            if x["status"] == "not_found":  # warned once above
+                continue
             if x["status"] == "thin":
                 rep["warnings"].append(f"{where}: defining part {x['part']} is {x['min_width_px']} px wide (< {floor_px:g} px)")
             elif x["status"] != "ok":
@@ -540,6 +617,7 @@ def readability_check(
         game, how = _fit(Image.fromarray(shaded), 260, 420, smooth=True)
         pmap, _ = _fit(_part_map_image(labels, [tuple(c) for c in colors8], def_idx), 260, 420)
         label = (f"{_level_name(lv)} · {lv['px_per_m']:.0f} px/m · subject {lv['height_px']} px ({lv['johnson']})"
+                 + (" · camera inside the subject" if lv["camera_inside"] else "")
                  + (" · clipped by the frame" if lv["clipped"] else ""))
         sheet.add_row(label, [im.Tile(game, f"game size, {how}"), im.Tile(pmap, "part map" + (" (defining in color)" if def_idx else "")),
                               im.Tile(_table_image(order, pname, game.height), "")])

@@ -167,6 +167,83 @@ def test_a_part_map_that_does_not_decode_warns(tmp_path, monkeypatch):
     assert any("100 subject pixels match no part color" in w for w in rep["warnings"])
 
 
+ID_COLORS = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255)]
+
+
+def fake_readability(tmp_path, rects: dict, size_m=(1, 1, 1.8), levels=(("typical", 3.5),), azimuth=0.0, elevation=0.0):
+    """A readability task result whose part map has one rectangle (y0, y1, x0, x1) per part."""
+    parts = np.zeros((60, 60, 4), np.uint8)
+    for (y0, y1, x0, x1), col in zip(rects.values(), ID_COLORS):
+        parts[y0:y1, x0:x1] = (*col, 255)
+    Image.fromarray(parts, "RGBA").save(tmp_path / "parts.png")
+    Image.fromarray(np.full((60, 60, 3), 90, np.uint8)).save(tmp_path / "shaded.png")
+    proj = {n: [float(max(y1 - y0, x1 - x0)), float((y1 - y0) * (x1 - x0))] for n, (y0, y1, x0, x1) in rects.items()}
+    return {"mode": "objects", "parts": [{"name": n, "object": n, "color8": list(col)} for n, col in zip(rects, ID_COLORS)],
+            "size_m": list(size_m),
+            "renders": [{"shot": "game", "azimuth": azimuth, "elevation": elevation, "level": name, "distance_m": d,
+                         "crop": [0, 0, 60, 60], "clipped": False, "projected_height_px": 50.0, "parts_projected": proj,
+                         "files": {"parts": str(tmp_path / "parts.png"), "shaded": str(tmp_path / "shaded.png")}}
+                        for name, d in levels]}
+
+
+def test_defining_names_match_any_case_and_unmatched_ones_count(tmp_path, monkeypatch):
+    """'boss' measures Boss; 'band' matches nothing and is reported per level, never dropped."""
+    from opus.threed import understand
+
+    fake = fake_readability(tmp_path, {"Board": (5, 55, 5, 55), "Rim": (2, 5, 5, 55), "Boss": (25, 35, 25, 35)},
+                            levels=(("typical", 6.0), ("far", 20.0)))
+    monkeypatch.setattr(understand, "run_task", lambda *a, **k: fake)
+    _, rep = understand.readability_check(tmp_path / "round_shield.blend", camera="godot_tp", distances=[6, 20],
+                                          defining=["boss", "rim", "band"], out=tmp_path / "read.jpg")
+    assert rep["defining_not_found"] == ["band"]
+    for lv in rep["levels"]:
+        d = {x["part"]: x for x in lv["defining"]}
+        assert set(d) == {"boss", "rim", "band"}
+        assert d["boss"]["status"] == "ok" and d["boss"]["area_px"] == 100 and d["boss"]["matched"] == ["Boss"]
+        assert d["rim"]["status"] == "ok" and d["rim"]["min_width_px"] == 3
+        assert d["band"]["status"] == "not_found" and d["band"]["area_px"] == 0
+        assert sum(x["status"] != "ok" for x in lv["defining"]) == 1  # what defining_under_floor counts
+    assert any("defining parts not found: ['band']" in w for w in rep["warnings"])
+    assert "* band: not found" in rep["text"]
+    full = json.loads(Path(rep["all_parts"]).read_text(encoding="utf-8"))
+    assert full["defining_not_found"] == ["band"]
+    assert {x["part"] for x in full["levels"][0]["parts"] if x["defining"]} == {"Rim", "Boss"}
+
+
+def test_a_defining_prefix_measures_its_parts_as_one_group(tmp_path, monkeypatch):
+    from opus.threed import understand
+
+    fake = fake_readability(tmp_path, {"Staves": (10, 50, 10, 50), "hoop_top": (12, 14, 10, 50),
+                                       "hoop_mid": (29, 31, 10, 50), "hoop_bottom": (46, 48, 10, 50)})
+    monkeypatch.setattr(understand, "run_task", lambda *a, **k: fake)
+    _, rep = understand.readability_check(tmp_path / "barrel.blend", camera="godot_tp", distances=[6],
+                                          defining=["hoop", "STAVES", "hoop_m*"], out=tmp_path / "read.jpg")
+    assert "defining_not_found" not in rep or not rep["defining_not_found"]
+    d = {x["part"]: x for x in rep["levels"][0]["defining"]}
+    assert d["hoop"]["matched"] == ["hoop_top", "hoop_mid", "hoop_bottom"]
+    assert d["hoop"]["area_px"] == 3 * 2 * 40 and d["hoop"]["min_width_px"] == 2
+    assert d["STAVES"]["matched"] == ["Staves"]
+    assert d["hoop_m*"]["matched"] == ["hoop_mid"]
+    assert not any("not found" in w for w in rep["warnings"])
+
+
+def test_a_camera_inside_the_subject_is_flagged(tmp_path, monkeypatch):
+    """A 16 x 8 x 8 m house seen from 3.5 m: the camera stands inside it."""
+    from opus.threed import understand
+
+    fake = fake_readability(tmp_path, {"House": (5, 55, 5, 55)}, size_m=(16, 8, 8),
+                            levels=(("close", 1.5), ("typical", 3.5), ("far", 15.0)))
+    monkeypatch.setattr(understand, "run_task", lambda *a, **k: fake)
+    _, rep = understand.readability_check(tmp_path / "house.blend", camera="ue_tp_1080", out=tmp_path / "read.jpg")
+    inside = {lv["level"]: lv["camera_inside"] for lv in rep["levels"]}
+    assert inside == {"close": True, "typical": True, "far": False}
+    assert "camera inside the subject at 3.5 m: sizes describe its inside" in rep["warnings"]
+    assert not any("at 15 m" in w for w in rep["warnings"])
+    assert understand.camera_inside([16, 8, 8], 90.0, 0.0, 3.5)  # from the side, 3.5 m is still within 8 m
+    assert not understand.camera_inside([16, 8, 8], 90.0, 0.0, 8.5)
+    assert not understand.camera_inside([16, 8, 8], 0.0, 0.0, None)  # an orthographic camera
+
+
 @needs_blender
 def test_readability_heights_match_px_per_m_on_a_body(human, work):
     from opus.threed.understand import readability_check

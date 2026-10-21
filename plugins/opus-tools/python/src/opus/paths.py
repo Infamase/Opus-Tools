@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import re
+import secrets
 import time
 from pathlib import Path
 
@@ -80,7 +81,8 @@ def _base(near: str | os.PathLike | None) -> Path:
 
 
 def output_path(tool: str, stem: str, suffix: str = ".png", near: str | os.PathLike | None = None) -> Path:
-    """A fresh, timestamped output path for ``tool``.
+    """A fresh, timestamped output path for ``tool``, reserved on disk (created empty) so a
+    parallel call in the same second gets ``_2``, ``_3`` ... instead of the same file.
 
     Lives in the project's ``.opus/out/<tool>/`` when ``near`` is inside a project,
     otherwise in a ``.opus/out/<tool>/`` folder next to ``near`` (or the cwd).
@@ -88,15 +90,25 @@ def output_path(tool: str, stem: str, suffix: str = ".png", near: str | os.PathL
     out_dir = opus_dir(_base(near)) / "out" / tool
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    path = out_dir / f"{_slug(stem)}_{stamp}{suffix}"
     n = 1
-    while path.exists():
-        n += 1
-        path = out_dir / f"{_slug(stem)}_{stamp}_{n}{suffix}"
-    return path
+    while True:
+        path = out_dir / (f"{_slug(stem)}_{stamp}{suffix}" if n == 1 else f"{_slug(stem)}_{stamp}_{n}{suffix}")
+        try:
+            os.close(os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+            return path
+        except FileExistsError:
+            n += 1
 
 
 def cache_dir(name: str, near: str | os.PathLike | None = None) -> Path:
+    """A fresh work folder for one call, ``.opus/cache/<name>/<time>-<pid>-<4 hex>/``, never
+    shared with a parallel call."""
     d = opus_dir(_base(near)) / "cache" / name
     d.mkdir(parents=True, exist_ok=True)
-    return d
+    while True:
+        run = d / f"{time.strftime('%Y%m%d-%H%M%S')}-{os.getpid()}-{secrets.token_hex(2)}"
+        try:
+            run.mkdir(exist_ok=False)
+            return run
+        except FileExistsError:
+            continue

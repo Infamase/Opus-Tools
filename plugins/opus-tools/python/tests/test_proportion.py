@@ -98,3 +98,35 @@ def test_image_mask_uses_alpha(tmp_path):
     p = tmp_path / "cutout.png"
     Image.fromarray(rgba).save(p)
     assert iou(image_mask(p), fig) > 0.99
+
+
+def test_reference_tile_of_a_grey_alpha_reference_is_not_black(tmp_path, monkeypatch):
+    """A PhyloPic-style LA image keeps its luminance at 0 and draws the subject in alpha;
+    flattened without its alpha it was a solid black tile."""
+    from opus import imaging as im
+    from opus.threed import proportion
+
+    fig = figure()
+    la = np.zeros(fig.shape + (2,), np.uint8)  # luminance 0 everywhere
+    la[..., 1] = np.where(fig, 255, 0)  # the glyph lives in alpha
+    ref = tmp_path / "wolf_side.png"
+    Image.fromarray(la, "LA").save(ref)
+    assert Image.open(ref).mode == "LA"
+    sil = tmp_path / "front.png"
+    Image.fromarray(np.where(fig, 0, 255).astype(np.uint8), "L").save(sil)  # the model's silhouette render
+    monkeypatch.setattr(proportion, "run_task", lambda *a, **k: {"model": {"views": {"front": {"path": str(sil)}}}})
+    sheets = []
+
+    class Sheet(im.Sheet):
+        def __init__(self, *a, **k):
+            super().__init__(*a, **k)
+            sheets.append(self)
+
+    monkeypatch.setattr(im, "Sheet", Sheet)
+    _, rep = proportion.reference_match(tmp_path / "wolf.blend", ref, view="front", out=tmp_path / "match.png")
+    assert rep["iou"] > 0.95
+    tile = next(t for _, row in sheets[0].rows for t in row if t.title == "reference")
+    px = np.asarray(tile.image.convert("L"))
+    glyph = np.asarray(Image.fromarray(fig).resize(tile.image.size, Image.NEAREST))
+    assert px[~glyph].mean() > 200  # a light background
+    assert px[glyph].mean() < 60  # a dark glyph

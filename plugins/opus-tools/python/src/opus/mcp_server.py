@@ -270,7 +270,8 @@ def body_blockout(
     quadruped dog | horse | cat; dragon western. height in meters (default 1.8 m humanoid,
     1.0 m chibi, the animal's real size). pose: A or T. Returns a Look Dev Sheet and a report
     with landmarks_m (chin, shoulder, waist, crotch, knee heights, limb lengths, widths) and
-    joints_m. The rig uses Unreal mannequin bone names (pelvis, spine_01, upperarm_l, thigh_l)
+    joints_m; quadrupeds add hindlimb (donor species and the built MT/F, from measured data;
+    the horse has fetlock, pastern and hoof bones). The rig uses Unreal mannequin bone names (pelvis, spine_01, upperarm_l, thigh_l)
     so it retargets in Unreal's IK Retargeter and maps to Godot/Unity humanoid profiles.
     Sculpt, kitbash or shrinkwrap the final model over it, then run proportion_check.
     """

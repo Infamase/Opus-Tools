@@ -1,0 +1,647 @@
+{
+ "table": "anthro_ansur2",
+ "version": 1,
+ "description": "Adult body landmarks and segments as fractions of stature: value = p50, min = p5, max = p95 of the per-subject ratio. Unit 'stature' means a fraction of standing height.",
+ "source": {
+  "citation": "Gordon CC, Blackwell CL, Bradtmiller B, et al. (2014). 2012 Anthropometric Survey of U.S. Army Personnel: Methods and Summary Statistics. Technical Report NATICK/TR-15/007, U.S. Army Natick Soldier Research, Development and Engineering Center. Public working databases described in the NSRDEC Memorandum for Record RDNS-SEW-THA, 14 April 2017.",
+  "licence_id": "LicenseRef-USGov-Unlimited-Public-Release",
+  "licence_url": "https://www.openlab.psu.edu/ansur2/",
+  "licence_text": "\"These databases and this memorandum have been reviewed and cleared for UNLIMITED PUBLIC RELEASE.\" (NSRDEC Memorandum for Record, 14 April 2017). U.S. Government work; no other licence is stated.",
+  "url": "https://www.openlab.psu.edu/ansur2/",
+  "attribution": "Contains data derived from the 2012 U.S. Army Anthropometric Survey (ANSUR II) public working databases, U.S. Army Natick Soldier Research, Development and Engineering Center.",
+  "modification": "Derived/modified: per-subject ratios of each measurement to stature, summarised as the 5th, 50th and 95th percentiles (numpy linear interpolation). Head height is derived as sitting height - eye height sitting + menton-sellion length. No subject rows are included.",
+  "caveats": "Military sample: adults only (no children), heavy bodies truncated by fitness standards. Sellion sits a few mm above the pupil, so derived head height is about +-5 mm.",
+  "files": [
+   {
+    "name": "ANSUR_II_MALE_Public.csv",
+    "sha256": "0547aea0170e5293de519389981135e75803f02e6d40c77ace740decc0caac64",
+    "subjects": 4082
+   },
+   {
+    "name": "ANSUR_II_FEMALE_Public.csv",
+    "sha256": "ed7e800aa97a4d42f8286b988be2fe1883a2e789588169db959864b707d1757a",
+    "subjects": 1986
+   }
+  ]
+ },
+ "sexes": {
+  "male": {
+   "n": 4082,
+   "stature_mm": {
+    "value": 1755.0,
+    "min": 1648.0,
+    "max": 1870.0,
+    "unit": "mm",
+    "src": "ANSUR II male (n=4082): stature",
+    "tag": "measured"
+   },
+   "measures": {
+    "acromial_height": {
+     "value": 0.8206,
+     "min": 0.804,
+     "max": 0.8362,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): acromialheight / stature",
+     "tag": "measured"
+    },
+    "chest_height": {
+     "value": 0.7349,
+     "min": 0.7182,
+     "max": 0.7528,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): chestheight / stature",
+     "tag": "measured"
+    },
+    "waist_height": {
+     "value": 0.6016,
+     "min": 0.5801,
+     "max": 0.6222,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): waistheightomphalion / stature",
+     "tag": "measured"
+    },
+    "trochanterion_height": {
+     "value": 0.5121,
+     "min": 0.4893,
+     "max": 0.5396,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): trochanterionheight / stature",
+     "tag": "measured"
+    },
+    "crotch_height": {
+     "value": 0.4811,
+     "min": 0.4591,
+     "max": 0.5055,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): crotchheight / stature",
+     "tag": "measured"
+    },
+    "knee_height": {
+     "value": 0.2776,
+     "min": 0.2633,
+     "max": 0.2938,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): kneeheightmidpatella / stature",
+     "tag": "measured"
+    },
+    "ankle_height": {
+     "value": 0.0415,
+     "min": 0.0369,
+     "max": 0.0464,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): lateralmalleolusheight / stature",
+     "tag": "measured"
+    },
+    "upper_arm": {
+     "value": 0.1907,
+     "min": 0.1813,
+     "max": 0.2011,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): acromionradialelength / stature",
+     "tag": "measured"
+    },
+    "forearm": {
+     "value": 0.1521,
+     "min": 0.1432,
+     "max": 0.1633,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): radialestylionlength / stature",
+     "tag": "measured"
+    },
+    "hand_length": {
+     "value": 0.11,
+     "min": 0.1034,
+     "max": 0.1172,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): handlength / stature",
+     "tag": "measured"
+    },
+    "hand_breadth": {
+     "value": 0.0502,
+     "min": 0.0466,
+     "max": 0.0543,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): handbreadth / stature",
+     "tag": "measured"
+    },
+    "palm_length": {
+     "value": 0.0662,
+     "min": 0.0618,
+     "max": 0.0712,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): palmlength / stature",
+     "tag": "measured"
+    },
+    "foot_length": {
+     "value": 0.1543,
+     "min": 0.146,
+     "max": 0.1631,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): footlength / stature",
+     "tag": "measured"
+    },
+    "foot_breadth": {
+     "value": 0.0579,
+     "min": 0.0535,
+     "max": 0.0628,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): footbreadthhorizontal / stature",
+     "tag": "measured"
+    },
+    "ball_of_foot_length": {
+     "value": 0.1144,
+     "min": 0.1072,
+     "max": 0.1219,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): balloffootlength / stature",
+     "tag": "measured"
+    },
+    "cervicale_height": {
+     "value": 0.864,
+     "min": 0.853,
+     "max": 0.8747,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): cervicaleheight / stature",
+     "tag": "measured"
+    },
+    "suprasternale_height": {
+     "value": 0.819,
+     "min": 0.8073,
+     "max": 0.8307,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): suprasternaleheight / stature",
+     "tag": "measured"
+    },
+    "axilla_height": {
+     "value": 0.7566,
+     "min": 0.7421,
+     "max": 0.7712,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): axillaheight / stature",
+     "tag": "measured"
+    },
+    "iliocristale_height": {
+     "value": 0.6041,
+     "min": 0.5836,
+     "max": 0.6257,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): iliocristaleheight / stature",
+     "tag": "measured"
+    },
+    "tibial_height": {
+     "value": 0.2664,
+     "min": 0.2532,
+     "max": 0.28,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): tibialheight / stature",
+     "tag": "measured"
+    },
+    "wrist_height": {
+     "value": 0.4825,
+     "min": 0.4623,
+     "max": 0.5029,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): wristheight / stature",
+     "tag": "measured"
+    },
+    "shoulder_elbow": {
+     "value": 0.207,
+     "min": 0.1975,
+     "max": 0.2169,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): shoulderelbowlength / stature",
+     "tag": "measured"
+    },
+    "forearm_hand": {
+     "value": 0.2728,
+     "min": 0.2612,
+     "max": 0.2882,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): forearmhandlength / stature",
+     "tag": "measured"
+    },
+    "span": {
+     "value": 1.0311,
+     "min": 0.9912,
+     "max": 1.0807,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): span / stature",
+     "tag": "measured"
+    },
+    "sitting_height": {
+     "value": 0.5236,
+     "min": 0.4997,
+     "max": 0.5443,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): sittingheight / stature",
+     "tag": "measured"
+    },
+    "biacromial_breadth": {
+     "value": 0.2365,
+     "min": 0.2209,
+     "max": 0.2535,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): biacromialbreadth / stature",
+     "tag": "measured"
+    },
+    "bideltoid_breadth": {
+     "value": 0.2901,
+     "min": 0.2616,
+     "max": 0.3225,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): bideltoidbreadth / stature",
+     "tag": "measured"
+    },
+    "chest_breadth": {
+     "value": 0.1646,
+     "min": 0.149,
+     "max": 0.1822,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): chestbreadth / stature",
+     "tag": "measured"
+    },
+    "chest_depth": {
+     "value": 0.1445,
+     "min": 0.1205,
+     "max": 0.1687,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): chestdepth / stature",
+     "tag": "measured"
+    },
+    "waist_breadth": {
+     "value": 0.1859,
+     "min": 0.1558,
+     "max": 0.2185,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): waistbreadth / stature",
+     "tag": "measured"
+    },
+    "waist_depth": {
+     "value": 0.1335,
+     "min": 0.1072,
+     "max": 0.1703,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): waistdepth / stature",
+     "tag": "measured"
+    },
+    "hip_breadth": {
+     "value": 0.1964,
+     "min": 0.177,
+     "max": 0.22,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): hipbreadth / stature",
+     "tag": "measured"
+    },
+    "head_breadth": {
+     "value": 0.0878,
+     "min": 0.0808,
+     "max": 0.0954,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): headbreadth / stature",
+     "tag": "measured"
+    },
+    "head_length": {
+     "value": 0.1137,
+     "min": 0.1059,
+     "max": 0.1217,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): headlength / stature",
+     "tag": "measured"
+    },
+    "head_height": {
+     "value": 0.1347,
+     "min": 0.1235,
+     "max": 0.1457,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): (sittingheight - eyeheightsitting + mentonsellionlength) / stature",
+     "tag": "derived"
+    },
+    "chin_height": {
+     "value": 0.8653,
+     "min": 0.8543,
+     "max": 0.8765,
+     "unit": "stature",
+     "src": "ANSUR II male (n=4082): 1 - (sittingheight - eyeheightsitting + mentonsellionlength) / stature",
+     "tag": "derived"
+    },
+    "heads_tall": {
+     "value": 7.425,
+     "min": 6.862,
+     "max": 8.099,
+     "unit": "heads",
+     "src": "ANSUR II male (n=4082): stature / (sittingheight - eyeheightsitting + mentonsellionlength)",
+     "tag": "derived"
+    }
+   }
+  },
+  "female": {
+   "n": 1986,
+   "stature_mm": {
+    "value": 1626.0,
+    "min": 1525.0,
+    "max": 1740.0,
+    "unit": "mm",
+    "src": "ANSUR II female (n=1986): stature",
+    "tag": "measured"
+   },
+   "measures": {
+    "acromial_height": {
+     "value": 0.8198,
+     "min": 0.8051,
+     "max": 0.8339,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): acromialheight / stature",
+     "tag": "measured"
+    },
+    "chest_height": {
+     "value": 0.7194,
+     "min": 0.6954,
+     "max": 0.7426,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): chestheight / stature",
+     "tag": "measured"
+    },
+    "waist_height": {
+     "value": 0.602,
+     "min": 0.5795,
+     "max": 0.6243,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): waistheightomphalion / stature",
+     "tag": "measured"
+    },
+    "trochanterion_height": {
+     "value": 0.519,
+     "min": 0.4959,
+     "max": 0.5426,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): trochanterionheight / stature",
+     "tag": "measured"
+    },
+    "crotch_height": {
+     "value": 0.4797,
+     "min": 0.4562,
+     "max": 0.5052,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): crotchheight / stature",
+     "tag": "measured"
+    },
+    "knee_height": {
+     "value": 0.2753,
+     "min": 0.2611,
+     "max": 0.2906,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): kneeheightmidpatella / stature",
+     "tag": "measured"
+    },
+    "ankle_height": {
+     "value": 0.0386,
+     "min": 0.0339,
+     "max": 0.0432,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): lateralmalleolusheight / stature",
+     "tag": "measured"
+    },
+    "upper_arm": {
+     "value": 0.1909,
+     "min": 0.1806,
+     "max": 0.202,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): acromionradialelength / stature",
+     "tag": "measured"
+    },
+    "forearm": {
+     "value": 0.1478,
+     "min": 0.1377,
+     "max": 0.1601,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): radialestylionlength / stature",
+     "tag": "measured"
+    },
+    "hand_length": {
+     "value": 0.1109,
+     "min": 0.1039,
+     "max": 0.1193,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): handlength / stature",
+     "tag": "measured"
+    },
+    "hand_breadth": {
+     "value": 0.048,
+     "min": 0.0445,
+     "max": 0.0517,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): handbreadth / stature",
+     "tag": "measured"
+    },
+    "palm_length": {
+     "value": 0.0667,
+     "min": 0.0622,
+     "max": 0.072,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): palmlength / stature",
+     "tag": "measured"
+    },
+    "foot_length": {
+     "value": 0.1512,
+     "min": 0.1425,
+     "max": 0.16,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): footlength / stature",
+     "tag": "measured"
+    },
+    "foot_breadth": {
+     "value": 0.0569,
+     "min": 0.0524,
+     "max": 0.0617,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): footbreadthhorizontal / stature",
+     "tag": "measured"
+    },
+    "ball_of_foot_length": {
+     "value": 0.1117,
+     "min": 0.1047,
+     "max": 0.1189,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): balloffootlength / stature",
+     "tag": "measured"
+    },
+    "cervicale_height": {
+     "value": 0.8571,
+     "min": 0.8459,
+     "max": 0.8681,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): cervicaleheight / stature",
+     "tag": "measured"
+    },
+    "suprasternale_height": {
+     "value": 0.8165,
+     "min": 0.8044,
+     "max": 0.8277,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): suprasternaleheight / stature",
+     "tag": "measured"
+    },
+    "axilla_height": {
+     "value": 0.7608,
+     "min": 0.7456,
+     "max": 0.776,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): axillaheight / stature",
+     "tag": "measured"
+    },
+    "iliocristale_height": {
+     "value": 0.6112,
+     "min": 0.5905,
+     "max": 0.6323,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): iliocristaleheight / stature",
+     "tag": "measured"
+    },
+    "tibial_height": {
+     "value": 0.2685,
+     "min": 0.2549,
+     "max": 0.2829,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): tibialheight / stature",
+     "tag": "measured"
+    },
+    "wrist_height": {
+     "value": 0.4873,
+     "min": 0.4675,
+     "max": 0.5081,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): wristheight / stature",
+     "tag": "measured"
+    },
+    "shoulder_elbow": {
+     "value": 0.205,
+     "min": 0.1956,
+     "max": 0.2153,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): shoulderelbowlength / stature",
+     "tag": "measured"
+    },
+    "forearm_hand": {
+     "value": 0.2686,
+     "min": 0.2567,
+     "max": 0.2873,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): forearmhandlength / stature",
+     "tag": "measured"
+    },
+    "span": {
+     "value": 1.018,
+     "min": 0.9752,
+     "max": 1.0719,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): span / stature",
+     "tag": "measured"
+    },
+    "sitting_height": {
+     "value": 0.527,
+     "min": 0.502,
+     "max": 0.5484,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): sittingheight / stature",
+     "tag": "measured"
+    },
+    "biacromial_breadth": {
+     "value": 0.2245,
+     "min": 0.2082,
+     "max": 0.24,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): biacromialbreadth / stature",
+     "tag": "measured"
+    },
+    "bideltoid_breadth": {
+     "value": 0.2756,
+     "min": 0.2505,
+     "max": 0.3062,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): bideltoidbreadth / stature",
+     "tag": "measured"
+    },
+    "chest_breadth": {
+     "value": 0.1649,
+     "min": 0.1483,
+     "max": 0.1846,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): chestbreadth / stature",
+     "tag": "measured"
+    },
+    "chest_depth": {
+     "value": 0.1508,
+     "min": 0.1269,
+     "max": 0.1807,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): chestdepth / stature",
+     "tag": "measured"
+    },
+    "waist_breadth": {
+     "value": 0.1831,
+     "min": 0.155,
+     "max": 0.2191,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): waistbreadth / stature",
+     "tag": "measured"
+    },
+    "waist_depth": {
+     "value": 0.1283,
+     "min": 0.104,
+     "max": 0.167,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): waistdepth / stature",
+     "tag": "measured"
+    },
+    "hip_breadth": {
+     "value": 0.2167,
+     "min": 0.1928,
+     "max": 0.243,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): hipbreadth / stature",
+     "tag": "measured"
+    },
+    "head_breadth": {
+     "value": 0.0906,
+     "min": 0.084,
+     "max": 0.0985,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): headbreadth / stature",
+     "tag": "measured"
+    },
+    "head_length": {
+     "value": 0.1166,
+     "min": 0.1083,
+     "max": 0.1252,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): headlength / stature",
+     "tag": "measured"
+    },
+    "head_height": {
+     "value": 0.1364,
+     "min": 0.1259,
+     "max": 0.1473,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): (sittingheight - eyeheightsitting + mentonsellionlength) / stature",
+     "tag": "derived"
+    },
+    "chin_height": {
+     "value": 0.8636,
+     "min": 0.8527,
+     "max": 0.8741,
+     "unit": "stature",
+     "src": "ANSUR II female (n=1986): 1 - (sittingheight - eyeheightsitting + mentonsellionlength) / stature",
+     "tag": "derived"
+    },
+    "heads_tall": {
+     "value": 7.332,
+     "min": 6.789,
+     "max": 7.945,
+     "unit": "heads",
+     "src": "ANSUR II female (n=1986): stature / (sittingheight - eyeheightsitting + mentonsellionlength)",
+     "tag": "derived"
+    }
+   }
+  }
+ }
+}

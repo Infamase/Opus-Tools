@@ -5,7 +5,8 @@ import pytest
 from PIL import Image, ImageDraw
 
 from opus.threed.proportion import (
-    align, band_findings, compare_landmarks, humanoid_landmarks, image_mask, iou, to_height,
+    align, band_findings, bone_ratios, canon_bone_ratios, compare_landmarks, humanoid_landmarks, image_mask, iou,
+    to_height,
 )
 
 
@@ -78,6 +79,16 @@ def test_image_mask_separates_subject_from_textured_background_and_caption(tmp_p
     img.save(p)
     m = image_mask(p)
     assert iou(m, fig) > 0.97
+
+
+def test_canon_hand_bone_is_compared():
+    # blockout joints (joints_m), and a model rig whose hand bone also runs wrist to knuckles
+    joints = {"shoulder_l": [0.2, 0, 1.46], "elbow_l": [0.45, 0, 1.21], "wrist_l": [0.65, 0, 1.01],
+              "knuckles_l": [0.72, 0, 0.94]}
+    canon = canon_bone_ratios(joints, 1.8)
+    assert set(canon) == {"upperarm", "lowerarm", "hand"}
+    model = bone_ratios({"mixamorig:LeftHand": ([0.65, 0, 1.01], [0.72, 0, 0.94])}, 1.8)
+    assert model["hand"] == pytest.approx(canon["hand"])
 
 
 def test_image_mask_uses_alpha(tmp_path):

@@ -1,10 +1,11 @@
 """Body blockouts from proportion canons: humanoids, quadrupeds and dragons.
 
 Proportions come from data, not guesswork. A canon places joints in head units
-(humanoids) or in meters for a reference animal. Explicit primitives (ellipsoids for the
-ribcage, pelvis and head, tapered capsules for limbs and necks) are placed on that
-skeleton with exact sizes and orientations, fused by a voxel remesh into one watertight
-body, smoothed, and decimated to a budget. An armature with UE-mannequin-style bone
+(humanoids) or in meters for a reference animal; hand and foot lengths follow ANSUR II and
+quadruped hind legs follow Garland & Janis (both in data/tables). Explicit primitives
+(ellipsoids for the ribcage, pelvis and head, tapered capsules for limbs and necks) are
+placed on that skeleton with exact sizes and orientations, fused by a voxel remesh into one
+watertight body, smoothed, and decimated to a budget. An armature with UE-mannequin-style bone
 names (pelvis, spine_01, upperarm_l, thigh_l, ...) is bound to it with heat weights.
 That rig retargets in Unreal's IK Retargeter and maps onto Godot's humanoid profile.
 
@@ -13,8 +14,10 @@ Convention: the creature faces -Y (Blender front), its left side is +X, feet at 
 
 from __future__ import annotations
 
+import json
 import math
 import os
+from pathlib import Path
 
 import bmesh
 import bpy
@@ -22,33 +25,41 @@ from mathutils import Matrix, Vector
 
 # ---------------------------------------------------------------- canons
 
+DATA = Path(__file__).resolve().parents[2] / "data"  # committed fact tables
+
 # Humanoid landmarks in head units (HU) above the floor; widths and radii in HU.
 # Two-value radii are half-sizes (side to side, front to back).
+# Hand and foot lengths are ANSUR II male p50 fractions of stature (data/tables/
+# anthro_ansur2.json: hand 0.110, foot 0.154), i.e. 0.82 and 1.15 HU at 7.5 heads. The
+# middle fingertip ends at 0.97 of `hand` (FINGER_LAYOUT), so the built hand measures about
+# 0.105 of stature, still inside ANSUR p5-p95; a longer hand turns the grip solver's pistol
+# hold loose. The other canons keep the same fractions of stature times a style multiplier:
+# heroic and stylized 1.0, chibi 0.9 (small, stubby extremities).
 HUMANOID = {
     "realistic": dict(
         heads=7.5, chin=6.5, shoulder=6.1, chest=5.45, waist=4.6, hip=3.95, crotch=3.65, knee=2.05, ankle=0.3,
-        shoulder_x=0.92, hip_x=0.4, upper_arm=1.45, forearm=1.2, hand=0.75, foot=1.0,
+        shoulder_x=0.92, hip_x=0.4, upper_arm=1.45, forearm=1.2, hand=0.82, foot=1.15,
         head_r=(0.33, 0.42), neck_r=0.25, chest_r=(0.72, 0.5), waist_r=(0.6, 0.42), hips_r=(0.74, 0.46), shoulder_r=0.3,
         upper_arm_r=0.22, elbow_r=0.17, wrist_r=0.12, hand_r=(0.15, 0.06), thigh_r=0.37, knee_r=0.22,
         calf_r=0.25, ankle_r=0.12, foot_r=(0.16, 0.1),
     ),
     "heroic": dict(
         heads=8.0, chin=7.0, shoulder=6.58, chest=5.85, waist=4.95, hip=4.25, crotch=3.95, knee=2.2, ankle=0.32,
-        shoulder_x=1.1, hip_x=0.43, upper_arm=1.55, forearm=1.3, hand=0.8, foot=1.05,
+        shoulder_x=1.1, hip_x=0.43, upper_arm=1.55, forearm=1.3, hand=0.87, foot=1.23,
         head_r=(0.33, 0.41), neck_r=0.28, chest_r=(0.86, 0.56), waist_r=(0.62, 0.43), hips_r=(0.72, 0.45), shoulder_r=0.36,
         upper_arm_r=0.26, elbow_r=0.19, wrist_r=0.13, hand_r=(0.16, 0.06), thigh_r=0.4, knee_r=0.23,
         calf_r=0.27, ankle_r=0.13, foot_r=(0.16, 0.1),
     ),
     "stylized": dict(
         heads=6.0, chin=5.0, shoulder=4.72, chest=4.2, waist=3.55, hip=3.05, crotch=2.85, knee=1.55, ankle=0.28,
-        shoulder_x=0.82, hip_x=0.38, upper_arm=1.15, forearm=0.95, hand=0.6, foot=0.85,
+        shoulder_x=0.82, hip_x=0.38, upper_arm=1.15, forearm=0.95, hand=0.66, foot=0.92,
         head_r=(0.4, 0.45), neck_r=0.22, chest_r=(0.7, 0.5), waist_r=(0.58, 0.42), hips_r=(0.68, 0.45), shoulder_r=0.28,
         upper_arm_r=0.21, elbow_r=0.17, wrist_r=0.13, hand_r=(0.15, 0.07), thigh_r=0.34, knee_r=0.22,
         calf_r=0.25, ankle_r=0.13, foot_r=(0.16, 0.1),
     ),
     "chibi": dict(
         heads=3.0, chin=2.0, shoulder=1.88, chest=1.68, waist=1.42, hip=1.18, crotch=1.08, knee=0.6, ankle=0.12,
-        shoulder_x=0.42, hip_x=0.2, upper_arm=0.45, forearm=0.38, hand=0.28, foot=0.42,
+        shoulder_x=0.42, hip_x=0.2, upper_arm=0.45, forearm=0.38, hand=0.3, foot=0.41,
         head_r=(0.52, 0.5), neck_r=0.13, chest_r=(0.42, 0.33), waist_r=(0.4, 0.31), hips_r=(0.42, 0.32), shoulder_r=0.14,
         upper_arm_r=0.11, elbow_r=0.1, wrist_r=0.09, hand_r=(0.11, 0.06), thigh_r=0.17, knee_r=0.14,
         calf_r=0.14, ankle_r=0.1, foot_r=(0.13, 0.09),
@@ -71,9 +82,16 @@ FINGERS = ("thumb", "index", "middle", "ring", "pinky")
 
 # Animals: joint coordinates for a reference animal, (x, y, z) in meters with the
 # creature facing -Y, plus (side to side, vertical) radius. Left limbs only; mirrored.
+# Hind legs below the hip come from data (see _limbs): "hind" names the donor in
+# data/tables/quadruped_hindlimb.json (Garland & Janis 1993), the standing pose as degrees
+# from straight down for the femur, tibia, metatarsal and each digit segment (negative leans
+# toward the head), and the radii of the knee, hock, digit joints and toe tip. "front" does
+# the same below the carpus (cannon, then the digits, which copy the hind digit lengths).
 QUADRUPED = {
     "dog": dict(
         height=0.55,
+        hind=dict(donor="wolf", angles=(-28, 50, -12, -70),
+                  radii=((0.05, 0.05), (0.03, 0.03), (0.03, 0.028), (0.035, 0.03))),
         nodes={
             "rump": ((0, 0.26, 0.45), (0.11, 0.1)), "back": ((0, 0.02, 0.46), (0.1, 0.11)),
             "chest": ((0, -0.22, 0.44), (0.12, 0.13)), "neck_base": ((0, -0.3, 0.52), (0.08, 0.08)),
@@ -83,12 +101,14 @@ QUADRUPED = {
             "tail_3": ((0, 0.55, 0.52), (0.014, 0.014)),
             "fshoulder_l": ((0.07, -0.2, 0.4), (0.06, 0.06)), "felbow_l": ((0.075, -0.18, 0.26), (0.04, 0.04)),
             "fwrist_l": ((0.075, -0.2, 0.08), (0.028, 0.028)), "fpaw_l": ((0.075, -0.25, 0.025), (0.035, 0.03)),
-            "hip_l": ((0.075, 0.23, 0.4), (0.07, 0.07)), "knee_l": ((0.08, 0.15, 0.25), (0.05, 0.05)),
-            "hock_l": ((0.075, 0.3, 0.13), (0.03, 0.03)), "hpaw_l": ((0.075, 0.27, 0.025), (0.035, 0.03)),
+            "hip_l": ((0.075, 0.23, 0.4), (0.07, 0.07)),
         },
     ),
     "horse": dict(
         height=1.6,
+        hind=dict(donor="horse", angles=(-22, 38, 0, -35, -45),
+                  radii=((0.1, 0.1), (0.06, 0.06), (0.055, 0.06), (0.045, 0.045), (0.06, 0.05))),
+        front=dict(angles=(0, -35, -45), radii=((0.055, 0.06), (0.045, 0.045), (0.06, 0.05))),
         nodes={
             "rump": ((0, 0.62, 1.48), (0.27, 0.27)), "back": ((0, 0.05, 1.42), (0.28, 0.3)),
             "chest": ((0, -0.5, 1.32), (0.3, 0.33)), "neck_base": ((0, -0.72, 1.5), (0.2, 0.22)),
@@ -97,13 +117,13 @@ QUADRUPED = {
             "tail_1": ((0, 0.86, 1.48), (0.06, 0.06)), "tail_2": ((0, 0.95, 1.2), (0.07, 0.05)),
             "tail_3": ((0, 0.98, 0.85), (0.05, 0.03)),
             "fshoulder_l": ((0.17, -0.52, 1.12), (0.13, 0.13)), "felbow_l": ((0.16, -0.45, 0.92), (0.08, 0.08)),
-            "fwrist_l": ((0.15, -0.5, 0.45), (0.05, 0.05)), "fpaw_l": ((0.15, -0.55, 0.06), (0.06, 0.06)),
-            "hip_l": ((0.2, 0.55, 1.25), (0.16, 0.16)), "knee_l": ((0.18, 0.42, 0.9), (0.1, 0.1)),
-            "hock_l": ((0.16, 0.7, 0.55), (0.06, 0.06)), "hpaw_l": ((0.15, 0.66, 0.06), (0.06, 0.06)),
+            "fwrist_l": ((0.15, -0.5, 0.45), (0.05, 0.05)), "hip_l": ((0.2, 0.55, 1.25), (0.16, 0.16)),
         },
     ),
     "cat": dict(
         height=0.25,
+        hind=dict(donor="felid", angles=(-27, 57, -20, -70),
+                  radii=((0.025, 0.025), (0.014, 0.014), (0.014, 0.012), (0.017, 0.014))),
         nodes={
             "rump": ((0, 0.14, 0.22), (0.055, 0.05)), "back": ((0, 0.0, 0.215), (0.05, 0.055)),
             "chest": ((0, -0.12, 0.2), (0.055, 0.06)), "neck_base": ((0, -0.16, 0.23), (0.04, 0.04)),
@@ -113,19 +133,24 @@ QUADRUPED = {
             "tail_3": ((0, 0.36, 0.4), (0.01, 0.01)),
             "fshoulder_l": ((0.035, -0.11, 0.18), (0.03, 0.03)), "felbow_l": ((0.037, -0.1, 0.11), (0.02, 0.02)),
             "fwrist_l": ((0.037, -0.11, 0.035), (0.013, 0.013)), "fpaw_l": ((0.037, -0.135, 0.012), (0.017, 0.014)),
-            "hip_l": ((0.037, 0.12, 0.18), (0.035, 0.035)), "knee_l": ((0.04, 0.08, 0.1), (0.025, 0.025)),
-            "hock_l": ((0.037, 0.15, 0.055), (0.014, 0.014)), "hpaw_l": ((0.037, 0.13, 0.012), (0.017, 0.014)),
+            "hip_l": ((0.037, 0.12, 0.18), (0.035, 0.035)),
         },
     ),
+}
+# Joints between the metatarsal and the toe tip, and one bone per digit segment, by the
+# donor's digit segments (MT/F excludes the digits, so they get their own bones). A front
+# leg with digits uses the same names with an "f" prefix.
+DIGITS = {
+    "toes": (["ball_l"], ["ball_l"]),
+    "pastern+hoof": (["fetlock_l", "coronet_l"], ["pastern_l", "hoof_l"]),
 }
 
 QUAD_EDGES = [
     ("rump", "back"), ("back", "chest"), ("chest", "neck_base"), ("neck_base", "neck_top"),
     ("neck_top", "skull"), ("skull", "snout"), ("skull", "ear_l"),
     ("rump", "tail_1"), ("tail_1", "tail_2"), ("tail_2", "tail_3"),
-    ("chest", "fshoulder_l"), ("fshoulder_l", "felbow_l"), ("felbow_l", "fwrist_l"), ("fwrist_l", "fpaw_l"),
-    ("rump", "hip_l"), ("hip_l", "knee_l"), ("knee_l", "hock_l"), ("hock_l", "hpaw_l"),
-]
+    ("chest", "fshoulder_l"), ("fshoulder_l", "felbow_l"), ("felbow_l", "fwrist_l"), ("rump", "hip_l"),
+]  # the legs below the carpus and the hip come from _limbs
 QUAD_BONES = [
     ("pelvis", "rump", "back", "root"), ("spine_01", "back", "chest", "pelvis"),
     ("neck_01", "chest", "neck_base", "spine_01"), ("neck_02", "neck_base", "neck_top", "neck_01"),
@@ -133,9 +158,6 @@ QUAD_BONES = [
     ("tail_01", "rump", "tail_1", "pelvis"), ("tail_02", "tail_1", "tail_2", "tail_01"),
     ("tail_03", "tail_2", "tail_3", "tail_02"),
     ("upperarm_l", "fshoulder_l", "felbow_l", "spine_01"), ("lowerarm_l", "felbow_l", "fwrist_l", "upperarm_l"),
-    ("hand_l", "fwrist_l", "fpaw_l", "lowerarm_l"),
-    ("thigh_l", "hip_l", "knee_l", "pelvis"), ("calf_l", "knee_l", "hock_l", "thigh_l"),
-    ("foot_l", "hock_l", "hpaw_l", "calf_l"),
 ]
 
 # A western dragon: long neck and tail, horned wedge head, bat wings with finger spars.
@@ -374,6 +396,55 @@ def _humanoid(c: dict, pose: str):
 
 
 TORSO_NODES = ("rump", "back", "chest")
+
+
+def _down(angle: float) -> Vector:
+    """Unit vector ``angle`` degrees from straight down in the side plane (negative = toward -Y)."""
+    a = math.radians(angle)
+    return Vector((0.0, math.sin(a), -math.cos(a)))
+
+
+def _limbs(data: dict) -> tuple[dict, list, list, dict]:
+    """Legs below the hip (and below the carpus when the canon has "front") from the donor's
+    measured ratios: femur = tibia, metatarsal = MT/F x femur, then the digit segments. They
+    keep the canon's standing angles and are scaled together so the toe tip stands on the
+    floor. Returns the canon with the leg nodes added, the leg edges and bones, and a summary."""
+    with open(DATA / "tables" / "quadruped_hindlimb.json", encoding="utf-8") as f:
+        donor = json.load(f)["donors"][data["hind"]["donor"]]
+    digit_x = [d["x_metatarsal"]["value"] for d in donor["digits"]]
+    digit_joints, digit_bones = DIGITS["+".join(d["name"] for d in donor["digits"])]
+    mt_f, tib = donor["mt_f"]["value"], donor["tibia_f"]["value"]
+    nodes, edges, bones = dict(data["nodes"]), [], []
+
+    def add_leg(start, joints, names, parent, angles, lengths, radii):
+        p, prev = Vector(nodes[start][0]), start
+        for j, b, a, length, r in zip(joints, names, angles, lengths, radii):
+            p = p + _down(a) * length
+            nodes[j] = (tuple(p), r)
+            edges.append((prev, j))
+            bones.append((b, prev, j, parent))
+            prev, parent = j, b
+
+    hind = data["hind"]
+    rel = [1.0, tib, mt_f] + [mt_f * x for x in digit_x]
+    floor = sum(hind["radii"][-1]) / 2  # the toe tip's capsule end touches z = 0
+    k = (nodes["hip_l"][0][2] - floor) / sum(r * -_down(a).z for r, a in zip(rel, hind["angles"]))
+    chain = ["hip_l", "knee_l", "hock_l", *digit_joints, "hpaw_l"]
+    names = ["thigh_l", "calf_l", "foot_l", *digit_bones]
+    add_leg("hip_l", chain[1:], names, "pelvis", hind["angles"], [k * r for r in rel], hind["radii"])
+    if "front" in data:
+        fr = data["front"]
+        digits = [k * mt_f * x for x in digit_x]
+        drop = sum(d * -_down(a).z for d, a in zip(digits, fr["angles"][1:]))
+        cannon = (nodes["fwrist_l"][0][2] - sum(fr["radii"][-1]) / 2 - drop) / -_down(fr["angles"][0]).z
+        add_leg("fwrist_l", ["f" + j for j in digit_joints] + ["fpaw_l"], ["hand_l"] + ["f" + b for b in digit_bones],
+                "lowerarm_l", fr["angles"], [cannon] + digits, fr["radii"])
+    else:
+        edges.append(("fwrist_l", "fpaw_l"))
+        bones.append(("hand_l", "fwrist_l", "fpaw_l", "lowerarm_l"))
+    summary = {"donor": data["hind"]["donor"], "species": donor["species"], "table_mt_f": mt_f,
+               "tag": donor["mt_f"]["tag"], "chain": chain, "bones": names}
+    return {**data, "nodes": nodes}, edges, bones, summary
 
 
 def _animal(data: dict, edges: list, bones: list):
@@ -717,7 +788,7 @@ def build(
 ) -> dict:
     """Build a rigged blockout. ``height`` is total height in meters (default: the canon's)."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    membranes, hand_prims, rolls = [], [], {}
+    membranes, hand_prims, rolls, limbs = [], [], {}, None
     if archetype == "humanoid":
         if preset not in HUMANOID:
             raise ValueError(f"humanoid presets: {sorted(HUMANOID)}")
@@ -731,6 +802,9 @@ def build(
         data = QUADRUPED[preset] if archetype == "quadruped" else DRAGON
         edges = QUAD_EDGES if archetype == "quadruped" else DRAGON_EDGES
         bone_spec = QUAD_BONES if archetype == "quadruped" else DRAGON_BONES
+        if archetype == "quadruped":
+            data, leg_edges, leg_bones, limbs = _limbs(data)
+            edges, bone_spec = edges + leg_edges, bone_spec + leg_bones
         prims, joints, bones, nodes = _animal(data, edges, bone_spec)
         if archetype == "dragon":
             extra, membranes, finger_joints, finger_bones = _dragon_parts(nodes, data)
@@ -780,6 +854,13 @@ def build(
             hand=c["hand"] * s, foot=c["foot"] * s, leg=(c["hip"] - 0.15 - c["ankle"]) * s,
         )
         landmarks = {k: round(v, 4) for k, v in landmarks.items()}
+    hindlimb = None
+    if limbs:
+        # the built hind leg against the table: femur, tibia, metatarsal, then the digits
+        chain = limbs.pop("chain")
+        lengths = {b: round((joints[t] - joints[h]).length, 4) for b, h, t in zip(limbs["bones"], chain, chain[1:])}
+        hindlimb = {**limbs, "bones_m": lengths, "mt_f": round(lengths["foot_l"] / lengths["thigh_l"], 3),
+                    "tibia_femur": round(lengths["calf_l"] / lengths["thigh_l"], 3)}
 
     mat = bpy.data.materials.new("blockout")
     mat.diffuse_color = (0.72, 0.62, 0.55, 1.0)
@@ -830,6 +911,7 @@ def build(
         "binding": binding,
         "weights_filled_nearest": filled,
         "landmarks_m": landmarks,
+        "hindlimb": hindlimb,
         "joints_m": {n: [round(x, 4) for x in v] for n, v in joints.items()},
         "blend": out_blend or None,
         "glb": out_glb or None,

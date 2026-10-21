@@ -113,7 +113,8 @@ def sprite_inspect(
     mode="tile" or frames/onion skin/change heatmap in mode="sheet") and a JSON report with
     warnings: stray and orphan pixels, jaggy line elbows, partial alpha, off-palette colors,
     color budget, pillow shading, flat ramps, low contrast, tile seams, frame flicker.
-    mode: sprite | tile | sheet (sheet needs frame_width/frame_height in image pixels).
+    mode: sprite | tile | sheet (frame_width/frame_height in image pixels; a one-row strip
+    without them is cut into square frames).
     palette/light/max_colors default to the project bible.
     """
     from opus.pixel.inspect import inspect_sprite
@@ -294,12 +295,13 @@ def body_blockout(
 
     archetype/preset: humanoid realistic (7.5 heads) | heroic (8) | stylized (6) | chibi (3);
     quadruped dog | horse | cat; dragon western. height in meters (default 1.8 m humanoid,
-    1.0 m chibi, the animal's real size). pose: A or T. Returns a Look Dev Sheet and a report
-    with landmarks_m (chin, shoulder, waist, crotch, knee heights, limb lengths, widths) and
-    joints_m; quadrupeds add hindlimb (donor species and the built MT/F, from measured data;
-    the horse has fetlock, pastern and hoof bones). The rig uses Unreal mannequin bone names
-    (pelvis, spine_01, upperarm_l, thigh_l) so it retargets in Unreal's IK Retargeter and maps
-    to Godot/Unity humanoid profiles.
+    1.0 m chibi, the animal's real size): height is the overall height (ear tips for
+    quadrupeds); landmarks_m.withers_m gives the withers. pose: A or T. Returns a Look Dev
+    Sheet and a report with landmarks_m (chin, shoulder, waist, crotch, knee heights, limb
+    lengths, widths) and joints_m; quadrupeds add hindlimb (donor species and the built
+    MT/F, from measured data; the horse has fetlock, pastern and hoof bones). The rig uses
+    Unreal mannequin bone names (pelvis, spine_01, upperarm_l, thigh_l) so it retargets in
+    Unreal's IK Retargeter and maps to Godot/Unity humanoid profiles.
     Sculpt, kitbash or shrinkwrap the final model over it, then run proportion_check.
     """
     from opus.threed.body import body_blockout as run
@@ -474,16 +476,17 @@ def grip_define(
     The handle axis is fitted to ``part`` (an object, e.g. the grip or handle mesh) or given
     as world-space ``start``/``end`` points "x,y,z". ``up``: direction toward the end the
     thumb points to (blade, slide, hammer head), default +Z. ``palm_side``: direction from
-    the handle toward the palm; for pistol-style grips give ``point_axis`` instead (the
-    object's local axis that points along the forearm, e.g. -Y for a barrel) and ``hand``.
+    the handle toward the palm. Directions are an axis name (+Z, -X, y) or "x,y,z". For
+    pistol-style grips give ``point_axis`` instead of ``palm_side`` (the object's local axis
+    that points along the forearm, e.g. -Y for a barrel) and ``hand``.
     ``center`` (0-1) slides the hand along the handle. style: power | pistol. index: curl |
     trigger | extended; ``trigger`` is the trigger's front point "x,y,z". thumb: wrap | along.
     Returns a render: blue axis, red arrow = palm side, green = thumb end, yellow = trigger.
     """
     from opus.threed.grip import grip_define as run
 
-    sheet, rep = run(_path(path), object, name, part, _floats(start), _floats(end), _floats(palm_side), _floats(up),
-                     center, style, index, thumb, _floats(trigger), point_axis, hand)
+    sheet, rep = run(_path(path), object, name, part, start, end, palm_side, up, center, style, index, thumb, trigger,
+                     point_axis, hand)  # grip parses "x,y,z" and axis names (+Z, -X)
     return [Image(path=sheet), _json(rep)]
 
 
@@ -510,10 +513,11 @@ def grip_hold(
     side: r | l. pose: rest (arm untouched) | front | fp_hip (first-person hip position; the
     object's ``aim_axis`` points forward; ``offset`` "forward,right,down" in m from the eye,
     default 0.5,0.2,0.18; long guns sit closer, e.g. 0.1,0.15,0.25) | fp_ads (needs an empty
-    named SOCKET_sight on the object). move: object (bring it to the hand; adds a
-    weapon_r/weapon_l bone and parents the object to it) | hand (reach this hand to an object
-    already placed, e.g. the support hand on a rifle's handguard: run it on the saved file
-    with object_path empty). Keys the pose as a Grip_* action and saves a new .blend.
+    named SOCKET_sight on the object; fp_ads: offset forward = eye-to-sight distance).
+    aim_axis: an axis name such as -Y or +X. move: object (bring it to the hand; adds a
+    weapon_r/weapon_l bone and parents the object to it) | hand (reach this hand to an
+    object already placed, e.g. the support hand on a rifle's handguard: run it on the saved
+    file with object_path empty). Keys the pose as a Grip_* action and saves a new .blend.
     Returns close-ups colored by contact plus a measured report: palm and each finger
     touching / gap mm / inside mm, body clipping, aim_vs_hand_deg, wrist_bend_deg.
     """
@@ -525,7 +529,7 @@ def grip_hold(
         if not dest.is_absolute():
             dest = Path(os.environ.get("OPUS_PROJECT_DIR") or os.getcwd()) / dest
     sheet, rep = run(_path(rig), _path(object_path) if object_path else None, object, grip, side, pose, move, aim_axis,
-                     _floats(offset), index, thumb, dest)
+                     offset, index, thumb, dest)
     text = rep.pop("text")
     return [Image(path=sheet), text + "\n\n" + _json(rep)]
 
@@ -673,6 +677,7 @@ def ledger_record(
 
     licence_id: SPDX or LicenseRef-* ID from data/licences.yaml (licence_check text= finds
     it); free license text is classified on whole-name matches only, else it is unknown.
+    An asset you build in this project: licence_id LicenseRef-Own-Work.
     inputs: what it was made from, [{"source", "licence_id", "role", "attribution"}], or
     [{"asset": "path/in/ledger", "role"}] to inherit an earlier asset's flags.
     tools: [{"name", "licence_id"}] for tools whose terms reach outputs.
@@ -756,8 +761,8 @@ def run_log(
     (kind: checklist, blind_read, lineup; questions, failed) | user_rejection (reason) | tokens
     (input_tokens, output_tokens) | accept (iterations and wall-clock are filled in; values =
     the task's score fields, "tris=3120; blind_read_top1=wolf") | abandon (reason, values).
-    Events go to ``run`` or the latest open run (tokens and user_rejection: the latest run).
-    Returns the entry.
+    Pass run=<id from run_start>; it is required when several runs are open (an empty run
+    goes to the latest open run; tokens and user_rejection: the latest run). Returns the entry.
     """
     from opus.runs import log
 

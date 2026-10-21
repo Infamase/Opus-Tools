@@ -165,8 +165,12 @@ def inspect_sprite(
     if mode not in ("sprite", "tile", "sheet"):
         raise ValueError("mode must be 'sprite', 'tile', or 'sheet'")
     fw, fh = (frame_width // k or 0), (frame_height // k or 0)
+    notes: list[str] = []
     if mode == "sheet" and not (fw and fh):
-        raise ValueError("sheet mode needs frame_width and frame_height (in image pixels)")
+        if frame_width or frame_height or w % h:
+            raise ValueError("sheet mode needs a frame size: frame_width/frame_height (CLI: --frame W H)")
+        fw = fh = h  # a single row of square frames
+        notes.append(f"frames assumed square: {w // h} of {h * k}x{h * k}; pass a frame size otherwise")
 
     pal = load_palette(palette)
     warnings: list[str] = []
@@ -177,6 +181,8 @@ def inspect_sprite(
         "upscale_factor": int(k),
         "mode": mode,
     }
+    if notes:
+        report["notes"] = notes
     if k > 1:
         warnings.append(f"Image is a clean x{k} export; analyzed at native {w}x{h}.")
 

@@ -125,3 +125,47 @@ def test_3d_understanding_tools_over_mcp(tmp_path):
     assert results[5].content[0].type == "image"
     assert "Camera godot_tp" in results[5].content[1].text and "* head:" in results[5].content[1].text
     assert "do not add what the model is" in results[6].content[0].text
+
+
+def test_grip_tools_take_axis_names(tmp_path, monkeypatch):
+    """up="+Z" reaches Blender as [0, 0, 1]; a direction that is neither an axis nor x,y,z is a
+    message the caller can act on."""
+    from PIL import Image as PILImage
+
+    from mcp.server.mcpserver.exceptions import ToolError
+    from opus import mcp_server
+    from opus.threed import grip
+
+    monkeypatch.delenv("OPUS_PROJECT_DIR", raising=False)
+    (tmp_path / "project.godot").write_text("")
+    blend = tmp_path / "axe.blend"
+    blend.write_bytes(b"")
+    tile = tmp_path / "tile.png"
+    PILImage.new("RGB", (32, 32)).save(tile)
+    calls = []
+
+    def fake_run_task(task, params, timeout=0):
+        calls.append((task, params))
+        return {"object": "axe", "grip": "SOCKET_grip_main", "length": 0.4, "radius": 0.015, "index": "curl",
+                "thumb": "wrap", "contact": {"verdict": "good grip"}, "text": "good grip", "file": str(blend),
+                "tiles": [{"path": str(tile), "label": "front"}]}
+
+    monkeypatch.setattr(grip, "run_task", fake_run_task)
+    mcp_server.grip_define(path=str(blend), object="haft", up="+Z", palm_side="-X", trigger="0,-0.05,0.1")
+    assert calls[-1][1]["up"] == [0, 0, 1] and calls[-1][1]["palm_side"] == [-1, 0, 0]
+    assert calls[-1][1]["trigger"] == [0, -0.05, 0.1]
+    mcp_server.grip_hold(rig=str(blend), object_path=str(blend), pose="fp_hip", aim_axis="x", offset="0.1, 0.15, 0.25")
+    assert calls[-1][1]["offset"] == [0.1, 0.15, 0.25] and calls[-1][1]["aim_axis"] == "+X"
+    with pytest.raises(ToolError, match=r"up: give an axis such as \+Z or -X, or x,y,z"):
+        mcp_server.grip_define(path=str(blend), object="haft", up="+W")
+    with pytest.raises(ToolError, match="offset: give three numbers"):
+        mcp_server.grip_hold(rig=str(blend), offset="-Y")
+
+
+def test_docstrings_say_what_callers_need():
+    from opus import mcp_server
+
+    assert "LicenseRef-Own-Work" in mcp_server.ledger_record.__doc__
+    assert "run=<id from run_start>" in mcp_server.run_log.__doc__
+    assert "ear tips for" in mcp_server.body_blockout.__doc__ and "withers_m" in mcp_server.body_blockout.__doc__
+    assert "eye-to-sight distance" in mcp_server.grip_hold.__doc__

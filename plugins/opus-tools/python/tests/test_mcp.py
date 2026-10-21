@@ -14,7 +14,7 @@ EXPECTED = {
     "sprite_inspect", "pixel_cleanup", "palette_ramp", "palette_apply", "palette_swap",
     "lookdev_sheet", "mesh_lint", "project_bible", "ledger_record", "make_credits", "opus_doctor",
     "body_blockout", "look_at", "model_report", "proportion_check", "reference_match", "blind_read_sheet",
-    "grip_define", "grip_hold", "grip_check",
+    "grip_define", "grip_hold", "grip_check", "readability_check",
 }
 
 
@@ -54,6 +54,7 @@ def test_server_lists_tools_and_returns_images(tmp_path):
     assert results[1].content[0].type == "image"
     assert "Created" in results[2].content[0].text
     assert '"styles": [\n  "pixel",\n  "lowpoly"' in results[3].content[0].text
+    assert '"camera_active"' in results[3].content[0].text and '"FALLBACK view-model' in results[3].content[0].text
     assert sprite.exists()
 
 
@@ -84,6 +85,8 @@ def test_3d_understanding_tools_over_mcp(tmp_path):
             ("model_report", {"path": "bodies/hero.blend"}),
             ("proportion_check", {"path": "bodies/hero.blend", "preset": "stylized"}),
             ("blind_read_sheet", {"path": "bodies/hero.blend"}),
+            ("readability_check", {"path": "bodies/hero.blend", "distances": "3.5, 15", "defining": "head, hand_l"}),
+            ("blind_read_sheet", {"path": "bodies/hero.blend", "game_size": True, "distances": "15"}),
         ],
     )
     for r in results:
@@ -96,3 +99,6 @@ def test_3d_understanding_tools_over_mcp(tmp_path):
     assert "Closest canon: stylized" in results[3].content[1].text
     assert "do not add what the model is" in results[4].content[0].text
     assert "hero" not in results[4].content[0].text.split("Prompt")[0].rsplit("/", 1)[-1]
+    assert results[5].content[0].type == "image"
+    assert "Camera godot_tp" in results[5].content[1].text and "* head:" in results[5].content[1].text
+    assert "do not add what the model is" in results[6].content[0].text

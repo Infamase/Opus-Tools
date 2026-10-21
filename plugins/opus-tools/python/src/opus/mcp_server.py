@@ -29,6 +29,7 @@ it with an inspector, fix what the report and image show, and repeat before show
   recognizability with blind_read_sheet. look_at shows any angle or part up close;
   model_report labels parts and measures them; lookdev_sheet shows every side; mesh_lint
   before calling anything game-ready.
+- readability_check renders the part map at the game camera's true pixel size and flags thin defining parts.
 - Hands holding things (first person especially): grip_define marks the handle, grip_hold
   puts it in the hand and closes the fingers on it, grip_check measures any held object.
   Never place held objects by eye.
@@ -366,17 +367,50 @@ def reference_match(path: str, reference: str, view: str = "front", humanoid: bo
 
 
 @server.tool(structured_output=False)
-def blind_read_sheet(path: str, objects: str = "") -> str:
+def blind_read_sheet(path: str, objects: str = "", game_size: bool = False, camera: str = "", distances: str = "") -> str:
     """Make an unlabeled silhouette + clay sheet for a blind recognizability test.
 
     Hand the returned prompt to a fresh subagent (e.g. the art-director agent) WITHOUT saying
     what the model is supposed to be. If its top guess isn't the intended subject, the
     defining features aren't reading yet. Compare its feature list with your feature brief.
+    game_size=true adds the silhouette and clay at TRUE game pixel size (nearest-upscaled) for
+    a camera profile (default: the bible's) at its distances, or at ``distances`` in meters.
     """
     from opus.threed.understand import blind_read_sheet as run
 
-    sheet, prompt = run(_path(path), objects=_names(objects))
+    sheet, prompt = run(_path(path), objects=_names(objects), game_size=game_size, camera=camera, distances=_floats(distances))
     return f"Blind-read sheet: {sheet}\n\nPrompt for a fresh reviewer (do not add what the model is):\n{prompt}"
+
+
+@server.tool(structured_output=False)
+def readability_check(
+    path: str,
+    camera: str = "",
+    distances: str = "",
+    defining: str = "",
+    view: str = "",
+    floor_px: float = 2.0,
+    objects: str = "",
+) -> list:
+    """Will the asset read in the game? Renders its part map at TRUE game pixel size: the camera
+    profile's FOV and resolution at each distance, cropped to the subject, no anti-aliasing.
+
+    camera: a profile (default: the bible's camera.profile; presets ue_tp_1080, ue_fp_1080,
+    godot_tp, unity_tp, topdown, sidescroller; "viewmodel" = the first-person view-model camera,
+    flagged as a FALLBACK when the bible has none). distances: meters, comma-separated
+    (default: the profile's close, typical, far). defining: the feature brief's 5-7 defining
+    parts (part, bone or object names); those under floor_px wide, or gone, get warnings.
+    view: front, right, three_quarter... or "azimuth,elevation" (default: the profile's).
+    Per distance: the game-size image (nearest-upscaled), its part map, and visible px, min
+    width and extent per part; the subject's height vs Johnson's criteria; a squint view.
+    Floors are SOFT warnings until calibrated. Full per-part data: report["all_parts"].
+    """
+    from opus.threed.understand import readability_check as run
+
+    sheet, rep = run(_path(path), camera=camera, distances=_floats(distances), defining=_names(defining), view=view,
+                     floor_px=floor_px, objects=_names(objects))
+    text = rep.pop("text")
+    return [Image(path=sheet), text + "\n\n" + _json(rep)]
 
 
 # ---------------------------------------------------------------- holding things
@@ -499,7 +533,15 @@ def project_bible(action: str = "show", project_dir: str = "", project: str = ""
             cameras=[c.strip() for c in cameras.split(",") if c.strip()],
         )
         return f"Created {path}. Edit it to set the palette, budgets and feel."
-    return _json(load_bible(base))
+    from opus.bible import camera_profile
+
+    bible = load_bible(base)
+    for key, name in (("camera_active", ""), ("camera_viewmodel", "viewmodel")):
+        try:  # the resolved camera and its derived numbers (px/m, smallest features, texel density)
+            bible[key] = camera_profile(bible, name).summary()
+        except ValueError as e:
+            bible[key] = {"error": str(e)}
+    return _json(bible)
 
 
 @server.tool(structured_output=False)

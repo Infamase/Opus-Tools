@@ -5,9 +5,14 @@ needs to produce good **3D models**, **pixel art**, **animation** and **sound** 
 games made with Blender and Unreal, Godot or Unity, packaged as one small install on the
 game-dev PC that works in every project.
 
-Status: plan v0.5 (2026-10-17). **v0.3 of the toolkit is built:** the Phase 0 core, the
+Status: plan v0.6 (2026-10-21). **v0.3 of the toolkit is built:** the Phase 0 core, the
 Phase 1 "see it" tools for pixel art and 3D, Sprint 2's proportion and recognizability
 tools, and hands that hold things properly (see §7).
+
+**3D models and animation now follow [docs/OVERHAUL.md](docs/OVERHAUL.md)** (design v1.1,
+from 9 research digests, 4 competing proposals and 6 reviews). It replaces every 3D and
+animation section of this plan; those sections stay below for history, with the
+generative-model routes removed. Pixel art and sound still follow this plan.
 
 ---
 
@@ -46,9 +51,11 @@ is paired with a *perceive* tool and a rubric, so Claude iterates
 2. **Semantic building blocks over raw numbers.** Parameterized, craft-aware builders
    (bevels, profiles, palette ramps, layers, envelopes, poses, easing) with good defaults.
    Assets are *recipes* (code + params + seed), so variations and fixes are re-runs.
-3. **Start from real material.** CC0 libraries, real recordings, mocap and generative
-   models are inputs; Claude's job shifts toward selecting, kitbashing, processing,
-   cleaning up and integrating, which it is good at.
+3. **Start from real material.** Human-made libraries, real recordings, mocap, measured
+   data and the user's references are inputs. Generative models are excluded for 3D and
+   animation (their published methods and data statistics may be used). Claude's job
+   shifts toward structuring, selecting, kitbashing, processing and integrating, which it
+   is good at.
 4. **Engine-native end state.** "Done" means imported and wired in Godot (import options,
    collision, tilesets, randomizers, buses, AnimationTree) and verified with an in-engine
    capture.
@@ -59,8 +66,8 @@ is paired with a *perceive* tool and a rubric, so Claude iterates
 7. **Provenance from day one.** Every asset records its source, license and author. That
    produces credits for the friends' build and an exact list of what to replace if a game
    ever goes public.
-8. **Swappable AI backends, sized to the GPU.** Generative models churn monthly; they sit
-   behind stable interfaces, and the core stays useful with no GPU at all.
+8. **Stable interfaces sized to the PC.** Native packages and GPU accelerators sit behind
+   optional extras with numpy fallbacks, so the core stays useful with no GPU at all.
 9. **MCP-first, small repo.** Every capability is an MCP tool, so it works from the
    desktop app. The repo holds code only; big downloads are listed, never committed.
 10. **Testable headlessly.** Everything runs against headless Blender and Godot, so it can
@@ -78,12 +85,12 @@ is paired with a *perceive* tool and a rubric, so Claude iterates
  │  senses : look-dev sheet · sprite inspector · motion inspector · audio inspector │
  │  craft  : shape kit · material lab · pixel forge · 3D→pixel · keyframe director  │
  │  gates  : mesh lint · pixel lint · rig lint · motion diagnostics · loudness      │
- │  sources: asset/SFX/motion librarians · generative backends · provenance ledger  │
+ │  sources: asset/SFX/motion librarians · measured data tables · provenance ledger │
  └───────┬────────────────────────┬─────────────────────────┬───────────────────────┘
          │                        │                         │
-  Blender 5.2 (your Blender  Godot 4.7 (your Godot    Local AI backends
-  MCP, or headless `-b`)     MCP, headless import,    (image, 3D, motion, audio
-                             frame capture)           models on the 16 GB GPU)
+  Blender 5.2 (your Blender  Godot 4.7 (your Godot    Optional local AI backends
+  MCP, or headless `-b`)     MCP, headless import,    (2D image and audio only;
+                             frame capture)           none for 3D or animation)
 ```
 
 - **How it reaches Claude in the desktop app.**
@@ -131,7 +138,7 @@ Opus-Tools/
 │   │   ├── python/                  # opus core package, CLI, MCP server, tests
 │   │   ├── blender/opus_bl/         # in-Blender modules (bpy + bmesh + numpy only)
 │   │   └── godot/addons/opus/ *     # copied into a game by `opus godot init`
-│   └── opus-gen/ *                  # optional plugin: local AI backends + paid APIs
+│   └── opus-gen/ *                  # optional plugin: 2D image and audio backends only
 ├── extensions/ *                    # .mcpb manifests for chat mode (bundles built by CI)
 ├── evals/ *                         # benchmark task specs and scores (no big files)
 └── DOWNLOADS.md                     # every big download: link, size, license, target
@@ -157,6 +164,8 @@ user's priorities.
 
 ### 4.1 3D models
 
+*Superseded by [docs/OVERHAUL.md](docs/OVERHAUL.md); kept for history.*
+
 | Tool | Fixes | What it does | Pri |
 |---|---|---|---|
 | **Look Dev Sheet** | can't see it | One call → labeled contact sheet: front/side/back/top + ¾ perspective; clay/matcap (form); wireframe (topology density); solid silhouette (shape readability); face orientation (flipped normals); UV checker; 1.8 m human silhouette + 1 m grid for scale. Optional side-by-side with a reference, and a **gameplay-distance view** at the on-screen size the asset will really have in each camera style. Laid out to fit Claude's image-input resolution. | P1 |
@@ -165,13 +174,13 @@ user's priorities.
 | **Material Lab + Bake** | flat colors; procedural materials lost on export | Procedural material graphs (wood, metal, stone, fabric, plastic, toon) with curvature/AO-driven wear and grime; one-call **bake to Godot-ready PBR** (albedo, ORM, normal) at the bible's texel density; high→low normal/AO bakes; palette-atlas workflow for low-poly; trim sheets; Godot material setup (StandardMaterial3D or toon shader). | P1 |
 | **Asset Librarian** | starting from nothing | Indexes CC0 packs downloaded per the manifest; renders thumbnails; text + image search via embeddings; returns a candidate contact sheet; imports with provenance; kitbash parts out of library meshes. | P1 |
 | **Godot Import Pipeline** | export traps | glTF export presets; Godot import hints (`-col`, `-convcolonly`, `-navmesh`, `-loop`, …); writes `.import` options (LODs, shadow meshes, collision, materials); post-import scripts; then an in-engine capture in the game's own lighting. | P1 |
-| **Gen3D + Cleanup** | HD organic shapes | Concept image (sketch, reference, or generated) → local image-to-3D model sized to 16 GB, or an affordable paid API → automated cleanup: scale/orient, remove floaters, remesh/decimate to budget, UVs, texture re-bake, LODs → Mesh Lint → Godot. Raw AI meshes aren't game-ready; the cleanup is the value. | P1 |
-| **Gen Texture** | bland surfaces | Tileable PBR materials and decals from a local image model, plus **mesh texturing**: paint a whole untextured model (for example a Shape Kit build) from a prompt or reference, then bake to UVs. | P2 |
 | **Godot Look Presets** | assets look flat in-engine | WorldEnvironment, light rig, tonemapping, SSAO/SSIL, glow and fog presets per art style; used by every in-engine capture, so assets are judged under the light they ship in. | P2 |
 | **Blueprint & Match** | wrong proportions | Reference images or the user's sketches behind orthographic cameras; silhouette-overlap score (IoU) per view between render and reference. | P2 |
 | **Lineup Render** | style drift | Renders the new asset next to already-approved assets at the same scale and lighting to catch scale, style and detail-density mismatches. | P3 |
 
 ### 4.1b 3D upgrades after testing v0.1
+
+*Superseded by [docs/OVERHAUL.md](docs/OVERHAUL.md); kept for history.*
 
 v0.1's Look Dev Sheet is a fixed set of views, and Shape Kit doesn't exist yet. These
 additions target the two remaining gaps: *understanding* (Claude can't look closer, can't
@@ -189,8 +198,6 @@ placed by hand, nothing for organic or HD shapes).
 | **Iteration Diff** | "what changed?" | Previous and current version side by side, with changed regions highlighted. | P2 |
 | **Shape Kit with sockets** | numbers placed by hand | Parts attach to named sockets ("handle on body.side at 60% height") instead of coordinates, so pieces can't float. Mirroring and default bevels are built in. | P1 |
 | **Fit to Reference** | proportions guessed | Claude writes the structure as a parametric recipe; an optimizer tunes its numbers until the front and side silhouettes match the reference (IoU). Claude is good at structure, worse at exact numbers. | P1 |
-| **Concept-first 3D** | organic and HD shapes | Generate a concept image or turnaround sheet locally, iterate in 2D where judging is easy, get approval, then image-to-3D (TRELLIS.2, Pixal3D for turnarounds) with automatic cleanup to budget, UVs, bakes, scale and origin, then Look Dev and Lint. | P1 |
-| **AI texturing of clean meshes** | clean shape, flat look | Model the shape in code (good topology), paint it with TRELLIS.2's texturing mode or Hunyuan3D-2.0 Paint, then bake to UVs. | P2 |
 
 **Feedback from using v0.1 (drives Sprint 2).** Proportions of HD humanoids, creatures
 and dragons were often wrong, which meant guessing and re-guessing. Blocky models came
@@ -220,11 +227,9 @@ modeling hub, since FBX and glTF go to every engine. The engines add eyes and ec
   - Lumen "beauty" renders for HD assets.
   - Geometry Script from Python for simplify, UVs and bakes (AO, curvature, normals, and
     baking from render captures), as a second cleanup path.
-  - MetaHuman for HD humans. Whether the license allows use outside Unreal is reported both
-    ways; verify before relying on it.
-- **Unity** (official Unity MCP in the AI Assistant package, open beta): its Generators as
-  another asset source (what they make in 3D is unverified), ProBuilder for quick blockouts,
-  and the Asset Store.
+  - MetaHuman: licence for use outside Unreal unverified, so not used.
+- **Unity** (official Unity MCP in the AI Assistant package, open beta): ProBuilder for
+  quick blockouts, and the Asset Store.
 
 ### 4.2 Pixel art
 
@@ -243,6 +248,8 @@ modeling hub, since FBX and glTF go to every engine. The engines add eyes and ec
 
 ### 4.3 Animation
 
+*Superseded by [docs/OVERHAUL.md](docs/OVERHAUL.md) §5; kept for history.*
+
 | Tool | Fixes | What it does | Pri |
 |---|---|---|---|
 | **Motion Inspector** ("eyes for motion") | can't watch it | Frame contact sheet from two cameras with onion skins and motion trails (hands, feet, head, root); curve plots (root height, foot heights/speeds, key joint angles); GIF/MP4 for the user. Diagnostics: **foot sliding**, ground penetration, joint-limit violations and knee flips, self-intersection, pops (velocity/jerk spikes), loop-seam continuity (pose and velocity), balance (center of mass vs support), arc smoothness, key-spacing chart. | P1 |
@@ -251,7 +258,6 @@ modeling hub, since FBX and glTF go to every engine. The engines add eyes and ec
 | **Rig Doctor** | broken deformation | Game-ready rig templates (deform bones in one clean hierarchy, names matching Godot's `SkeletonProfileHumanoid` so Godot's retargeting just works) plus quadruped/bird/tail/tentacle/mechanical templates; auto-rig + automatic weights + weight transfer; **deformation test**: extreme poses (arms up, squat, twist) rendered as a contact sheet, with candy-wrap and volume-loss flags; weight lint (≤4 influences, normalized, unweighted verts, symmetry). | P1 |
 | **Keyframe Director** | linear, weightless motion | Animation DSL: Claude authors semantic poses, IK targets and timing ("anticipate 4f, strike 2f, overshoot 15 %, settle 6f"), and the 12 principles are automatic passes: slow-in/out, anticipation, overshoot/settle, follow-through and overlap down bone chains, arcs, baked secondary motion, squash & stretch. Procedural cycle generators (walk/run/sneak/idle/fly/swim) with planted-foot IK and stride/bounce/weight/mood parameters. Best for creatures, props, machines, doors, chests and UI. | P2 |
 | **Animation Events** | SFX/VFX out of sync | Uses Motion Inspector analysis to place method/audio tracks automatically: footsteps at foot contacts, whooshes at weapon peak velocity, impacts at contact frames; attack frame data (startup/active/recovery). | P2 |
-| **Mocap from video / text** | unique human actions | The user films an action on a phone → video-to-motion model → cleanup (foot lock, smoothing, loop) → retarget → Motion Inspector. Text-to-motion models for drafts. | P2 |
 | **Lip Sync** | dead faces in dialogue | Viseme timing from voice lines → shape-key / blend-shape tracks. | P3 |
 | **Sim Bake** | stiff cloth, fake destruction | Blender cloth/rigid/soft-body sims baked to keyframes, shape keys or vertex-animation textures for Godot. | P3 |
 
@@ -303,13 +309,12 @@ they don't cover making a game, even a free one), **Tencent's territory exclusio
 models can't be used in the EU, UK or South Korea), and anything that would need replacing
 if a game ever went public. The Provenance Ledger tracks all three.
 
-**One local AI hub: ComfyUI.** By late 2026 most models worth running locally either ship
-in ComfyUI core (TRELLIS.2, Pixal3D, Stable Audio 3, ACE-Step, SAM 3D Body) or have nodes
-for it (HY-Motion, Kimodo, Woosh, SkinTokens). It runs on Windows, streams large weights
-to fit 16 GB, and has a plain HTTP API (`/prompt`, `/history`, `/view`, `/upload/image`).
-So `opus-gen` drives one ComfyUI install with saved workflows instead of a dozen separate
-Python environments. Each backend sits behind the same interface and has to pass the same
-inspectors and lint as hand-made assets.
+**Generative models: none for 3D or animation.** The user's rule excludes them; their
+published methods and data statistics may still be used (see docs/OVERHAUL.md). The 2D
+image and audio models below are untouched until the user decides on them. If they stay,
+`opus-gen` drives one ComfyUI install (it runs on Windows, streams large weights to fit
+16 GB, and has a plain HTTP API) and every output passes the same inspectors as
+hand-made assets.
 
 "Fits 16 GB" below refers to the RTX 4070 Ti Super.
 
@@ -320,11 +325,7 @@ inspectors and lint as hand-made assets.
 | Live Blender control | The Blender MCP already on the PC; Opus's own Blender work runs headless and doesn't depend on which one. The official **Blender Lab MCP** (v1.0.3, GPL-3.0, needs Blender 5.1+) is the reference choice. | Don't run the community `mcp-for-blender` alongside it: both use port 9876, and the community one has telemetry on by default. |
 | Blender version | **5.2 LTS** (supported until Jul 2028) | Scripts must follow the 5.x API: `use_nodes` is deprecated, the EEVEE engine id is `BLENDER_EEVEE`, and 5.2 moved Geometry Nodes modifier inputs to `mod.properties.inputs`. |
 | Retopology | QuadriFlow (built in) → Instant Meshes (permissive, batch CLI, Windows binaries) → QRemeshify (GPL-3 Blender extension, cleanest quads) | Machine-learning retopology is still research-grade. |
-| CC0 models and textures | Poly Haven (free API), ambientCG (API v3), Kenney, Quaternius and KayKit (bulk downloads), Poly Pizza (needs an API key) | All CC0 except Poly Pizza, which mixes CC0 and CC-BY, so the ledger stores attribution per model. The Poly Haven API requires a unique User-Agent. |
-| Image-to-3D, local | **TRELLIS.2** via **trellis.cpp** (MIT, Windows CUDA builds; its 1024 cascade fits 16 GB, about 3–7 min per textured GLB, includes quad retopology) or ComfyUI's native INT8 TRELLIS.2. **Pixal3D** (MIT, same stack) for characters drawn as turnaround sheets. Hunyuan3D 2.0 fits (6 GB shape, 16 GB with plain-color texture). | Raw output is dense triangles; the cleanup stage (remesh/decimate to budget, UVs, re-bake) is required. Hunyuan3D 2.1 PBR needs ~21 GB. Hunyuan3D carries Tencent's EU/UK/South Korea exclusion. SAM 3D needs 32 GB and outputs splats. |
-| Low-poly mesh generators | **MeshAnything V2** (≤1,600 faces with artist-like topology, ~8 GB; NC license, fine here) for stylized low-poly; then retexture. | Linux, so WSL2/Docker on Windows. DeepMesh and Mesh-Silksong are research-grade. |
-| Texture an existing mesh | TRELLIS.2's mesh-texturing mode; Hunyuan3D-2.0 Paint (fits 16 GB) | For texturing models built procedurally with Shape Kit. MV-Adapter's SD2.1 variant fits but produces no PBR. |
-| Image-to-3D, paid | **Meshy**: API from $20/mo; smart topology (100–15k faces), quads, PBR, rigging. **Tripo**: face limits, quad and low-poly modes, auto-rig with Mixamo bone names, official Godot plugin. **Rodin Gen-2.5**: quads, PBR; API needs the $120/mo plan. | Meshy's free-plan output is CC BY 4.0. |
+| Human-made models and textures | Poly Haven (free API), ambientCG (API v3), Kenney, KayKit and Quaternius (bulk downloads), Poly Pizza (needs an API key) | Poly Haven, ambientCG and Kenney are CC0. KayKit and Quaternius licences are recorded per pack from a snapshot of the page at download time (Quaternius uses QAL v1.0, not CC0). Poly Pizza mixes CC0 and CC-BY, so the ledger stores attribution per model. The Poly Haven API requires a unique User-Agent and a credit line. |
 
 ### 6.2 Pixel art
 
@@ -339,19 +340,16 @@ inspectors and lint as hand-made assets.
 | Tilesets and autotiling | Godot TileSet terrains (47-tile blob for corners + sides, 16 tiles for corners-only or sides-only), peering bits set by a headless `godot --script`; **TileMapDual** (MIT, dual-grid, 15 tiles instead of 47); Better Terrain (public domain) | Tileset Builder generates tiles plus a ready TileSet resource. |
 | Godot pixel setup | Stretch mode `viewport` + integer scaling + Nearest filter for pixel-perfect games, `canvas_items` for hi-res sprites with smooth motion; PixelPerfectSmoother (MIT) for camera jitter; Sprite3D with Nearest + alpha cut for HD-2D | Normal maps for 2D lighting: Laigter (GPL-3, CLI) into a CanvasTexture. |
 | Palettes | Lospec `.hex` downloads (the `palette_apply` tool accepts `lospec:<slug>`); our `palette_ramp` for hue-shifted ramps | Lospec has no official API; `.hex` URLs work. |
-| Sprite animation from AI | Wan 2.2 image-to-video + a pixel-animate LoRA (Apache-2.0), then Pixel Cleanup frame by frame | The 14B model needs CPU offload on 16 GB (speed unverified). The 3D → pixel route is the most consistent for many directions. |
+| Sprite animation from AI | *Suspended pending the user's decision on 2D generative models.* Was: Wan 2.2 image-to-video + a pixel-animate LoRA, then Pixel Cleanup frame by frame | The 3D → pixel route is the most consistent for many directions. |
 
 ### 6.3 Animation
 
 | Need | Recommended | Notes and licenses |
 |---|---|---|
-| Motion libraries | **Quaternius Universal Animation Library 1 and 2** (CC0; free editions ~45 clips each, paid editions 120–130+), **Kenney** (CC0), **CMU mocap** (free to use; the data itself can't be resold), **100STYLE** (CC BY 4.0), **Bandai Namco** motion datasets (CC BY-NC: retarget, edit and ship in a free game with attribution), Mixamo (free in games, manual download only) | **BONES-SEED** has 142k mocap clips, free with attribution for anyone under $1M annual revenue. LAFAN1 is CC BY-NC-ND: fine for private prototyping, but retargeted clips can't be shared, so keep it out of builds. |
+| Motion libraries | **Quaternius Universal Animation Library 1 and 2** (licence recorded per pack at download; free editions ~45 clips each), **Kenney** (CC0), **CMU mocap** (free to use; the data itself can't be resold), **100STYLE** (CC BY 4.0), **ACCAD** (CC BY 3.0), **Bandai Namco** motion datasets (CC BY-NC: retarget, edit and ship in a free game with attribution), Mixamo (manual, optional input only, under revocable preview terms) | BONES-SEED is skipped: eligibility for an individual is unclear. LAFAN1 is CC BY-NC-ND, so it is excluded. The full data plan is docs/OVERHAUL.md §7. |
 | Godot animation | Target **Godot 4.7**: BoneMap + `SkeletonProfileHumanoid` retargeting; AnimationTree; root motion; the `SkeletonModifier3D` family — `LookAtModifier3D` and `SpringBoneSimulator3D` (4.4), aim/copy constraints (4.5), the IK family `TwoBoneIK3D` / `FABRIK3D` / `CCDIK3D` / … with joint limits (4.6); `PhysicalBoneSimulator3D` ragdolls | Every runtime procedural layer in the plan is built into the engine; no plugins needed. |
 | Blender animation API | Slotted Actions (since 4.4); `action.fcurves` was removed in 5.0 | Keyframe Director writes through channelbags. Many older scripts and add-ons break on 5.x. |
 | Rigging and retargeting | Our own game-rig templates (deform bones in one hierarchy, Godot humanoid names); **GameRig** (GPL-2.0) to make Rigify rigs game-ready; **Retarget** extension (GPL-3.0, maintained Expy Kit fork, Blender 5.0+); Robust Weight Transfer (GPL-3.0); Auto-Rig Pro (paid; has Godot humanoid naming) | Rigify alone doesn't export the clean deform hierarchy Godot needs. The Rokoko add-on likely breaks on Blender 5.x and requires a sign-in. |
-| Auto-rig models | **SkinTokens** (MIT, ≥14 GB, fits; UniRig's successor, has a ComfyUI node), UniRig (MIT, ≥8 GB), Puppeteer (Apache-2.0; ~4.6 GB; Linux, so WSL2) | RigAnything is non-commercial. |
-| Text-to-motion | **NVIDIA Kimodo-SOMA** (clips up to 10 s; text plus pose and path constraints; BVH export; under 3 GB VRAM with the text encoder on CPU; ComfyUI bridge node exports BVH and Mixamo FBX). **HY-Motion** fits 16 GB through its ComfyUI node with a quantized or CPU text encoder (~8 GB for the motion model) and exports Mixamo FBX. MoMask (MIT code; runs on CPU). | Kimodo needs the gated Llama 3 8B text encoder, and its card admits foot skating, which our foot-lock cleanup targets. HY-Motion carries Tencent's territory exclusion. MoMask is trained on AMASS, whose license allows non-commercial artistic projects like these games. |
-| Video-to-motion | **SAM 3D Body**, native in ComfyUI with smoothing and BVH/GLB export: the easiest Windows path. SAM-Body4D (MIT; peaks ~14.5 GB for 100 frames) for longer video; FreeMoCap (AGPL, multi-webcam); QuickMagic (paid) | SMPL and SMPL-X licenses allow non-commercial artistic projects but forbid sharing the body models themselves, so ship retargeted motion, never SMPL meshes. GVHMR allows non-profit use. |
 
 ### 6.4 Sound
 
@@ -378,8 +376,8 @@ them).
 |---|---|---|
 | **0 · Foundation** | Plugin skeleton + desktop-app packaging, hook-up to the existing Blender and Godot MCPs, Project Bible, Provenance Ledger, downloads manifest + `opus doctor`, eval baseline. | From any project, Claude runs our in-Blender code through the Blender MCP, captures a frame from Godot, and reads the bible. Baseline outputs for the 3D and pixel-art eval tasks recorded. |
 | **1 · See it** (3D + pixel art) | Look Dev Sheet, Mesh Lint, Sprite Inspector, Pixel Cleanup, Palette Lab, Audition Board, critic subagents. | Every 3D and pixel asset is checked with images and numbers before the user sees it. |
-| **2 · Make it** (3D + pixel art) | Shape Kit, Material Lab + Bake, Asset Librarian, Godot Import Pipeline, Gen3D + Cleanup, Gen Texture, Godot Look Presets · 3D → Pixel Renderer, Tileset Builder, Godot Pixel Setup, AI Pixel Pipeline, Pixel Forge. | Blind-rated improvement on the 3D and pixel-art eval tasks. |
-| **3 · Animation** | Motion Inspector, Motion Library + Retargeter, Godot Animation Wiring + game feel, Rig Doctor, Sprite Animator, Keyframe Director, Animation Events, mocap from video/text. | Animation eval tasks pass the motion checks, with a blind-rated improvement. |
+| **2 · Make it** (3D + pixel art) | 3D: see docs/OVERHAUL.md §9 (sprints S0a–S11). Pixel art: 3D → Pixel Renderer, Tileset Builder, Godot Pixel Setup, AI Pixel Pipeline (pending the 2D decision), Pixel Forge. | Blind-rated improvement on the 3D and pixel-art eval tasks. |
+| **3 · Animation** | See docs/OVERHAUL.md §5 and §9. Sprite Animator stays here. | Animation eval tasks pass the motion checks, with a blind-rated improvement. |
 | **4 · Sound** | Audio Inspector, SFX Library + Sound Forge, Godot Audio Packager, Gen Audio, Synth recipes. | Sound eval tasks pass loudness and loop checks, with a blind-rated improvement. |
 | **5 · Depth** | Music Studio, Mix Check, Lip Sync, Sim Bake, Blueprint & Match, Lineup Render, recipe memory, Pixel Editor Bridge. | — |
 
@@ -453,23 +451,26 @@ Feedback: in first-person work, held objects sat inside the palm or floated besi
   millimeter on four body presets and both hands; a handle pushed through the palm and one
   floating off it are both caught; the pistol's index lands on the trigger.
 
-**Next:**
+**Overhaul design (2026-10-21).** Feedback: 3D models and animation still took too much
+trial and error. A research pass (17 agents: LLM-to-3D papers, per-category craft and
+data, animation, design process) and a design pass (4 competing proposals, 3 judges,
+3 reviews) produced [docs/OVERHAUL.md](docs/OVERHAUL.md). In short: Claude writes a typed
+spec of parts, anchors and the game camera; every number in it comes from a sourced
+table, a profile traced from human-made work, a solver or the user; numeric checks run
+before any opinion; fixes edit the spec instead of regenerating; the camera sets the
+detail level; and results are compared against human-made exemplars at game size.
 
-1. Install and smoke-test on the PC, then record the eval baseline (now including
-   "make a recognizable dragon / knight / wolf" tasks scored by blind read).
-2. **Engine Bridge, Unreal adapter:** FBX import with the right settings through the
-   Unreal MCP, a Lumen frame capture, retarget check against the UE mannequin.
-3. **Fit to Reference:** tune a blockout's canon numbers until its silhouettes match a
-   concept image, using Reference Match as the score.
-4. **More archetypes:** bird, serpent, insectoid/spider, fish, and custom canons in the
-   project bible.
-5. **Shape Kit with sockets** for props and kitbashing onto blockouts; Dimensions &
-   Measure.
-6. **Holding, continued:** long guns placed by the stock against the shoulder, sights
-   lined up with the eye automatically, a hand-pose library (fist, point, open, pinch) on
-   the same contact solver, and the grip pose exported as Unreal pose assets.
-7. Then, as before: Godot and Unity adapters, Audition Board, and Phase 2 starting with
-   the **3D → Pixel Renderer** and **Tileset Builder**.
+**Next:** the overhaul's sprints, in order (docs/OVERHAUL.md §9):
+
+1. **S0a (v0.4 quick wins):** PC smoke test of v0.3; camera profiles and a game-size
+   readability check; canon fixes (human foot and hand, dog, cat and horse hind legs);
+   hygiene fixes; checklist and lineup critique; licence IDs and flags; the 24-task eval
+   baseline.
+2. **S0b:** the spec compiler core, kept only if it beats v0.4 in a measured A/B test.
+3. **S1–S11:** HD humans, creatures, design lock and appeal, weapons and first-person,
+   motion, creature gaits and pixel rendering, clothing and armor, surfaces, landscapes
+   and trees, then buildings, faces, hair and vehicles.
+4. Pixel art and sound continue from this plan in between.
 
 ## 8. Honest limits
 
@@ -478,16 +479,19 @@ Feedback: in first-person work, held objects sat inside the palm or floated besi
   Board makes that a 30-second job.
 - **Organic sculpting purely in code stays limited.** Canon blockouts now get proportions
   and the rig right, but surface detail (faces, hands, musculature, scales) still comes
-  from library bases + kitbashing, image-to-3D + cleanup, or sculpting over the blockout. Hard-surface props, architecture,
-  environments and low-poly are where procedural code gets genuinely good.
+  from library bases (the CC0 MakeHuman body and its targets), kitbashing, bakes and
+  CC0 materials, or sculpting over the blockout. Hard-surface props, architecture,
+  environments and low-poly are where procedural code gets genuinely good. See
+  docs/OVERHAUL.md §10 for what stays hard.
 - **Hi-res pixel characters are hard to draw in code.** The realistic routes are 3D → pixel
   renders, AI generation + cleanup, or the user's sketches cleaned up by the pipeline.
   Procedural code is genuinely good for icons, UI, tiles and props.
 - **Hand-keyed human locomotion won't match mocap.** Humans → library or mocap + retarget +
   in-engine procedural layers. Creatures, props, machines and cartoony actions → Keyframe
   Director.
-- **Generative models** vary in quality and are capped by 16 GB of VRAM. Some licenses are
-  research-only or region-restricted. They're optional backends, never the foundation.
+- **Generative models** are not used for 3D or animation. The 2D image and audio ones
+  vary in quality, are capped by 16 GB of VRAM and some are research-only or
+  region-restricted; they're optional backends, never the foundation.
 - **Disk:** asset, sound and model downloads add up quickly; the manifest marks each one
   optional or recommended, with its size, so the ~100 GB budget is spent deliberately.
 
@@ -502,5 +506,6 @@ Feedback: in first-person work, held objects sat inside the palm or floated besi
 3. What does "hi-res" pixel art mean for you: roughly how tall are characters (32, 64,
    128 px?), and are there games whose look you're aiming for?
 4. Do you use a pixel editor (Aseprite, Pixelorama, LibreSprite, …)?
-5. If you or your friends are in the EU, UK or South Korea, Tencent's models (Hunyuan3D,
-   HY-Motion) are off the table. Let me know if that applies.
+5. Does the no-generative-models rule also cover 2D: the image-model pixel pipeline
+   (Z-Image, FLUX.2 klein, PixelLab) and AI sprite animation? Until you decide, those stay
+   in the plan but aren't built. (`pixel_cleanup` itself is classical code.)

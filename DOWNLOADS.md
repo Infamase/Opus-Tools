@@ -5,6 +5,11 @@ when its phase arrives. `opus doctor` reports what's installed and what's missin
 
 Sizes marked "check page" haven't been verified yet; they get filled in before each phase.
 
+For 3D models and animation, the full list of data packs (measured tables, mocap, CC0
+bodies and kits, elevation data) is in [docs/OVERHAUL.md](docs/OVERHAUL.md) §7.2. They are
+fetched sprint by sprint with `data_fetch`, which records each pack's licence. No
+generative model is used for 3D or animation.
+
 ## Needed now (Phase 0–1)
 
 | What | Why | Size | License | Get it |
@@ -15,13 +20,13 @@ Sizes marked "check page" haven't been verified yet; they get filled in before e
 
 ## Later phases: don't download yet
 
-### Local AI hub (Phase 2+)
+### Local AI hub (2D and audio only; pending your decision on 2D)
 
 | What | Why | Size | License | Get it |
 |---|---|---|---|---|
-| ComfyUI (Windows portable or Desktop) | One local server for the image, 3D, motion and audio models below; the toolkit drives it over HTTP | check page | GPL-3.0 | [comfy.org/download](https://www.comfy.org/download) |
+| ComfyUI (Windows portable or Desktop) | One local server for the image and audio models below; the toolkit drives it over HTTP | check page | GPL-3.0 | [comfy.org/download](https://www.comfy.org/download) |
 
-### Pixel art (Phase 2)
+### Pixel art (Phase 2; the image models wait on your decision about 2D generation)
 
 | What | Why | Size | License | Get it |
 |---|---|---|---|---|
@@ -34,16 +39,15 @@ Sizes marked "check page" haven't been verified yet; they get filled in before e
 
 | What | Why | Size | License | Get it |
 |---|---|---|---|---|
-| trellis.cpp (TRELLIS.2) | Image-to-3D on a 16 GB card, Windows CUDA builds | check page | MIT | [GitHub](https://github.com/pwilkin/trellis.cpp) |
-| CC0 model and texture packs | Starting points and kitbash parts | per pack | CC0 | [Kenney](https://kenney.nl/assets) · [Quaternius](https://quaternius.com) · [KayKit](https://kaylousberg.itch.io) · [Poly Haven](https://polyhaven.com) · [ambientCG](https://ambientcg.com) |
+| Human-made model and texture packs | Style references, lineups, kitbash parts, materials | per pack | Kenney, Poly Haven, ambientCG: CC0. KayKit: per page. Quaternius: QAL v1.0 (recorded per pack) | [Kenney](https://kenney.nl/assets) · [Quaternius](https://quaternius.com) · [KayKit](https://kaylousberg.itch.io) · [Poly Haven](https://polyhaven.com) · [ambientCG](https://ambientcg.com) |
 
 ### Animation (Phase 3)
 
 | What | Why | Size | License | Get it |
 |---|---|---|---|---|
-| Quaternius Universal Animation Library 1 & 2 | Humanoid animations ready for retargeting | per pack | CC0 | [itch.io](https://quaternius.itch.io/universal-animation-library) |
-| Mixamo clips | More humanoid animations (manual download) | per clip | free to use in games | [mixamo.com](https://www.mixamo.com) |
-| Motion models via ComfyUI (Kimodo, SAM 3D Body) | Text-to-motion; motion capture from phone video | check page | NVIDIA Open Model / SAM License | added when Phase 3 starts |
+| Quaternius Universal Animation Library 1 & 2 | Humanoid animations ready for retargeting | per pack | recorded per pack from the page | [itch.io](https://quaternius.itch.io/universal-animation-library) |
+| CMU, 100STYLE, ACCAD, Bandai Namco mocap | Clips, gait statistics, combat poses | per set | see docs/OVERHAUL.md §7.2 | fetched by `data_fetch` when S5 starts |
+| Mixamo clips *(optional)* | More humanoid animations, manual download only | per clip | revocable preview terms | [mixamo.com](https://www.mixamo.com) |
 
 ### Sound (Phase 4)
 
@@ -55,6 +59,7 @@ Sizes marked "check page" haven't been verified yet; they get filled in before e
 
 ## Disk budget
 
-You have about 100 GB free. The plan is to stay well under that: the AI hub and models
-take the most, libraries much less. Each phase adds only what that phase needs, and
+You have about 100 GB free. The plan is to stay well under that. 3D and animation data
+needs under 50 MB for the core tables, 5–10 GB for a typical library and at most about
+15 GB with all of CMU and 100STYLE. Each phase adds only what that phase needs, and
 `opus doctor` will show what's using the space.

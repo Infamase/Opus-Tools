@@ -53,13 +53,13 @@ def doctor(project_dir: str | None = None) -> dict:
         "" if g else "Set the plugin's godot_path option to the Godot executable (needed from Phase 2)")
     smi = shutil.which("nvidia-smi")
     add("gpu", bool(smi), _run([smi, "--query-gpu=name,memory.total", "--format=csv,noheader"]) if smi else "no NVIDIA GPU tools found",
-        "" if smi else "Only needed for the optional AI backends")
+        "" if smi else "Only needed for GPU renders and the optional accelerators")
     url = os.environ.get("OPUS_COMFYUI_URL", "http://127.0.0.1:8188")
     try:
         with urllib.request.urlopen(f"{url}/system_stats", timeout=2) as r:
             add("comfyui", r.status == 200, f"reachable at {url}")
     except Exception:  # noqa: BLE001
-        add("comfyui", False, f"not running at {url}", "Optional: start ComfyUI to use local AI backends")
+        add("comfyui", False, f"not running at {url}", "Optional, 2D image and audio only: start ComfyUI to use those backends")
     bible = load_bible(project_dir)
     add("project_bible", bool(bible.get("_file")),
         bible.get("_file") or f"no opus.project.yaml found (project root: {bible.get('_root')})",

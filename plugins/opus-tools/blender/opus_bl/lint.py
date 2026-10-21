@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import os
 import re
 
 import bmesh
@@ -16,14 +17,30 @@ from opus_bl import assets
 DEFAULT_NAME = re.compile(r"^(Cube|Cylinder|Sphere|Plane|Cone|Torus|Icosphere|Circle|Mesh|Object|Suzanne)(\.\d+)?$")
 UV_RASTER = 256
 MAX_UV_FACES = 60000
+GAP_SAMPLES = 2000  # vertices per piece tested for the gap to another piece
+IMPORTED = (".glb", ".gltf", ".fbx", ".obj", ".stl")  # importers split vertices at hard edges and seams
 
 
-def _finding(out, severity, check, obj, count, message, sample=None):
+def _finding(out, severity, check, obj, count, message, sample=None, extra=None):
     if count:
         f = {"severity": severity, "check": check, "object": obj, "count": int(count), "message": message}
         if sample:
             f["sample_locations"] = [[round(c, 4) for c in p] for p in sample[:5]]
+        f.update(extra or {})
         out.append(f)
+
+
+def _rigid_bone(obj) -> str | None:
+    """The bone ``obj`` hangs on rigidly: it (or an object it is parented to) is parented to a
+    bone and no Armature modifier deforms it, the form grip_hold gives a held prop."""
+    if any(m.type == "ARMATURE" for m in obj.modifiers):
+        return None
+    o = obj
+    while o is not None:
+        if o.parent is not None and o.parent_type == "BONE" and o.parent_bone:
+            return o.parent_bone
+        o = o.parent
+    return None
 
 
 def _islands(bm) -> list[list[int]]:
@@ -45,6 +62,99 @@ def _islands(bm) -> list[list[int]]:
         if v.link_edges:
             groups.setdefault(find(v.index), []).append(v.index)
     return list(groups.values())
+
+
+def _pieces(bm, name: str) -> list[dict]:
+    """Each connected piece of ``bm``: its object, vertices (N x 3), box and BVH (None when it
+    has no faces)."""
+    islands = _islands(bm)
+    label = {}
+    for k, island in enumerate(islands):
+        for i in island:
+            label[i] = k
+    faces = [[] for _ in islands]
+    for f in bm.faces:
+        faces[label[f.verts[0].index]].append(f)
+    out = []
+    for island, fs in zip(islands, faces):
+        local = {i: j for j, i in enumerate(island)}
+        co = np.array([bm.verts[i].co[:] for i in island], dtype=float)
+        bvh = BVHTree.FromPolygons(co.tolist(), [[local[v.index] for v in f.verts] for f in fs]) if fs else None
+        out.append({"object": name, "co": co, "lo": co.min(axis=0), "hi": co.max(axis=0), "bvh": bvh})
+    return out
+
+
+def _gap(p: dict, q: dict, limit: float = math.inf) -> float:
+    """How far apart two pieces are: 0 when their surfaces cross or one lies inside the other,
+    else the nearest a vertex of either comes to the other's faces. Distances past ``limit``
+    are not looked for (inf when nothing is that close)."""
+    if p["bvh"] is not None and q["bvh"] is not None and p["bvh"].overlap(q["bvh"]):
+        return 0.0
+    best = limit
+    for a, b in ((p, q), (q, p)):
+        if b["bvh"] is None:
+            continue
+        near = a["co"][np.all((a["co"] >= b["lo"] - best) & (a["co"] <= b["hi"] + best), axis=1)]
+        near = near[:: len(near) // GAP_SAMPLES + 1]
+        inside = len(near) > 0 and bool(np.all((a["lo"] >= b["lo"]) & (a["hi"] <= b["hi"])))
+        for v in near.tolist():
+            loc, normal, _, d = b["bvh"].find_nearest(v)
+            if loc is None:
+                inside = False
+                continue
+            inside &= (Vector(v) - loc).dot(normal) < 0
+            best = min(best, d)
+        if inside:  # every vertex is behind the other's faces: embedded in it
+            return 0.0
+    if p["bvh"] is None and q["bvh"] is None:  # loose edges only: their boxes will do
+        best = min(best, float(np.linalg.norm(np.maximum(0, np.maximum(p["lo"] - q["hi"], q["lo"] - p["hi"])))))
+    return best if best < limit else math.inf
+
+
+def _floating(pieces: list[dict], tol: float) -> tuple[list[tuple[int, int, float]], int]:
+    """Pieces that float: no chain of pieces touching within ``tol`` joins them to one that
+    reaches the asset's lowest point. Returns [(piece, nearest piece it isn't joined to, gap)]
+    and the number of pairs of pieces whose surfaces cross."""
+    n = len(pieces)
+    lo = np.array([p["lo"] for p in pieces])
+    hi = np.array([p["hi"] for p in pieces])
+    parent = list(range(n))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    crossing = 0
+    for i in range(n - 1):  # only pieces whose boxes come within tol can touch
+        near = np.nonzero(np.all((lo[i + 1 :] <= hi[i] + tol) & (hi[i + 1 :] + tol >= lo[i]), axis=1))[0] + i + 1
+        for j in near.tolist():
+            a, b = pieces[i]["bvh"], pieces[j]["bvh"]
+            if a is not None and b is not None and a.overlap(b):
+                crossing += 1
+                parent[find(i)] = find(j)
+            elif find(i) != find(j) and _gap(pieces[i], pieces[j], tol * 1.0001) <= tol:
+                parent[find(i)] = find(j)
+    if n < 2:
+        return [], crossing
+    grounded = {find(i) for i in np.nonzero(lo[:, 2] - lo[:, 2].min() <= tol)[0].tolist()}
+    out = []
+    for i in range(n):
+        if find(i) in grounded:
+            continue
+        # the nearest piece it isn't joined to, closest boxes first
+        box = np.linalg.norm(np.maximum(0, np.maximum(lo - hi[i], lo[i] - hi)), axis=1)
+        best, nearest = math.inf, -1
+        for j in np.argsort(box, kind="stable").tolist():
+            if box[j] > best:
+                break
+            if find(j) != find(i):
+                g = _gap(pieces[i], pieces[j], best)
+                if g < best:
+                    best, nearest = g, j
+        out.append((i, nearest, best))
+    return out, crossing
 
 
 def _uv_checks(bm, uv_layer, out, name):
@@ -138,7 +248,8 @@ def run(
     asset_size = max((hi - lo).length, 1e-6)
     findings: list[dict] = []
     per_object = []
-    all_islands = []  # (object, island bbox lo, hi, island BVH)
+    all_islands = []  # every connected piece of every object (_pieces)
+    imported = os.path.splitext(path)[1].lower() in IMPORTED
     total_tris = 0
     for obj in targets:
         eo = obj.evaluated_get(depsgraph)
@@ -147,8 +258,13 @@ def run(
         bm.from_mesh(me)
         eo.to_mesh_clear()
         bm.transform(obj.matrix_world)
-        if obj.matrix_world.determinant() < 0:
-            bm.normal_update()
+        bm.normal_update()  # transform() leaves normals in object space; flips compare world ones
+        notes = []
+        if imported:  # weld what the importer split, so faces have neighbours again
+            n_verts = len(bm.verts)
+            bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=asset_size * 1e-6)
+            if len(bm.verts) < n_verts:
+                notes.append(f"welded for import: {n_verts - len(bm.verts)} split vertices merged")
         for seq in (bm.verts, bm.edges, bm.faces):
             seq.ensure_lookup_table()
             seq.index_update()
@@ -173,6 +289,9 @@ def run(
                  f"{len(zero)} zero-area faces and {len(short)} zero-length edges", [f.calc_center_median() for f in zero])
 
         is_deforming = deforming if deforming is not None else any(m.type == "ARMATURE" for m in obj.modifiers)
+        rigid = _rigid_bone(obj)
+        if rigid:  # a prop on a bone moves with it whole: nothing deforms
+            is_deforming = False
         _finding(findings, "error" if is_deforming else "info", "ngons", name, len(ngons),
                  f"{len(ngons)} n-gons (5+ sides)" + (": these deform badly, use quads/tris" if is_deforming else ""))
 
@@ -198,17 +317,8 @@ def run(
         else:
             uv_info = _uv_checks(bm, uv_layer, findings, name)
 
-        for island in _islands(bm):
-            cos = [bm.verts[i].co for i in island]
-            ilo = Vector(map(min, *cos)) if len(cos) > 1 else cos[0].copy()
-            ihi = Vector(map(max, *cos)) if len(cos) > 1 else cos[0].copy()
-            vset = set(island)
-            faces = [f for f in bm.faces if f.verts[0].index in vset]
-            bvh = None
-            if faces:
-                verts = [v.co.copy() for v in bm.verts]
-                bvh = BVHTree.FromPolygons(verts, [[v.index for v in f.verts] for f in faces])
-            all_islands.append((name, ilo, ihi, bvh))
+        pieces = _pieces(bm, name)
+        all_islands += pieces
 
         sx, sy, sz = obj.scale
         if min(sx, sy, sz) < 0:
@@ -238,40 +348,35 @@ def run(
         if is_deforming and obj.type == "MESH":
             _weight_checks(obj, findings)
 
-        per_object.append({
+        info = {
             "name": name,
             "tris": tris,
             "faces": len(bm.faces),
             "ngons": len(ngons),
             "flipped_faces": flipped,
-            "islands": sum(1 for i in all_islands if i[0] == name),
+            "islands": len(pieces),
             "uv": uv_info,
             "deforming": bool(is_deforming),
-        })
+        }
+        if rigid:
+            info["rigid_attachment"] = rigid
+        if notes:
+            info["notes"] = notes
+        per_object.append(info)
         bm.free()
 
-    # floating parts: pieces whose bounding box touches no other piece
-    tol = asset_size * 0.002
-    floating = []
-    if len(all_islands) > 1:
-        for i, (n_i, lo_i, hi_i, _) in enumerate(all_islands):
-            touches = False
-            for j, (_, lo_j, hi_j, _) in enumerate(all_islands):
-                if i != j and all(lo_i[k] - tol <= hi_j[k] and lo_j[k] - tol <= hi_i[k] for k in range(3)):
-                    touches = True
-                    break
-            if not touches:
-                floating.append((n_i, (lo_i + hi_i) / 2))
-    for n, center in floating:
-        _finding(findings, "warning", "floating_part", n, 1, "a piece touches nothing else (floating)", [center])
+    # floating parts: pieces that no chain of touching pieces joins to the ground. Touching is
+    # surface distance (BVH), not boxes: a tusk 7 mm off the face has a box inside the head's
+    tol = min(asset_size * 0.002, 0.002)
+    floating, intersecting = _floating(all_islands, tol)
+    for i, j, gap in floating:  # a grounded piece is always in reach, so j >= 0
+        p, near = all_islands[i], all_islands[j]["object"]
+        other = f"another piece of {near}" if near == p["object"] else near
+        _finding(findings, "warning", "floating_part", p["object"], 1,
+                 f"a piece floats {gap * 1000:.1f} mm off {other}: nothing it touches reaches the ground",
+                 [(p["lo"] + p["hi"]) / 2], {"gap_mm": round(gap * 1000, 1), "nearest": near})
 
     # intersecting pieces (common and fine for static props; bad for deforming characters)
-    intersecting = 0
-    for i in range(len(all_islands)):
-        for j in range(i + 1, len(all_islands)):
-            a, b = all_islands[i][3], all_islands[j][3]
-            if a and b and a.overlap(b):
-                intersecting += 1
     _finding(findings, "info", "intersecting_parts", "(asset)", intersecting,
              f"{intersecting} pair(s) of pieces intersect (fine for static props, avoid on deforming meshes)")
 

@@ -162,6 +162,12 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--ansur", default="", help="folder with ANSUR_II_MALE/FEMALE_Public.csv")
     s.add_argument("--out", default="", help="write here instead of data/tables")
 
+    s = sub.add_parser("licence-check", help="what in the provenance ledger blocks export")
+    s.add_argument("--dir", default=".")
+    s.add_argument("--text", default="", help="classify this licence text instead")
+    s.add_argument("--commercial", choices=["true", "false"], default=None)
+    s.add_argument("--publish-assets", choices=["true", "false"], default=None)
+
     sub.add_parser("doctor", help="check integrations")
     sub.add_parser("mcp", help="run the MCP server on stdio")
 
@@ -275,6 +281,17 @@ def main(argv: list[str] | None = None) -> int:
         from opus.tables import build_tables
 
         _print(build_tables(a.ansur or None, a.out or None))
+    elif a.cmd == "licence-check":
+        from opus.ledger import check, classify
+
+        if a.text:
+            lid, flags = classify(a.text)
+            _print({"licence_id": lid, "flags": flags})
+            return 0
+        flag = {None: None, "true": True, "false": False}
+        rep = check(a.dir, commercial=flag[a.commercial], publish_assets=flag[a.publish_assets])
+        _print(rep)
+        return 0 if rep["ok"] else 1
     elif a.cmd == "doctor":
         from opus.doctor import doctor, format_report
 

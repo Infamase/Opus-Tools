@@ -16,7 +16,8 @@ from mcp.server.mcpserver import Image, MCPServer
 from opus import imaging as im
 from opus.bible import init_bible, load_bible, resolve_palette_spec
 from opus.doctor import doctor, format_report
-from opus.ledger import license_flags, record, write_credits
+from opus.ledger import check as licence_policy_check
+from opus.ledger import classify, licences, record, write_credits
 from opus.paths import find_project_root, output_path
 
 INSTRUCTIONS = """\
@@ -35,6 +36,8 @@ it with an inspector, fix what the report and image show, and repeat before show
   Never place held objects by eye.
 - lineup_sheet / ab_sheet: letter-only sheets in both orders for a fresh art-director judge.
 - project_bible holds the project's style rules and budgets; read it before making assets.
+- ledger_record every imported or built asset with its licence_id, inputs and tools;
+  licence_check lists what blocks export under the bible's policy (or classifies a text).
 Paths may be absolute or relative to the project folder.
 """
 
@@ -623,26 +626,63 @@ def project_bible(action: str = "show", project_dir: str = "", project: str = ""
 def ledger_record(
     asset: str,
     source: str,
+    licence_id: str = "",
     license: str = "",
+    inputs: list[dict] | None = None,
+    tools: list[dict] | None = None,
+    attribution: str = "",
     author: str = "",
     url: str = "",
     generator: str = "",
     model: str = "",
     notes: str = "",
 ) -> str:
-    """Record where an asset came from (library, AI model, made by hand) and its license.
+    """Record where an asset came from and under which licence; credits and export checks
+    are built from it. Use for every imported, built or generated asset.
 
-    Use for every imported or generated asset; credits and release checks are built from it.
+    licence_id: SPDX or LicenseRef-* ID from data/licences.yaml (licence_check text= finds
+    it); free license text is classified on whole-name matches only, else it is unknown.
+    inputs: what it was made from, [{"source", "licence_id", "role", "attribution"}], or
+    [{"asset": "path/in/ledger", "role"}] to inherit an earlier asset's flags.
+    tools: [{"name", "licence_id"}] for tools whose terms reach outputs.
+    attribution: the exact credit line when the terms prescribe one.
     """
-    return _json(record(str(_path(asset)), source, license, author, url, generator, model, notes))
+    return _json(record(str(_path(asset)), source, license=license, author=author, url=url, generator=generator,
+                        model=model, notes=notes, licence_id=licence_id, inputs=inputs, tools=tools,
+                        attribution=attribution))
+
+
+@server.tool(structured_output=False)
+def licence_check(
+    project_dir: str = "",
+    text: str = "",
+    commercial: bool | None = None,
+    publish_assets: bool | None = None,
+) -> str:
+    """Check the provenance ledger against the export policy and say what blocks it, per asset.
+
+    unknown always blocks; the bible's commercial: true blocks nc and use-restricted;
+    publish_assets: true blocks nd and no-redistribute-as-asset; sa assets list the licence
+    the output must carry. commercial/publish_assets override the bible for a what-if.
+    text: classify a licence string instead and return its ID, flags, name and URL.
+    """
+    if text:
+        lid, flags = classify(text)
+        info = licences().get(lid or "") or {}
+        return _json({"licence_id": lid, "flags": flags, "name": info.get("name"), "url": info.get("url"),
+                      "notes": info.get("notes")})
+    base = project_dir or os.environ.get("OPUS_PROJECT_DIR") or os.getcwd()
+    return _json(licence_policy_check(base, commercial=commercial, publish_assets=publish_assets))
 
 
 @server.tool(structured_output=False)
 def make_credits(project_dir: str = "") -> str:
-    """Write CREDITS.md from the provenance ledger and list licenses that block a public release."""
+    """Write CREDITS.md (exact attribution strings, share-alike notices, sources) from the
+    provenance ledger, and list what blocks export under the bible's policy."""
     base = project_dir or os.environ.get("OPUS_PROJECT_DIR") or os.getcwd()
     path = write_credits(base)
-    return _json({"credits": str(path), "non_commercial_or_research_assets": license_flags(base)})
+    rep = licence_policy_check(base)
+    return _json({"credits": str(path), "ok": rep["ok"], "blocked": rep["blocked"], "warnings": rep["warnings"]})
 
 
 @server.tool(structured_output=False)

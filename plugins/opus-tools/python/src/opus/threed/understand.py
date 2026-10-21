@@ -248,10 +248,12 @@ def blind_read_sheet(
         }, timeout=timeout)
         for key, label in (("sil", "Silhouette at game size"), ("clay", "Form at game size")):
             row = []
-            for r in (r for r in g["renders"] if r["shot"] == key):
+            for i, r in enumerate(r for r in g["renders"] if r["shot"] == key):
                 img, how = _fit(Image.open(next(iter(r["files"].values()))).convert("RGB"), 250, 340, smooth=key == "clay")
-                dist = f"{r['distance_m']:g} m" if profile.projection == "persp" else "screen"
-                row.append(im.Tile(img, f"{dist} · {how}"))
+                # No meters on a blind sheet: a judge reads "15 m" as the subject's size, not the camera's distance
+                where = "screen" if profile.projection == "ortho" else (
+                    r["level"] if not r["level"].endswith(" m") else f"distance {i + 1}")
+                row.append(im.Tile(img, f"{where} view · {how.replace('true size', 'actual game pixels')}"))
             sheet.add_row(label + (" · FALLBACK camera, not the game's" if profile.fallback else ""), row)
     token = hashlib.sha1(f"{path}{time.time()}".encode()).hexdigest()[:10]
     out = cache_dir("blind", near=path) / f"model_{token}.jpg"

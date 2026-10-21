@@ -177,3 +177,17 @@ def test_inspector_sheet_mode(tmp_path):
     _, rep = inspect_sprite(src, mode="sheet", frame_width=16, frame_height=16, out=tmp_path / "w.png")
     assert rep["animation"]["frames"] == 4
     assert rep["animation"]["baseline_jitter_px"] == 2
+    assert "notes" not in rep
+
+
+def test_inspector_sheet_mode_cuts_a_strip_into_square_frames(tmp_path):
+    """A one-row strip needs no frame size; anything else gets a message naming the CLI flag."""
+    frames = [blob(16), np.roll(blob(16), 1, axis=0)] * 3
+    strip = save_rgba(upscale(np.concatenate(frames, axis=1), 6), tmp_path / "strip.png")  # 576x96, 6 frames
+    _, rep = inspect_sprite(strip, mode="sheet", out=tmp_path / "s.png")
+    assert rep["size"] == [576, 96] and rep["animation"]["frames"] == 6
+    assert rep["notes"] == ["frames assumed square: 6 of 96x96; pass a frame size otherwise"]
+    odd = np.zeros((96, 500, 4), np.uint8)
+    odd[40:56, 40:56] = blob(16)
+    with pytest.raises(ValueError, match=r"needs a frame size: frame_width/frame_height \(CLI: --frame W H\)"):
+        inspect_sprite(save_rgba(odd, tmp_path / "odd.png"), mode="sheet", out=tmp_path / "o.png")

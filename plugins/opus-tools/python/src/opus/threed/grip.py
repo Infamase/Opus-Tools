@@ -6,6 +6,7 @@ Blender does the work (``opus_bl/grip.py``); this module picks paths and lays ou
 
 from __future__ import annotations
 
+import re
 import time
 from pathlib import Path
 
@@ -16,6 +17,43 @@ from opus.blender.runner import run_task
 from opus.paths import cache_dir, output_path
 
 LEGEND = "green = touching · red = inside the object · blue = held object"
+
+
+def _axis(text: str) -> tuple[str, str] | None:
+    """("+"/"-", "X"/"Y"/"Z") for an axis name such as +Z, -x or Y, else None."""
+    m = re.fullmatch(r"\s*([+-]?)\s*([xyzXYZ])\s*", text)
+    return (m.group(1) or "+", m.group(2).upper()) if m else None
+
+
+def axis_name(value: str, name: str) -> str:
+    """An object-local axis as the Blender side names it (+X ... -Z): accepts x, Y, -z."""
+    if not value:
+        return value
+    ax = _axis(value)
+    if ax is None:
+        raise ValueError(f"{name}: give an axis such as +Z or -Y, not {value!r}")
+    return ax[0] + ax[1]
+
+
+def parse_vector(value, name: str, axes: bool = True) -> list[float] | None:
+    """A point or direction as [x, y, z] from a list, "x,y,z" or (``axes``) an axis name such
+    as +Z, -X or y. Empty or None gives None."""
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    items = value
+    if isinstance(value, str):
+        ax = _axis(value) if axes else None
+        if ax is not None:
+            return [(1.0 if ax[0] == "+" else -1.0) if a == ax[1] else 0.0 for a in "XYZ"]
+        items = [x for x in re.split(r"[,;\s]+", value.strip()) if x]
+    try:
+        vec = [float(x) for x in items]
+    except (TypeError, ValueError):
+        vec = []
+    if len(vec) != 3:
+        hint = "give an axis such as +Z or -X, or x,y,z" if axes else "give three numbers x,y,z"
+        raise ValueError(f"{name}: {hint} (got {value!r})")
+    return vec
 
 
 def _sheet(title: str, subtitle: str, tiles: list[dict], out: Path, row_label: str) -> Path:
@@ -50,7 +88,12 @@ def grip_define(
     out_blend: str | Path | None = None,
     timeout: int = 600,
 ) -> tuple[Path, dict]:
-    """Add a grip (SOCKET_grip_<name> empty) to an object and render it for checking."""
+    """Add a grip (SOCKET_grip_<name> empty) to an object and render it for checking.
+
+    Points and directions are lists, "x,y,z" or axis names (+Z, -X); see ``parse_vector``."""
+    start, end, palm_side, up, trigger = (parse_vector(v, k) for k, v in (
+        ("start", start), ("end", end), ("palm_side", palm_side), ("up", up), ("trigger", trigger)))
+    point_axis = axis_name(point_axis, "point_axis")
     path = Path(path).expanduser().resolve()
     work = cache_dir("grip", near=path) / f"{path.stem}_{time.strftime('%Y%m%d-%H%M%S')}"
     rep = run_task(
@@ -85,7 +128,11 @@ def grip_hold(
     out_blend: str | Path | None = None,
     timeout: int = 900,
 ) -> tuple[Path, dict]:
-    """Put an object in a rigged hand and close the fingers on it. Returns (sheet, report)."""
+    """Put an object in a rigged hand and close the fingers on it. Returns (sheet, report).
+
+    ``offset`` is three numbers, a list or "forward,right,down"; ``aim_axis`` an axis name."""
+    offset = parse_vector(offset, "offset", axes=False)
+    aim_axis = axis_name(aim_axis, "aim_axis")
     rig = Path(rig).expanduser().resolve()
     work = cache_dir("grip", near=rig) / f"hold_{time.strftime('%Y%m%d-%H%M%S')}"
     rep = run_task(

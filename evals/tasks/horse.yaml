@@ -21,7 +21,7 @@ accept:
   - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
   - {id: balance, tool: model_report, metric: com_over_footprint, op: "==", value: true, class: hard}
   - {id: proportions, tool: proportion_check, args: {archetype: quadruped, preset: horse}, metric: unintended_findings,
-     op: "==", value: 0, class: hard, note: "hind metatarsal over femur near the horse's 0.806"}
+     op: "==", value: 0, class: soft, note: "hind metatarsal over femur near the horse's 0.806"}
   - {id: reference, tool: reference_match, args: {view: right}, metric: iou, op: ">=", value: 0.8, class: soft}
   - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
      op: "==", value: true, names: [horse, pony, stallion, mare], class: hard}

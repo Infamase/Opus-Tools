@@ -151,5 +151,120 @@ results.append({"case": "box through plate",
                 "kind": pen["kind"], "triangles": pen["triangles"], "depth_mm": round(pen["depth"] * 1000, 3),
                 "sheet_mm": round(pen["sheet"] * 1000, 3), "thickness_mm": round(pen["thickness"] * 1000, 3)})
 
+
+def pen_case(name, plate, other, **extra):
+    pen = geom.penetration(plate, other)
+    return {"case": name, "kind": pen["kind"] if pen else None, "depth_mm": round(pen["depth"] * 1000, 3) if pen else 0.0,
+            "sheet_mm": round(pen.get("sheet", 0.0) * 1000, 3) if pen else 0.0, **extra}
+
+
+def obj_from(name, co, tris):
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(np.asarray(co).tolist(), [], np.asarray(tris).tolist())
+    o = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(o)
+    return o
+
+
+# 7. a cube with one face (2 triangles) reversed, as mesh_lint's flipped_normals finds in
+#    user assets: the faces are turned to agree, so the part stays closed and the sign exact
+co, tris = box_mesh(half, Matrix())
+flipped = tris.copy()
+flipped[:2] = flipped[:2, ::-1]
+side = geom.Solid(co, flipped)
+x0 = co[tris[0]][:, 0].mean()  # the reversed face's plane
+q = np.column_stack([x0 * rng.uniform(0.6, 0.99, 500), rng.uniform(-0.8, 0.8, 500), rng.uniform(-0.8, 0.8, 500)])
+results.append(score("cube, one face reversed", side, q, box_sdf(q, half), {"closed": not side.open.any()}))
+
+# 8. a curved 3 mm plate (a 120 degree cylinder section, Solidify) and a box whose front face
+#    pokes 0.5 mm past the plate's concave side at its middle: a crossing, not "through"
+n, R, L = 41, 0.15, 0.3
+ring = [(R * math.sin(math.radians(-60 + 120 * i / (n - 1))), -R * math.cos(math.radians(-60 + 120 * i / (n - 1)))) for i in range(n)]
+sheet_co = [(x, y, z) for z in (-L / 2, L / 2) for x, y in ring]
+sheet_quads = [(k, k + 1, n + k + 1, n + k) for k in range(n - 1)]
+me = bpy.data.meshes.new("curved")
+me.from_pydata(sheet_co, [], sheet_quads)
+curved = bpy.data.objects.new("curved", me)
+bpy.context.scene.collection.objects.link(curved)
+mod = curved.modifiers.new("solid", "SOLIDIFY")
+mod.thickness, mod.offset = 0.003, 1.0
+bpy.context.view_layer.update()
+shell = geom.Solid.from_objects([curved])
+mid = shell.V[np.abs(shell.V[:, 0]) < 1e-9]
+inner = float(mid[:, 1].max())  # the concave side faces +Y, toward the axis
+sh = shell.shell()
+normals = [s_.FN.mean(axis=0) for s_ in sh["sides"]]
+torso = geom.Solid(*box_mesh(np.array([0.005, 0.025, 0.005]), Matrix.Translation((0, inner - 0.0005 + 0.025, 0))))
+results.append(pen_case("curved plate, box 0.5 mm past its concave side", shell, torso,
+                        thickness_mm=round(sh["thickness"] * 1000, 3), sides=len(sh["sides"]),
+                        sides_face_apart=bool(len(normals) == 2 and np.dot(normals[0], normals[1]) < -0.5)))
+
+# 9. a 2 mm plate turned 40 random ways, a box sunk 0.05 mm into its top face each time
+kinds, deepest, apart = {}, 0.0, 0
+for k in range(40):
+    M = Matrix.Translation(tuple(rng.uniform(-1, 1, 3))) @ Euler(tuple(rng.uniform(0, 2 * math.pi, 3))).to_matrix().to_4x4()
+    plate = geom.Solid(*box_mesh(np.array([0.05, 0.05, 0.001]), M))
+    box = geom.Solid(*box_mesh(np.array([0.01, 0.01, 0.01]), M @ Matrix.Translation((0, 0, 0.011 - 0.00005))))
+    sh = plate.shell()
+    apart += int(np.dot(sh["sides"][0].FN.mean(axis=0), sh["sides"][1].FN.mean(axis=0)) < -0.5)
+    pen = geom.penetration(plate, box)
+    kinds[pen["kind"]] = kinds.get(pen["kind"], 0) + 1
+    deepest = max(deepest, pen["depth"], pen.get("sheet", 0.0))
+results.append({"case": "rotated plates, box sunk 0.05 mm", "kinds": kinds, "deepest_mm": round(deepest * 1000, 3),
+                "sides_face_apart": apart})
+
+# 10. a C-clamp (one object: two 3 mm jaws and a spine past the rim) whose jaws press 0.05 mm
+#     into either face of a 2 mm plate: each jaw sits behind the far sheet without crossing it
+e, t = 0.00005, 0.003
+plate = geom.Solid(*box_mesh(np.array([0.05, 0.05, 0.001]), Matrix()))
+parts = [box_mesh(np.array([0.01, 0.01, t / 2]), Matrix.Translation((0.045, 0, 0.001 - e + t / 2))),
+         box_mesh(np.array([0.01, 0.01, t / 2]), Matrix.Translation((0.045, 0, -0.001 + e - t / 2))),
+         box_mesh(np.array([0.002, 0.01, 0.001 + t]), Matrix.Translation((0.057, 0, 0)))]
+clamp = geom.Solid(np.concatenate([p[0] for p in parts]), np.concatenate([p[1] + 8 * i for i, p in enumerate(parts)]))
+results.append(pen_case("clamp, both jaws 0.05 mm into a 2 mm plate", plate, clamp))
+
+# 11. an object scaled to 0 (a common way to hide a part) has no faces: no solid, no crash
+good = obj_from("good", *box_mesh(half, Matrix()))
+zero = obj_from("zero", *box_mesh(half, Matrix()))
+zero.scale = (0.0, 0.0, 0.0)
+bpy.context.view_layer.update()
+both = geom.Solid.from_objects([good, zero])
+#     flattened on one axis instead, its faces weld into a closed sheet with no volume: nothing
+#     is inside it, so a box it rests on is not "penetrated"
+base = geom.Solid(*box_mesh(np.array([0.5, 0.5, 0.5]), Matrix()))
+flat = np.array([(-0.5, 0, 0.5), (0.5, 0, 0.5), (0.5, 0, 0.7), (-0.5, 0, 0.7)])  # front and back on other diagonals
+lid = geom.Solid(np.concatenate([flat, flat]), np.array([(0, 1, 2), (0, 2, 3), (7, 6, 5), (7, 5, 4)]))
+pen = geom.penetration(base, lid)
+results.append({"case": "object scaled to 0", "alone_is_none": geom.Solid.from_objects([zero]) is None,
+                "with_another_tris": len(both.T) if both is not None else 0,
+                "flat_lid_open": bool(lid.open.all()), "flat_lid_depth_mm": round(pen["depth"] * 1000, 3) if pen else 0.0,
+                "flat_lid_inside": int((lid.signed(flat.mean(axis=0) + rng.uniform(-0.05, 0.05, (300, 3))) < 0).sum())})
+
+# 12. a 28,800-triangle handle tube with no end caps: the winding number with distant clusters
+#     as dipoles against the exact sum, and what a solver query costs
+segs, rings_n, r_t, h_t = 96, 151, 0.016, 0.6
+ang = np.linspace(0, 2 * np.pi, segs, endpoint=False)
+tube_co = np.array([(r_t * math.cos(a), r_t * math.sin(a), z) for z in np.linspace(-h_t / 2, h_t / 2, rings_n) for a in ang])
+tube_tris = []
+for i in range(rings_n - 1):
+    for j in range(segs):
+        a0, a1, b0, b1 = i * segs + j, i * segs + (j + 1) % segs, (i + 1) * segs + j, (i + 1) * segs + (j + 1) % segs
+        tube_tris += [(a0, a1, b1), (a0, b1, b0)]
+tube = geom.Solid(tube_co, np.array(tube_tris))
+q = np.column_stack([rng.uniform(-0.03, 0.03, 600), rng.uniform(-0.03, 0.03, 600), rng.uniform(-0.33, 0.33, 600)])
+t0 = time.time()
+exact = tube.winding(q)  # all parts: the exact sum
+t_exact = (time.time() - t0) / len(q)
+fast = tube.winding(q, 0)
+clear = np.abs(exact - 0.5) > 0.02
+near = q[:200] * [0.55, 0.55, 1.0]  # near the wall, where fingers press
+t0 = time.time()
+for p in near:
+    tube.signed1(p)
+t_one = (time.time() - t0) / len(near)
+results.append({"case": "open tube, clustered winding", "open": bool(tube.open.all()), "tris": len(tube.T),
+                "max_err": float(np.abs(fast - exact).max()), "side_wrong": int(((fast > 0.5) != (exact > 0.5))[clear].sum()),
+                "inside": int((exact > 0.5).sum()), "us_exact": round(t_exact * 1e6, 1), "us_signed1": round(t_one * 1e6, 1)})
+
 with open(out, "w", encoding="utf-8") as f:
     json.dump(results, f, indent=1)

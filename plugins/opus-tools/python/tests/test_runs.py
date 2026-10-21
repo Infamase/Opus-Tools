@@ -208,6 +208,23 @@ def test_cli_run_log_and_stats(project, capsys):
     assert stats["by_task"]["chair"]["values"] == {"tris": 4800}
 
 
+def test_cli_keeps_numeric_looking_labels_as_typed(project, capsys):
+    d = str(project)
+    assert cli(["run-log", "run_start", "task=007", "label=1.10", "--dir", d]) == 0
+    start = json.loads(capsys.readouterr().out)
+    assert (start["task"], start["label"]) == ("007", "1.10")
+    assert cli(["run-log", "iteration", "n=2", "hard_fail_count=1", "--dir", d]) == 0
+    assert json.loads(capsys.readouterr().out)["n"] == 2  # the schema still makes numbers of numeric fields
+    assert runs.run_stats(project, label="1.10")["overall"]["runs"] == 1
+
+
+def test_other_jsonl_files_at_the_project_root_do_not_hide_the_runs(project):
+    runs.log("run_start", near=project, now=T0, task="wolf")
+    (project / "dialogue.jsonl").write_text('{"line": "hello"}\n', encoding="utf-8")
+    assert runs.run_stats(project)["overall"]["runs"] == 1
+    assert len(runs.read_events(project / ".opus" / "runs")) == 1  # the runs folder itself still works
+
+
 async def _mcp(tmp_path, calls):
     from mcp import ClientSession, StdioServerParameters, stdio_client
 

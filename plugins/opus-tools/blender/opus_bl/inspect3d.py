@@ -174,6 +174,8 @@ def _paint_parts(mode: str, parts: list[dict], highlight: set | None = None, pal
     for i, p in enumerate(parts):
         by_object.setdefault(p["object"], []).append((i, p))
     for obj, plist in by_object.items():
+        if obj.data.users > 1:  # linked duplicates share a mesh: give each its own colors
+            obj.data = obj.data.copy()
         me = obj.data
         vpart = np.full(len(me.vertices), -1)
         for i, p in plist:

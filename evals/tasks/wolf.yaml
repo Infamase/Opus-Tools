@@ -21,7 +21,7 @@ accept:
      note: "nose to tail tip, standing (head and body about 1.15 m plus the tail)"}
   - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
   - {id: proportions, tool: proportion_check, args: {archetype: quadruped, preset: dog}, metric: unintended_findings,
-     op: "==", value: 0, class: hard, note: "hind metatarsal over femur near the wolf's 0.437"}
+     op: "==", value: 0, class: soft, note: "hind metatarsal over femur near the wolf's 0.437"}
   - {id: reference, tool: reference_match, args: {view: right}, metric: iou, op: ">=", value: 0.7, class: soft,
      note: "the reference walks, so a standing model tops out below a perfect match"}
   - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: godot_tp}, metric: top1_names_subject,

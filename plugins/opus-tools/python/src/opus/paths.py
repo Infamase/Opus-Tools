@@ -38,12 +38,18 @@ def find_project_root(start: str | os.PathLike | None = None) -> Path | None:
 
 
 def project_base(near: str | os.PathLike | None = None) -> Path:
-    """Where a project's ledgers live: the project root containing ``near``, else ``near``
-    itself (its folder when it is a file), else the cwd."""
+    """Where a project's ledgers live: the project root containing ``near``; else
+    $OPUS_PROJECT_DIR when ``near`` lies inside it (a Unity or Unreal project has no marker
+    before ``bible init``); else ``near`` itself (its folder when it is a file), else the cwd."""
     root = find_project_root(near)
     if root is not None:
         return root
-    p = Path(near or os.getcwd()).expanduser().resolve()
+    env = os.environ.get("OPUS_PROJECT_DIR")
+    p = Path(near or env or os.getcwd()).expanduser().resolve()
+    if env:
+        e = Path(env).expanduser().resolve()
+        if p == e or e in p.parents:
+            return e
     return p.parent if p.is_file() else p
 
 

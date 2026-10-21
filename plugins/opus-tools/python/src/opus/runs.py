@@ -133,10 +133,13 @@ def _clean(event: str, fields: dict) -> dict:
 
 
 def _sources(src=None) -> list[Path]:
-    """The ledger files behind ``src``: a .jsonl file, a folder of them, or a project."""
+    """The ledger files behind ``src``: a .jsonl file, a project (its .opus/runs, even when
+    other .jsonl files sit at its root), or a folder of ledger files."""
     p = Path(src or os.environ.get("OPUS_PROJECT_DIR") or os.getcwd()).expanduser().resolve()
     if p.is_file():
         return [p]
+    if (p / ".opus" / "runs").is_dir():
+        p = p / ".opus" / "runs"
     if p.is_dir() and (any(p.glob("*.jsonl")) or (p.name == "runs" and p.parent.name == ".opus")):
         return sorted(p.glob("*.jsonl"))
     d = project_base(p) / ".opus" / "runs"
@@ -392,6 +395,10 @@ METRICS: dict[str, tuple | None] = {
     "art_director": ("checklist_no",),
     "probe": None,
 }
+# uncalibrated heuristics stay soft until defect injection and clean fixtures calibrate them
+# (§2.5): fixed-tolerance proportions (percentile-based in S1) and the readability floors
+SOFT_ONLY = {("proportion_check", "unintended_findings"), ("readability_check", "defining_under_floor"),
+             ("readability_check", "subject_px")}
 OPS = ("==", "!=", "<=", ">=", "<", ">", "between", "in")
 CLASSES = ("hard", "soft", "report")
 SCORE_FIELDS = ("accepted", "iterations_to_hard_pass", "iterations_to_accept", "hard_fail_count_first",
@@ -461,6 +468,8 @@ def _check_errors(c, where: str) -> list[str]:
         errs.append(f"{where}: {op} needs a number")
     if c.get("class") not in CLASSES:
         errs.append(f"{where}: class must be one of {CLASSES}")
+    elif c["class"] == "hard" and (tool, metric) in SOFT_ONLY:
+        errs.append(f"{where}: {tool} {metric} is an uncalibrated heuristic, so its class is soft (§2.5)")
     if tool == "probe" and not c.get("measure"):
         errs.append(f"{where}: a probe says how it measures (measure)")
     if tool == "blind_read_sheet" and not (isinstance(c.get("names"), list) and c["names"]):

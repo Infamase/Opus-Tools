@@ -41,10 +41,14 @@ _SPELLING = {"licence": "license", "licences": "licenses", "licenced": "licensed
 
 
 @lru_cache(maxsize=1)
+def _data() -> dict:
+    return yaml.safe_load((data_dir() / "licences.yaml").read_text(encoding="utf-8"))
+
+
+@lru_cache(maxsize=1)
 def licences() -> dict[str, dict]:
     """The licence table from ``data/licences.yaml``, keyed by licence ID."""
-    raw = yaml.safe_load((data_dir() / "licences.yaml").read_text(encoding="utf-8"))
-    table = raw["licences"]
+    table = _data()["licences"]
     for lid, e in table.items():
         for key in ("flags", "tool_flags"):
             bad = set(e.get(key) or []) - set(FLAGS)
@@ -74,6 +78,33 @@ def _aliases() -> tuple[dict[tuple[str, ...], str], int]:
             if key and index.setdefault(key, lid) != lid:
                 raise ValueError(f"licences.yaml: {phrase!r} names both {index[key]} and {lid}")
     return index, max(map(len, index))
+
+
+@lru_cache(maxsize=1)
+def _restrictions() -> tuple[dict[tuple[str, ...], set[str]], int]:
+    """Token runs -> the flags a restriction phrase beside a licence name adds."""
+    index: dict[tuple[str, ...], set[str]] = {}
+    for flag, phrases in (_data().get("restrictions") or {}).items():
+        if flag not in FLAGS:
+            raise ValueError(f"licences.yaml: unknown restriction flag {flag!r}")
+        for phrase in phrases:
+            index.setdefault(_tokens(str(phrase)), set()).add(flag)
+    return index, max(map(len, index), default=0)
+
+
+_VERSION_WORDS = ("license", "version", "international", "unported", "generic")
+
+
+def _other_version(lid: str, toks: tuple[str, ...], j: int) -> int:
+    """Where a version number after a versionless name ends ("CC BY-SA" then "3.0", "BSD"
+    then "4"), when it is not ``lid``'s own version; else 0."""
+    while j < len(toks) and toks[j] in _VERSION_WORDS:
+        j += 1
+    k = j
+    while k < len(toks) and toks[k].isdigit() and len(toks[k]) <= 2:
+        k += 1
+    own = re.findall(r"\d+", lid)
+    return k if k > j and own and own[: k - j] != list(toks[j:k]) else 0
 
 
 @lru_cache(maxsize=1)
@@ -122,36 +153,61 @@ def classify(text: str) -> tuple[str | None, list[str]]:
     """Licence ID and flags for free licence text, matched only on whole-token aliases.
 
     Several licences named in one text are joined with AND (OR when only "or" stands between
-    them) and their flags united either way. Text that names none gives (None, ["unknown"]).
+    them) and their flags united either way. Restriction phrases beside them ("non-commercial
+    use only") add their flags. A name without a version followed by a version the table
+    does not list ("CC BY-SA 3.0", "BSD-4-Clause") is never read as another version: it adds
+    unknown. Text that names none gives (None, ["unknown"]).
     """
     index, longest = _aliases()
+    words, wlong = _restrictions()
     toks = _tokens(text or "")
-    expr, end, i = "", 0, 0
+    expr, end, i, extra = "", 0, 0, set()
     while i < len(toks):
         for k in range(min(longest, len(toks) - i), 0, -1):
             lid = index.get(toks[i:i + k])
             if lid:
+                j = 0 if any(t.isdigit() for t in toks[i:i + k]) else _other_version(lid, toks, i + k)
+                if j:
+                    extra.add("unknown")  # a version this table does not list
+                    end = i = j
+                    break
                 if lid not in _ids(expr):
                     expr += (" OR " if toks[end:i] == ("or",) else " AND ") * bool(expr) + lid
                 end = i = i + k
                 break
         else:
-            i += 1
+            for k in range(min(wlong, len(toks) - i), 0, -1):
+                if toks[i:i + k] in words:
+                    extra |= words[toks[i:i + k]]
+                    i += k
+                    break
+            else:
+                i += 1
     if not expr:
         return None, ["unknown"]
-    return expr, flags_for(expr)
+    return expr, _ordered(set(flags_for(expr)) | extra)
+
+
+def _narrowed(lid: str, text: str) -> set[str]:
+    """Flags that ``text``, naming licence ``lid``, adds to it (restriction phrases, versions
+    the table does not list); none when it names something else."""
+    tid, tflags = classify(text)
+    return set(tflags) - set(flags_for(tid)) if tid == lid else set()
 
 
 def _resolve(licence_id: str = "", text: str = "", tool: bool = False) -> tuple[str | None, list[str]]:
-    """ID and flags from an explicit ID or SPDX expression, else from free text."""
+    """ID and flags from an explicit ID or SPDX expression, else from free text. Text that
+    names the same licence still narrows it ("CC BY, non-commercial use only"). An ID the
+    table lacks ("CC-BY-SA-3.0-IGO") stays as given, and unknown."""
     if licence_id:
-        if not any(_canon(i) for i in _ids(licence_id)):
-            lid, _ = classify(licence_id)  # an alias such as "CC BY 4.0" given as the ID
-            licence_id = lid or licence_id
+        if not any(_canon(i) for i in _ids(licence_id)):  # an alias such as "CC BY 4.0" given as the ID
+            licence_id = _aliases()[0].get(_tokens(licence_id)) or licence_id
         expr = re.sub(r"[^\s()]+", lambda m: _canon(m.group()) or m.group(), licence_id)
-        return expr, flags_for(expr, tool)
-    lid, flags = classify(text)
-    return lid, (flags_for(lid, tool) if lid else flags)
+    else:
+        expr, flags = classify(text)
+        if not expr:
+            return None, flags
+    return expr, _ordered(set(flags_for(expr, tool)) | (_narrowed(expr, text) if text else set()))
 
 
 # ---------------------------------------------------------------- entries
@@ -169,7 +225,7 @@ def _rel(path, root: Path) -> str:
 def _part(p: dict, tool: bool = False) -> dict:
     """An input or tool with its licence ID and flags resolved; extra flags given with it
     are kept (they can only add restrictions)."""
-    p = dict(p)
+    p = {k: v for k, v in p.items() if k != "asset" or v}  # "asset": "" or null is a plain input
     if "licence" in p and "license" not in p:
         p["license"] = p.pop("licence")
     lid, flags = _resolve(p.get("licence_id") or "", p.get("license") or "", tool)
@@ -198,7 +254,7 @@ def _sum(e: dict) -> dict:
         stamp.append(own_id)
     for p in e["inputs"]:
         flags.update(p.get("flags") or [])
-        if "asset" in p:
+        if p.get("asset"):
             stamp += p.get("stamp") or []
         elif "sa" in (p.get("flags") or []) and p.get("licence_id"):
             stamp.append(p["licence_id"])
@@ -218,7 +274,7 @@ def _normalise(raw: dict) -> dict:
     for key in ("source", "license", "author", "url", "generator", "model", "notes", "attribution"):
         e.setdefault(key, "")
     e.setdefault("licence_id", None)
-    e["inputs"] = [dict(p) if "asset" in p else _part(p) for p in e.get("inputs") or []]
+    e["inputs"] = [dict(p) if p.get("asset") else _part(p) for p in e.get("inputs") or []]
     e["tools"] = [_part(t, tool=True) for t in e.get("tools") or []]
     return _sum(e)
 
@@ -338,12 +394,16 @@ def _parts(e: dict):
     own_id, own_flags = _own(e)
     text = e.get("license") or ""
     label = f"its licence {own_id}" if own_id else f"its licence text {text!r}" if text else "no licence recorded"
+    if own_id and text and _narrowed(own_id, text):
+        label += f" as {text!r}"  # the text's restriction, not the licence's
     yield label, own_id, own_flags
     for p in e["inputs"]:
-        if "asset" in p:
+        if p.get("asset"):
             label = f"input {p['asset']!r} ({MISSING if p.get('notes') == MISSING else 'see its own ledger entry'})"
         else:
             lid = p.get("licence_id") or (repr(p["license"]) if p.get("license") else "no licence recorded")
+            if p.get("licence_id") and p.get("license") and _narrowed(p["licence_id"], p["license"]):
+                lid += f" as {p['license']!r}"
             label = f"input {p.get('source') or '?'!r} ({lid})"
         yield label, p.get("licence_id"), p.get("flags") or []
     for t in e["tools"]:
@@ -418,7 +478,7 @@ def attributions(items: list[dict]) -> list[str]:
         own_id, own_flags = _own(e)
         out += _credit_lines(e.get("attribution") or "", own_id, own_flags, who)
         for p in e["inputs"]:
-            if "asset" in p:
+            if p.get("asset"):
                 continue  # credited by its own entry
             pwho = (p.get("source") or "?") + (f" by {p['author']}" if p.get("author") else "") + (f" ({p['url']})" if p.get("url") else "")
             out += _credit_lines(p.get("attribution") or "", p.get("licence_id"), p.get("flags") or [], pwho)

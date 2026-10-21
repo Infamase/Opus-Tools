@@ -112,7 +112,16 @@ def _world(color, hdri: str | None = None):
     nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
 
 
+def _neutral_output():
+    """The sRGB display, and the opened file's compositor and sequencer off: a glare, grade or
+    wide-gamut display there would shift every rendered color."""
+    scene = bpy.context.scene
+    scene.display_settings.display_device = "sRGB"  # before the view transform it offers
+    scene.render.use_compositing = scene.render.use_sequencer = False
+
+
 def _render_settings(size: int):
+    _neutral_output()
     r = bpy.context.scene.render
     r.resolution_x = r.resolution_y = int(size)
     r.resolution_percentage = 100
@@ -155,10 +164,13 @@ def _soft_edges():
 def mask_mode(color_type="SINGLE", single=(0.0, 0.0, 0.0), bg=BG, transparent: bool = False):
     """Workbench for masks: every pixel is exactly one part color or the background.
 
-    Every part-ID, silhouette and focus pass uses it: anti-aliasing off, FLAT light, Standard
-    view transform with no look, dither 0 and no filter blur. Shaded and clay passes keep
-    anti-aliasing (``_workbench``). ``transparent`` renders the background as alpha 0.
+    Every part-ID, silhouette and focus pass uses it: anti-aliasing off, FLAT light, the sRGB
+    display with the Standard view transform and no look, dither 0, no filter blur, and the
+    opened file's compositor and sequencer off (a glare or grade there shifts every color).
+    Shaded and clay passes keep anti-aliasing (``_workbench``). ``transparent`` renders the
+    background as alpha 0.
     """
+    _neutral_output()
     _workbench(light="FLAT", color_type=color_type, single=single, cavity=False, outline=False, bg=bg)
     scene = bpy.context.scene
     scene.display.render_aa = "OFF"

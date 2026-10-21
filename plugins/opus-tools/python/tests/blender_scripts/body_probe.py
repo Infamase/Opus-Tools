@@ -27,6 +27,11 @@ rep = {
     "lengths": {n: float(np.linalg.norm(t - h)) for n, (h, t) in bones.items()},
     "weighted_bones": sorted(used),
 }
+if "hand_l" in bones and "clavicle_l" not in bones:  # a quadruped: each foot's lowest skin, left side
+    mid = (bones["thigh_l"][0][1] + bones["upperarm_l"][0][1]) / 2
+    left = co[:, 0] > 0
+    rep["feet_min_z"] = {"front": float(co[left & (co[:, 1] < mid), 2].min()),
+                         "hind": float(co[left & (co[:, 1] > mid), 2].min())}
 if "middle_01_l" in bones:
     left = co[:, 0] > 0
     ankle = bones["foot_l"][0]

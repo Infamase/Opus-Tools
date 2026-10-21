@@ -15,11 +15,16 @@
 # "license", "v1" as "1"), and an alias matches only as a whole run of tokens, never inside
 # a word; the longest alias at each position wins. Text that names nothing is unknown.
 # Aliases name licences. Descriptions of permissions ("royalty-free", "non-commercial",
-# "research and commercial projects") are never aliases: the same words describe very
-# different terms, and unknown blocks until someone records the ID.
+# "research and commercial projects") and of provenance ("original work", "made by hand",
+# "facts") are never aliases: the same words describe very different terms ("All rights
+# reserved. Original work by ..."), and unknown blocks until someone records the ID.
 # A CC or BSD name without a version maps to the version listed here (CC 4.0,
 # BSD-3-Clause); the flags are the same across those versions. Record the exact ID when
-# it is known.
+# it is known. A versionless name followed by a version that is not listed ("CC BY-SA 2.1",
+# "BSD-4-Clause", "Apache-1.1") is never read as the listed version: it stays unknown until
+# that version is added here, and an ID missing from this table is kept as given.
+# Restriction phrases (below) beside a licence name narrow it: "CC BY, non-commercial use
+# only" is CC-BY-4.0 plus nc. They never pick a licence by themselves.
 
 version: 1
 
@@ -32,6 +37,15 @@ flags:
   use-restricted: the terms limit the use itself (research only, territory exclusions); blocks export when commercial is true, a warning otherwise
   unknown: not classified yet; always blocks export
 
+# flag -> phrases that add it when they stand beside a licence name (the cautious union)
+restrictions:
+  nc: [non-commercial, noncommercial, no commercial use, not for commercial use, personal use only,
+       research only, research use only, educational use only]
+  use-restricted: [research only, research use only]
+  nd: [no derivatives, no derivative works, noderivatives, noderivs, no modifications]
+  no-redistribute-as-asset: [no redistribution, do not redistribute, may not be redistributed, not for redistribution,
+                             not for resale, may not be resold, do not resell]
+
 licences:
   # ---------------------------------------------------------------- Creative Commons
   CC0-1.0:
@@ -40,11 +54,42 @@ licences:
     flags: []
     aliases: [CC0, CC0 1.0, CC-0, CC 0, CC Zero, Creative Commons Zero, CC0 Public Domain Dedication]
 
+  # older versions common on Flickr (2.0), Wikimedia Commons (2.0-3.0) and OpenGameArt (3.0)
+  CC-BY-2.0:
+    name: Creative Commons Attribution 2.0 Generic
+    url: https://creativecommons.org/licenses/by/2.0/
+    flags: [attribution]
+    aliases: [CC BY 2.0, Attribution 2.0 Generic, Creative Commons Attribution 2.0]
+
+  CC-BY-2.5:
+    name: Creative Commons Attribution 2.5 Generic
+    url: https://creativecommons.org/licenses/by/2.5/
+    flags: [attribution]
+    aliases: [CC BY 2.5, Attribution 2.5 Generic, Creative Commons Attribution 2.5]
+
   CC-BY-3.0:
     name: Creative Commons Attribution 3.0 Unported
     url: https://creativecommons.org/licenses/by/3.0/
     flags: [attribution]
     aliases: [CC BY 3.0, Attribution 3.0 Unported, Creative Commons Attribution 3.0]
+
+  CC-BY-SA-2.0:
+    name: Creative Commons Attribution Share Alike 2.0 Generic
+    url: https://creativecommons.org/licenses/by-sa/2.0/
+    flags: [attribution, sa]
+    aliases: [CC BY-SA 2.0, Attribution-ShareAlike 2.0 Generic, Creative Commons Attribution-ShareAlike 2.0]
+
+  CC-BY-SA-2.5:
+    name: Creative Commons Attribution Share Alike 2.5 Generic
+    url: https://creativecommons.org/licenses/by-sa/2.5/
+    flags: [attribution, sa]
+    aliases: [CC BY-SA 2.5, Attribution-ShareAlike 2.5 Generic, Creative Commons Attribution-ShareAlike 2.5]
+
+  CC-BY-SA-3.0:
+    name: Creative Commons Attribution Share Alike 3.0 Unported
+    url: https://creativecommons.org/licenses/by-sa/3.0/
+    flags: [attribution, sa]
+    aliases: [CC BY-SA 3.0, Attribution-ShareAlike 3.0 Unported, Creative Commons Attribution-ShareAlike 3.0]
 
   CC-BY-4.0:
     name: Creative Commons Attribution 4.0 International
@@ -204,7 +249,9 @@ licences:
   LicenseRef-CMU-Mocap:
     name: CMU Graphics Lab Motion Capture Database terms
     url: https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/READMEFIRST.txt
-    flags: []
+    # no resale "even in converted form": an asset pack of retargeted clips is that resale.
+    # Cautious: it also blocks a free clip release, which CMU allows.
+    flags: [no-redistribute-as-asset]
     # CMU's own wording is an alias; the bare phrase "research and commercial projects" is
     # not (it describes permissions, so it stays unknown until the ID is recorded).
     aliases: [CMU mocap, CMU motion capture database, CMU Graphics Lab Motion Capture Database, Free for use in research and commercial projects worldwide]
@@ -289,13 +336,11 @@ licences:
   LicenseRef-Facts:
     name: Facts (not copyrightable)
     flags: []
-    aliases: [facts, factual data, numeric facts]
     notes: Numbers taken from papers and references; cite the source in data/LICENSES.md.
 
   LicenseRef-Own-Work:
-    name: Own work
+    name: Own work made in this project
     flags: []
-    aliases: [original work, made by hand]
     notes: Made in this project from scratch; its licence is the project's choice.
 
   # ---------------------------------------------------------------- models and code with use limits

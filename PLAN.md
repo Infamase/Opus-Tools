@@ -496,7 +496,7 @@ integration run.
   human-made exemplars. `lineup_sheet` (height from the camera profile at a distance, or
   given) and `ab_sheet` make letter-only sheets in both orders with seeded order and no key
   in names or metadata.
-- **Licences.** `data/licences.yaml` (40 SPDX and LicenseRef IDs with flags); the ledger
+- **Licences.** `data/licences.yaml` (45 SPDX and LicenseRef IDs with flags); the ledger
   records `licence_id`, `inputs` lineage, tools and exact attribution; `licence_check`
   enforces the bible's `commercial` and `publish_assets` policy. The six misfiring strings
   classify correctly (QAL → no-redistribute-as-asset, Copernicus → attribution, both
@@ -506,7 +506,26 @@ integration run.
 - **Evals and run ledger.** 24 task specs in `evals/tasks/` (the 8 regression subjects plus
   16 category tasks) that validate against the v0.4 tools; `run_log` / `run_stats` and
   `opus eval list | validate | prompt | summarize | compare | tokens`.
-- **Tests.** 181 tests (67 in v0.3), Blender 5.2.2 integration included: 180 pass
+- **Review fixes.** A review of S0a confirmed 27 findings (24 distinct problems); all are
+  fixed, each with a test. Mask passes also switch the opened file's compositor and
+  sequencer off and use the sRGB display (a glare or a P3 display made every part read
+  "hidden"), linked duplicates get
+  their own ID colors, and an undecodable part map now warns. Thin-plate sheets keep the
+  solid's outward faces (a curved plate's concave side read as "through"), "behind a sheet"
+  counts only from where the other part crosses that sheet (a clamp on both faces is a
+  crossing), faces reversed against their neighbours are turned to agree, objects scaled to
+  0 no longer crash `model_report` and `grip_check`, and a large open part sums distant
+  clusters as dipoles (`grip_hold` on a 29k-triangle capless handle: 53 s → 7.7 s; v0.3
+  3.2 s). Dog and cat front paws stand on the floor with the hind toes. Licences: older CC
+  versions are listed, a version the table lacks stays unknown instead of becoming 4.0,
+  restriction phrases beside a name ("CC BY, non-commercial use only") add their flags,
+  "original work" and "facts" are no longer aliases, CMU mocap may not ship as an asset
+  pack, and the ledger follows `OPUS_PROJECT_DIR` before `bible init`. Camera settings are
+  checked ("orthographic" and "Horizontal" read right, flat or list distances apply, no
+  ortho without `ortho_h`), MCP tools return their error messages, `proportion_check` is a
+  soft eval check until S1 calibrates it, and the game-size blind read flags a FALLBACK
+  view-model.
+- **Tests.** 204 tests (67 in v0.3), Blender 5.2.2 integration included: 203 pass
   and 1 is skipped (the ANSUR rebuild, which passes when `OPUS_ANSUR_DIR` points at the CSVs).
   Integration added checks that every eval check's arguments exist on its MCP tool and that
   each table's licence ID matches its `data/LICENSES.md` entry.

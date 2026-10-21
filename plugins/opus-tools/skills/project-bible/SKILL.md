@@ -17,7 +17,8 @@ Ask everything in **one** message, with suggested defaults so the user can answe
 2. Camera(s): first-person, third-person, top-down, side-scroller, plus the engine's real
    FOV and resolution, and how far away assets are usually seen (close / typical / far).
    First person: the view-model (arms and weapon) camera's FOV, near plane and scale.
-   These go in the `camera` section; readability and lineup checks size assets from it.
+   These go in the `camera` section (`distances: {close: 2, typical: 8, far: 30}` applies
+   to the active profile); readability and lineup checks size assets from it.
 3. Pixel art: palette (a Lospec name like `endesga-32`, a file, or "make one"), typical
    character height in pixels, outline style (dark, selective, none), light direction
 4. 3D: target platform or performance feel, which sets the budgets (defaults are prop

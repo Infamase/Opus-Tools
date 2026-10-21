@@ -135,3 +135,34 @@ def test_viewmodel_is_never_silently_assumed(tmp_path):
     assert not vm.fallback and vm.fov_deg == 74 and vm.near_m == 0.05
     rows = vm.summary()["levels"]
     assert rows[0]["depth_m"] == pytest.approx(0.175) and rows[0]["inside_near_plane"] is False
+
+
+def _bible(tmp_path, text):
+    (tmp_path / "opus.project.yaml").write_text(text, encoding="utf-8")
+    return load_bible(tmp_path)
+
+
+def test_flat_and_list_distances_apply_to_the_active_profile(tmp_path):
+    """The bible asks for close / typical / far; written flat, they used to be ignored."""
+    prof = camera_profile(_bible(tmp_path, "camera: {profile: ue_tp_1080, distances: {close: 2, typical: 8, far: 30}}\n"))
+    assert prof.distances == {"close": 2, "typical": 8, "far": 30}
+    bible = _bible(tmp_path, "camera: {distances: {godot_tp: [1, 2, 5]}}\n")  # the eval tasks' distances_m form
+    assert camera_profile(bible, "godot_tp").distances == {"close": 1, "typical": 2, "far": 5}
+    for bad, msg in (("[1, 2]", "close, typical, far"), ("{close: near}", "must be meters")):
+        with pytest.raises(ValueError, match=msg):
+            camera_profile(_bible(tmp_path, f"camera: {{distances: {{godot_tp: {bad}}}}}\n"), "godot_tp")
+
+
+def test_engine_words_for_projection_and_fov_axis(tmp_path):
+    bible = _bible(tmp_path, "camera:\n  overrides:\n"
+                             "    a: {base: ue_tp_1080, fov_axis: Horizontal, fov_deg: 90}\n"
+                             "    b: {base: unity_tp, projection: orthographic, ortho_h: 10}\n")
+    assert camera_profile(bible, "a").px_per_m(3.5) == pytest.approx(UE.px_per_m(3.5))  # 274, not 154
+    b = camera_profile(bible, "b")
+    assert b.projection == "ortho" and b.px_per_m() == pytest.approx(108)
+    for override, msg in (("{base: unity_tp, projection: ortho}", "needs ortho_h"),
+                          ("{base: unity_tp, projection: isometric, ortho_h: 5}", "projection 'isometric'"),
+                          ("{base: unity_tp, fov_axis: diagonal}", "fov_axis 'diagonal'"),
+                          ("{base: unity_tp, fov_deg: wide}", "fov_deg must be a number")):
+        with pytest.raises(ValueError, match=msg):
+            camera_profile(_bible(tmp_path, f"camera:\n  overrides:\n    c: {override}\n"), "c")

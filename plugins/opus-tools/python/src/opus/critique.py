@@ -315,10 +315,11 @@ def lineup_sheet(
     """The asset render(s) beside 2-3 human-made exemplars at true game size, for "which one
     doesn't belong / looks least professionally made".
 
-    With ``camera`` (a profile name, "" for the bible's) or ``distance_m``, ``height_px`` comes
-    from the game camera instead: ``size_m`` (the subject's real height, or long edge with
-    ``fit="long_edge"``; measured from the first asset when it is a 3D file and 0) times the
-    profile's px_per_m at ``distance_m`` (default: its typical distance).
+    With ``camera`` (a profile name, "" for the bible's), ``distance_m`` or ``size_m``,
+    ``height_px`` comes from the game camera instead (the bible's unless ``camera`` names
+    one): ``size_m`` (the subject's real height, or long edge with ``fit="long_edge"``;
+    measured from the first asset when it is a 3D file and 0) times the profile's px_per_m
+    at ``distance_m`` (default: its typical distance).
 
     Every subject is cut out (transparent or flat-background margins), scaled nearest-neighbour
     to ``height_px`` on-screen pixels (the long edge with ``fit="long_edge"``), placed in a
@@ -337,7 +338,7 @@ def lineup_sheet(
     if fit not in FITS:
         raise ValueError(f"fit must be one of {FITS}")
     from_camera = None
-    if camera is not None or distance_m:
+    if camera is not None or distance_m or size_m:
         first = Path(images[0]).expanduser()
         if not size_m:
             if first.suffix.lower() not in MODEL_SUFFIXES:

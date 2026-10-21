@@ -7,11 +7,13 @@ palette, light direction and triangle budgets come from the project's opus.proje
 
 from __future__ import annotations
 
+import functools
 import json
 import os
 from pathlib import Path
 
 from mcp.server.mcpserver import Image, MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 
 from opus import imaging as im
 from opus.bible import init_bible, load_bible, resolve_palette_spec
@@ -49,6 +51,21 @@ Paths may be absolute or relative to the project folder.
 server = MCPServer("opus", instructions=INSTRUCTIONS)
 
 
+def _tool(fn):
+    """Register ``fn`` as a tool. A bad argument or missing file reaches the caller with its
+    message, so the call can be corrected; any other exception the server reports only as
+    "Error executing tool"."""
+
+    @functools.wraps(fn)
+    def run(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except (ValueError, FileNotFoundError, FileExistsError) as e:
+            raise ToolError(str(e)) from e
+
+    return server.tool(structured_output=False)(run)
+
+
 def _path(p: str) -> Path:
     q = Path(p).expanduser()
     if not q.is_absolute():
@@ -79,7 +96,7 @@ def _before_after(before: Path, after_arr, title: str, out: Path) -> Path:
 
 # ---------------------------------------------------------------- pixel art
 
-@server.tool(structured_output=False)
+@_tool
 def sprite_inspect(
     path: str,
     mode: str = "sprite",
@@ -117,7 +134,7 @@ def sprite_inspect(
     return [Image(path=sheet), _json(rep)]
 
 
-@server.tool(structured_output=False)
+@_tool
 def pixel_cleanup(
     path: str,
     palette: str = "",
@@ -152,7 +169,7 @@ def pixel_cleanup(
     return [Image(path=preview), _json(rep)]
 
 
-@server.tool(structured_output=False)
+@_tool
 def palette_ramp(base_color: str, steps: int = 5, hue_shift: float = 25.0, save_as: str = "") -> list:
     """Build a hue-shifted color ramp through base_color (shadows cooler, highlights warmer).
 
@@ -172,7 +189,7 @@ def palette_ramp(base_color: str, steps: int = 5, hue_shift: float = 25.0, save_
     return [Image(path=out), _json(data)]
 
 
-@server.tool(structured_output=False)
+@_tool
 def palette_apply(path: str, palette: str = "", dither: str = "none", out_path: str = "") -> list:
     """Lock an image to a palette (nearest perceptual color; dither="none" or "bayer4").
 
@@ -194,7 +211,7 @@ def palette_apply(path: str, palette: str = "", dither: str = "none", out_path: 
     return [Image(path=prev), _json({"output": str(dest), "palette": pal.name or pal.source, "colors": len(pal)})]
 
 
-@server.tool(structured_output=False)
+@_tool
 def palette_swap(path: str, from_palette: str, to_palette: str, out_path: str = "") -> list:
     """Recolor a sprite from one palette to another by index (enemy variants, seasons).
 
@@ -212,7 +229,7 @@ def palette_swap(path: str, from_palette: str, to_palette: str, out_path: str = 
 
 # ---------------------------------------------------------------- 3D
 
-@server.tool(structured_output=False)
+@_tool
 def lookdev_sheet(path: str, objects: str = "", engine: str = "", tile: int = 270) -> list:
     """Render a 3D asset from every side in headless Blender and return one labeled sheet.
 
@@ -232,7 +249,7 @@ def lookdev_sheet(path: str, objects: str = "", engine: str = "", tile: int = 27
     return [Image(path=sheet), _json(rep)]
 
 
-@server.tool(structured_output=False)
+@_tool
 def mesh_lint(path: str, objects: str = "", category: str = "", budget_tris: int = 0, deforming: str = "auto") -> str:
     """Check a 3D asset for game-readiness problems and say exactly what to fix.
 
@@ -263,7 +280,7 @@ def _names(objects: str) -> list[str] | None:
     return [s.strip() for s in objects.split(",") if s.strip()] or None
 
 
-@server.tool(structured_output=False)
+@_tool
 def body_blockout(
     archetype: str = "humanoid",
     preset: str = "",
@@ -296,7 +313,7 @@ def body_blockout(
     return [Image(path=sheet), _json(rep)]
 
 
-@server.tool(structured_output=False)
+@_tool
 def look_at(
     path: str,
     views: str = "three_quarter",
@@ -327,7 +344,7 @@ def look_at(
     return [Image(path=sheet), _json(rep)]
 
 
-@server.tool(structured_output=False)
+@_tool
 def model_report(path: str, objects: str = "") -> list:
     """Understand a 3D asset's structure: a labeled part map plus measurements.
 
@@ -345,7 +362,7 @@ def model_report(path: str, objects: str = "") -> list:
     return [Image(path=sheet), text + "\n\n" + _json(rep)]
 
 
-@server.tool(structured_output=False)
+@_tool
 def proportion_check(path: str, archetype: str = "humanoid", preset: str = "auto", pose: str = "auto", objects: str = "") -> list:
     """Measure a character's or creature's proportions against canon bodies at its height.
 
@@ -363,7 +380,7 @@ def proportion_check(path: str, archetype: str = "humanoid", preset: str = "auto
     return [Image(path=sheet), text + "\n\n" + _json(rep)]
 
 
-@server.tool(structured_output=False)
+@_tool
 def reference_match(path: str, reference: str, view: str = "front", humanoid: bool = False, objects: str = "") -> list:
     """Compare the model's silhouette with a concept or reference image (front/side/back).
 
@@ -379,7 +396,7 @@ def reference_match(path: str, reference: str, view: str = "front", humanoid: bo
     return [Image(path=sheet), text + "\n\n" + _json(rep)]
 
 
-@server.tool(structured_output=False)
+@_tool
 def blind_read_sheet(path: str, objects: str = "", game_size: bool = False, camera: str = "", distances: str = "") -> str:
     """Make an unlabeled silhouette + clay sheet for a blind recognizability test.
 
@@ -395,7 +412,7 @@ def blind_read_sheet(path: str, objects: str = "", game_size: bool = False, came
     return f"Blind-read sheet: {sheet}\n\nPrompt for a fresh reviewer (do not add what the model is):\n{prompt}"
 
 
-@server.tool(structured_output=False)
+@_tool
 def readability_check(
     path: str,
     camera: str = "",
@@ -432,7 +449,7 @@ def _floats(text: str) -> list | None:
     return [float(x) for x in text.replace(";", ",").split(",") if x.strip()] if text.strip() else None
 
 
-@server.tool(structured_output=False)
+@_tool
 def grip_define(
     path: str,
     object: str,
@@ -470,7 +487,7 @@ def grip_define(
     return [Image(path=sheet), _json(rep)]
 
 
-@server.tool(structured_output=False)
+@_tool
 def grip_hold(
     rig: str,
     object_path: str = "",
@@ -513,7 +530,7 @@ def grip_hold(
     return [Image(path=sheet), text + "\n\n" + _json(rep)]
 
 
-@server.tool(structured_output=False)
+@_tool
 def grip_check(path: str, side: str = "r", object: str = "", fp: bool = False) -> list:
     """Check how hands hold things in any rigged scene, however it was made: for the palm and
     each finger, touching, the gap in mm, or how deep it sinks into the object, plus any
@@ -537,7 +554,7 @@ def _judge_bg(background: str, near: Path) -> str:
     return background or load_bible(near)["pixel"].get("game_background") or "#808080"
 
 
-@server.tool(structured_output=False)
+@_tool
 def lineup_sheet(
     images: str,
     exemplars: str,
@@ -566,7 +583,8 @@ def lineup_sheet(
     same source. The key is for you only. background defaults to the bible's game background.
     camera/distance_m: take height_px from the game camera instead (opus.camera): size_m (the
     subject's real height in m; measured when the first image is a 3D file) x the profile's
-    px/m at distance_m (default: its typical distance). camera "" with distance_m uses the bible's.
+    px/m at distance_m (default: its typical distance). camera "" with distance_m or size_m
+    uses the bible's camera.
     """
     from opus.critique import lineup_sheet as run
 
@@ -574,11 +592,11 @@ def lineup_sheet(
     if not imgs:
         raise ValueError("give at least one asset image")
     rep = run(imgs, _paths(exemplars), height_px, seed, _judge_bg(background, imgs[0]), fit, view, render_pass,
-              camera=camera if camera or distance_m else None, distance_m=distance_m, size_m=size_m)
+              camera=camera or None, distance_m=distance_m, size_m=size_m)
     return [Image(path=rep["sheets"][0]), _json(rep)]
 
 
-@server.tool(structured_output=False)
+@_tool
 def ab_sheet(
     a: str,
     b: str,
@@ -607,7 +625,7 @@ def ab_sheet(
 
 # ---------------------------------------------------------------- project
 
-@server.tool(structured_output=False)
+@_tool
 def project_bible(action: str = "show", project_dir: str = "", project: str = "", styles: str = "", cameras: str = "") -> str:
     """Show the project's style rules and budgets, or create opus.project.yaml (action="init").
 
@@ -635,7 +653,7 @@ def project_bible(action: str = "show", project_dir: str = "", project: str = ""
     return _json(bible)
 
 
-@server.tool(structured_output=False)
+@_tool
 def ledger_record(
     asset: str,
     source: str,
@@ -665,7 +683,7 @@ def ledger_record(
                         attribution=attribution))
 
 
-@server.tool(structured_output=False)
+@_tool
 def licence_check(
     project_dir: str = "",
     text: str = "",
@@ -688,7 +706,7 @@ def licence_check(
     return _json(licence_policy_check(base, commercial=commercial, publish_assets=publish_assets))
 
 
-@server.tool(structured_output=False)
+@_tool
 def make_credits(project_dir: str = "") -> str:
     """Write CREDITS.md (exact attribution strings, share-alike notices, sources) from the
     provenance ledger, and list what blocks export under the bible's policy."""
@@ -698,7 +716,7 @@ def make_credits(project_dir: str = "") -> str:
     return _json({"credits": str(path), "ok": rep["ok"], "blocked": rep["blocked"], "warnings": rep["warnings"]})
 
 
-@server.tool(structured_output=False)
+@_tool
 def opus_doctor(project_dir: str = "") -> str:
     """Check that Blender, Godot, the GPU, ComfyUI and the project bible are reachable."""
     return format_report(doctor(project_dir or None))
@@ -706,7 +724,7 @@ def opus_doctor(project_dir: str = "") -> str:
 
 # ---------------------------------------------------------------- run ledger
 
-@server.tool(structured_output=False)
+@_tool
 def run_log(
     event: str,
     run: str = "",
@@ -741,8 +759,6 @@ def run_log(
     Events go to ``run`` or the latest open run (tokens and user_rejection: the latest run).
     Returns the entry.
     """
-    from mcp.server.mcpserver.exceptions import ToolError
-
     from opus.runs import log
 
     fields = {"task": task, "asset": asset, "label": label, "model": model, "tier": tier, "findings": findings,
@@ -758,14 +774,10 @@ def run_log(
     if event == "tokens":
         fields.update(input=input_tokens, output=output_tokens)
     base = project_dir or os.environ.get("OPUS_PROJECT_DIR") or os.getcwd()
-    try:
-        entry = log(event, run=run, near=base, **fields)
-    except ValueError as e:  # say why the event was refused, so it can be logged again correctly
-        raise ToolError(str(e)) from e
-    return json.dumps(entry, default=str)
+    return json.dumps(log(event, run=run, near=base, **fields), default=str)
 
 
-@server.tool(structured_output=False)
+@_tool
 def run_stats(task: str = "", label: str = "", project_dir: str = "") -> str:
     """Summarize the run ledger, per task (or asset) and overall: median iterations to a hard
     pass and to accept, judge rounds, validator and user rejections, wall-clock, tokens, and a

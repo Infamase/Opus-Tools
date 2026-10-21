@@ -345,16 +345,10 @@ def main(argv: list[str] | None = None) -> int:
     elif a.cmd == "run-log":
         from opus.runs import log
 
-        def value(v: str):
-            for kind in (int, float):
-                try:
-                    return kind(v)
-                except ValueError:
-                    pass
-            return v
-
+        # strings as typed: the event schema converts its numeric fields, and a label such as
+        # 1.10 stays "1.10"
         fields = dict(f.split("=", 1) for f in a.fields if "=" in f)
-        _print(log(a.event, run=a.run, near=a.dir, **{k: value(v) for k, v in fields.items()}))
+        _print(log(a.event, run=a.run, near=a.dir, **fields))
     elif a.cmd == "run-stats":
         from opus.runs import run_stats
 

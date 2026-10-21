@@ -25,7 +25,7 @@ accept:
   - {id: floating, tool: model_report, metric: floating_parts, op: "==", value: 0, class: hard}
   - {id: rig, tool: model_report, metric: rig_style, op: "==", value: "unreal (UE mannequin)", class: hard}
   - {id: proportions, tool: proportion_check, args: {archetype: humanoid, preset: heroic}, metric: unintended_findings,
-     op: "==", value: 0, class: hard, note: "findings the brief does not explain as armor bulk count"}
+     op: "==", value: 0, class: soft, note: "findings the brief does not explain as armor bulk count"}
   - {id: grip, tool: grip_check, args: {side: r}, metric: verdict, op: "==", value: good grip, class: hard}
   - {id: blind_read, tool: blind_read_sheet, args: {game_size: true, camera: ue_tp_1080}, metric: top1_names_subject,
      op: "==", value: true, names: [knight, armored knight, man-at-arms], class: hard}

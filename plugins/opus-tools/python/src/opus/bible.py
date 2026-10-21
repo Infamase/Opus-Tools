@@ -44,7 +44,7 @@ DEFAULTS: dict = {
     },
     "camera": {
         "profile": "",  # "" = picked from the engine and `cameras`; else a preset or an override name
-        "distances": {},  # per profile: {close, typical, far} in meters from the camera
+        "distances": {},  # {close, typical, far} in meters from the camera, or per profile {<profile>: {...}}
         "overrides": {},  # the project's real settings: {name: {base: preset, fov_deg, res_h, ...}}
         "viewmodel": {},  # first-person view-model camera: {fov_deg, fov_axis, near_m, scale}; never assumed
     },
@@ -87,7 +87,7 @@ pixel:
 camera:                     # the game camera decides how much detail reads (opus.camera)
   profile: ""               # "" = from the engine and cameras above; or ue_tp_1080, ue_fp_1080,
                             # godot_tp, unity_tp, topdown, sidescroller, or a name under overrides
-  distances: {{}}             # meters, per profile: {{ue_tp_1080: {{close: 1.5, typical: 3.5, far: 15}}}}
+  distances: {{}}             # meters: {{close: 1.5, typical: 3.5, far: 15}}, or per profile {{ue_tp_1080: {{...}}}}
   overrides: {{}}             # your real settings: {{ue_tp_1080: {{fov_deg: 100, res_w: 2560, res_h: 1440}}}}
                             # or a new profile: {{my_cam: {{base: godot_tp, fov_deg: 70}}}}
   viewmodel: {{}}             # first-person arms/weapon camera, read from the project, e.g.
@@ -179,9 +179,13 @@ def camera_profile(bible: dict, name: str = ""):
         profile = camera.apply(camera.preset(base), fields, name=name)
     else:
         profile = camera.preset(name)
-    dist = (cam.get("distances") or {}).get(name)
-    if dist:
-        profile = camera.apply(profile, {"distances": dist})
+    dists = cam.get("distances") or {}
+    if not isinstance(dists, dict):
+        raise ValueError("camera.distances: {close, typical, far} in meters, or per profile {<profile>: {...}}")
+    flat = {k: v for k, v in dists.items() if v is not None and not isinstance(v, (dict, list, tuple))}  # {close, ...}
+    for dist in (flat, dists.get(name)):
+        if dist:
+            profile = camera.apply(profile, {"distances": dist}, name=profile.name)
     return replace(profile, note=note) if note else profile
 
 

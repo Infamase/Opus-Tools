@@ -116,6 +116,8 @@ def test_validator_catches_broken_specs(tasks):
     assert "names" in check(tool="blind_read_sheet", metric="top1_names_subject", value=True)
     assert "2-5 yes/no" in check(tool="art_director", metric="checklist_no", questions=["Only one?"])
     assert "at least one hard check" in check(**{"class": "soft"})
+    assert "uncalibrated heuristic" in check(tool="proportion_check", metric="unintended_findings")
+    assert "uncalibrated heuristic" in check(tool="readability_check", metric="defining_under_floor")
 
 
 def test_suite_level_problems_are_reported(tasks):

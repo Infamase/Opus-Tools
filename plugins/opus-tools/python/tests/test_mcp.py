@@ -64,6 +64,28 @@ def test_bad_path_is_a_tool_error(tmp_path):
     assert results[0].is_error
 
 
+def test_bad_arguments_reach_the_caller_with_their_message(tmp_path):
+    """Any exception but ToolError reaches the client only as "Error executing tool <name>"."""
+    (tmp_path / "project.godot").write_text("")
+    save_rgba(blob(16), tmp_path / "a.png")
+    (tmp_path / "opus.project.yaml").write_text("camera: {distances: {godot_tp: [1, 2]}}\n", encoding="utf-8")
+    _, results = anyio.run(_session_call, tmp_path, [
+        ("lineup_sheet", {"images": "a.png", "exemplars": ""}),
+        ("lineup_sheet", {"images": "a.png", "exemplars": "a.png, a.png", "camera": "ue_tp_108", "size_m": 1.0}),
+        ("ledger_record", {"asset": "a.png", "source": "x", "inputs": [{"source": "y", "licence_id": "MIT",
+                                                                       "flags": ["noncommercial"]}]}),
+        ("project_bible", {}),
+        ("sprite_inspect", {"path": "nope.png"}),
+    ])
+    texts = [r.content[0].text for r in results]
+    assert results[0].is_error and "give 2-3 human-made exemplars" in texts[0]
+    assert results[1].is_error and "unknown camera profile 'ue_tp_108'" in texts[1]
+    assert results[2].is_error and "unknown flags ['noncommercial']" in texts[2]
+    assert not results[3].is_error  # a malformed camera block leaves the rest of the bible readable
+    assert '"camera_active"' in texts[3] and "[close, typical, far]" in texts[3]
+    assert results[4].is_error and "does not exist" in texts[4]
+
+
 def _has_blender() -> bool:
     from opus.blender.runner import BlenderNotFound, find_blender
 

@@ -116,6 +116,57 @@ def test_part_map_pass_renders_in_mask_mode(boxes, work):
     assert blended(sil["path"], [(0, 0, 0), (255, 255, 255)]) == 0
 
 
+@pytest.fixture(scope="module")
+def hostile(work):
+    out = work / "hostile"
+    out.mkdir()
+    subprocess.run([BLENDER, "-b", "--factory-startup", "--python", str(SCRIPTS / "hostile_scene.py"), "--", str(out)],
+                   check=True, capture_output=True, timeout=300)
+    return out
+
+
+@needs_blender
+@pytest.mark.parametrize("variant", ["glare", "p3", "linked"])
+def test_part_map_ignores_the_files_compositor_display_and_shared_meshes(hostile, work, variant):
+    """A glare in the file's compositor or a P3 display shifts every ID color, and linked
+    duplicates share one mesh's color attribute; any of them read every part as hidden."""
+    from opus.threed.understand import readability_check
+
+    _, rep = readability_check(hostile / f"{variant}.blend", camera="ue_tp_1080", distances=[3.5],
+                               defining=["Body", "Wheel_L", "Wheel_R"], out=work / f"hostile_{variant}.jpg")
+    (lv,) = rep["levels"]
+    assert lv["unmatched_px"] == 0 and lv["parts_hidden"] == 0
+    d = {x["part"]: x for x in lv["defining"]}
+    assert {x["status"] for x in d.values()} == {"ok"}
+    assert d["Wheel_L"]["area_px"] == pytest.approx(d["Wheel_R"]["area_px"], rel=0.1)
+    assert d["Wheel_L"]["extent_px"] < d["Body"]["extent_px"]  # one wheel, not both
+    assert not any("hidden" in w or "no part color" in w for w in rep["warnings"])
+    if variant != "linked":  # the silhouette pass (also the game-size blind read) stays pure black and white
+        res = run_task("views", {"path": str(hostile / f"{variant}.blend"), "out_dir": str(work / f"hv_{variant}"),
+                                 "size": 200, "shots": [{"view": "front", "pass": "silhouette"}]})
+        assert blended(res["tiles"][0]["path"], [(0, 0, 0), (255, 255, 255)]) == 0
+
+
+def test_a_part_map_that_does_not_decode_warns(tmp_path, monkeypatch):
+    """Pixels that match no ID color would otherwise read as every part hidden, silently."""
+    from opus.threed import understand
+
+    parts = np.zeros((20, 20, 4), np.uint8)
+    parts[5:15, 5:15] = (230, 120, 40, 255)  # a shifted ID color, as a compositor grade makes
+    Image.fromarray(parts, "RGBA").save(tmp_path / "parts.png")
+    Image.fromarray(np.full((20, 20, 3), 90, np.uint8)).save(tmp_path / "shaded.png")
+    fake = {"mode": "objects", "parts": [{"name": "Box", "object": "Box", "color8": [255, 158, 0]}], "size_m": [1, 1, 1.8],
+            "renders": [{"shot": "game", "azimuth": 0.0, "elevation": 0.0, "level": "typical", "distance_m": 3.5,
+                         "crop": [0, 0, 20, 20], "clipped": False, "projected_height_px": 10.0,
+                         "parts_projected": {"Box": [10.0, 100.0]},
+                         "files": {"parts": str(tmp_path / "parts.png"), "shaded": str(tmp_path / "shaded.png")}}]}
+    monkeypatch.setattr(understand, "run_task", lambda *a, **k: fake)
+    _, rep = understand.readability_check(tmp_path / "box.blend", camera="ue_tp_1080", distances=[3.5],
+                                          defining=["Box"], out=tmp_path / "read.jpg")
+    assert rep["levels"][0]["unmatched_px"] == 100
+    assert any("100 subject pixels match no part color" in w for w in rep["warnings"])
+
+
 @needs_blender
 def test_readability_heights_match_px_per_m_on_a_body(human, work):
     from opus.threed.understand import readability_check
@@ -171,3 +222,13 @@ def test_blind_read_sheet_at_game_size(human, work):
     assert sheet.exists() and "human" not in sheet.name
     assert Image.open(sheet).height > 900  # two game-size rows under the full-size views
     assert "game-distance" in prompt
+
+
+@needs_blender
+def test_blind_read_at_game_size_says_when_the_viewmodel_is_a_fallback(boxes):
+    from opus.threed.understand import blind_read_sheet
+
+    _, prompt = blind_read_sheet(boxes, game_size=True, camera="viewmodel", distances=[0.45])
+    assert "FALLBACK view-model" in prompt and "viewmodel missing" in prompt
+    _, prompt = blind_read_sheet(boxes, game_size=True, camera="unity_tp", distances=[4])
+    assert "FALLBACK" not in prompt and "Note:" not in prompt

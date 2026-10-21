@@ -231,15 +231,57 @@ def preset(name: str) -> CameraProfile:
     return replace(PRESETS[name], distances=dict(PRESETS[name].distances))
 
 
+# the engines' own words for the two choices CameraProfile compares exactly
+WORDS = {"projection": {"persp": "persp", "perspective": "persp", "ortho": "ortho", "orthographic": "ortho"},
+         "fov_axis": {"horizontal": "horizontal", "vertical": "vertical"}}
+NUMBERS = {"fov_deg": float, "res_w": int, "res_h": int, "ortho_h": float, "elevation_deg": float, "near_m": float,
+           "scale": float}
+
+
+def distances_of(value, where: str) -> dict:
+    """Distances as {level: meters}, from a mapping or a [close, typical, far] list."""
+    if isinstance(value, (list, tuple)):
+        if len(value) != len(LEVELS):
+            raise ValueError(f"{where}: a list of distances is [close, typical, far] in meters; got {list(value)}")
+        value = dict(zip(LEVELS, value))
+    if not isinstance(value, dict):
+        raise ValueError(f"{where}: distances are {{close, typical, far}} in meters; got {value!r}")
+    out = {}
+    for k, v in value.items():
+        try:
+            out[str(k)] = float(v)
+        except (TypeError, ValueError):
+            raise ValueError(f"{where}: distance {k} must be meters; got {v!r}") from None
+    return out
+
+
 def apply(profile: CameraProfile, fields: dict, name: str | None = None) -> CameraProfile:
-    """``profile`` with the given fields replaced (distances merge per level)."""
+    """``profile`` with the given fields replaced (distances merge per level). Values are
+    checked: an engine's "orthographic" or "Horizontal" reads as ortho and horizontal, and
+    anything that would silently select the other math is an error."""
     fields = dict(fields or {})
     fields.pop("base", None)
+    where = f"camera profile {name or profile.name}"
     unknown = set(fields) - FIELDS
     if unknown:
-        raise ValueError(f"camera profile {name or profile.name}: unknown keys {sorted(unknown)}; allowed: {sorted(FIELDS)}")
-    dist = {**profile.distances, **(fields.pop("distances", None) or {})}
-    return replace(profile, name=name or profile.name, distances=dist, **fields)
+        raise ValueError(f"{where}: unknown keys {sorted(unknown)}; allowed: {sorted(FIELDS)}")
+    for key, words in WORDS.items():
+        if key in fields:
+            word = words.get(str(fields[key]).strip().lower())
+            if word is None:
+                raise ValueError(f"{where}: {key} {fields[key]!r} is not one of {sorted(words)}")
+            fields[key] = word
+    for key, kind in NUMBERS.items():
+        if key in fields:
+            try:
+                fields[key] = kind(fields[key])
+            except (TypeError, ValueError):
+                raise ValueError(f"{where}: {key} must be a number; got {fields[key]!r}") from None
+    dist = {**profile.distances, **distances_of(fields.pop("distances", None) or {}, where)}
+    out = replace(profile, name=name or profile.name, distances=dist, **fields)
+    if out.projection == "ortho" and not out.ortho_h > 0:
+        raise ValueError(f"{where}: an orthographic camera needs ortho_h, the visible world height in meters")
+    return out
 
 
 def viewmodel(block: dict | None, world: CameraProfile) -> CameraProfile:

@@ -90,6 +90,9 @@ def test_lineup_height_comes_from_the_game_camera(subjects):
     assert ue["height_px"] == round(0.25 * camera.preset("ue_tp_1080").px_per_m(3.5)) == 69
     with pytest.raises(ValueError, match="size_m"):
         lineup_sheet(imgs, ex, camera="ue_tp_1080")  # an image has no real size to read
+    alone = lineup_sheet(imgs, ex, seed=1, size_m=0.8)  # the bible's camera at its typical distance
+    assert alone["height_px"] == round(0.8 * camera.px_per_m(6.0, 75.0, 1080))
+    assert alone["height_from_camera"]["camera"] == "godot_tp"
 
 
 def test_lineup_subjects_share_one_height_on_one_ground_line(subjects):

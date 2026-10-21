@@ -439,7 +439,9 @@ def _limbs(data: dict) -> tuple[dict, list, list, dict]:
         cannon = (nodes["fwrist_l"][0][2] - sum(fr["radii"][-1]) / 2 - drop) / -_down(fr["angles"][0]).z
         add_leg("fwrist_l", ["f" + j for j in digit_joints] + ["fpaw_l"], ["hand_l"] + ["f" + b for b in digit_bones],
                 "lowerarm_l", fr["angles"], [cannon] + digits, fr["radii"])
-    else:
+    else:  # the canon's front paw, set on the floor beside the hind toe
+        co, r = nodes["fpaw_l"]
+        nodes["fpaw_l"] = ((co[0], co[1], sum(r) / 2), r)
         edges.append(("fwrist_l", "fpaw_l"))
         bones.append(("hand_l", "fwrist_l", "fpaw_l", "lowerarm_l"))
     summary = {"donor": data["hind"]["donor"], "species": donor["species"], "table_mt_f": mt_f,

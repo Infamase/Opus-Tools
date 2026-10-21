@@ -69,6 +69,48 @@ def test_closest_point_tests_miss_a_box_through_a_plate_but_overlap_does_not(sdf
     assert p["thickness_mm"] == pytest.approx(2.0, abs=0.01) and p["sheet_mm"] == pytest.approx(11.0, abs=0.01)
 
 
+def test_faces_reversed_against_their_neighbours_are_turned_to_agree(sdf):
+    """One reversed face used to make the cube "open", and the winding number then read 471
+    of 500 points near it as outside."""
+    cube = sdf["cube, one face reversed"]
+    assert cube["closed"] and cube["new_wrong"] == 0 and cube["one_wrong"] == 0 and cube["max_err"] < 1e-9
+
+
+def test_thin_plate_sheets_face_out_of_the_wall_whatever_their_shape(sdf):
+    """A sheet has no volume to orient by: the concave side of a curved plate and flat plates
+    at some angles were turned inward, and parts that only dip into one face read as passing
+    right through it."""
+    curved = sdf["curved plate, box 0.5 mm past its concave side"]
+    assert curved["sides"] == 2 and curved["sides_face_apart"]
+    assert curved["kind"] == "crossing" and 0.4 < curved["sheet_mm"] < 1.0 and curved["depth_mm"] < 1.0
+    turned = sdf["rotated plates, box sunk 0.05 mm"]
+    assert turned["sides_face_apart"] == 40 and turned["kinds"] == {"crossing": 40}
+    assert turned["deepest_mm"] == pytest.approx(0.05, abs=0.005)
+
+
+def test_a_clamp_on_both_faces_is_not_through_the_plate(sdf):
+    """Each jaw sits behind the far sheet; only the sheet a part crosses counts it as behind."""
+    clamp = sdf["clamp, both jaws 0.05 mm into a 2 mm plate"]
+    assert clamp["kind"] == "crossing"
+    assert clamp["sheet_mm"] == pytest.approx(0.05, abs=0.005) and clamp["depth_mm"] == pytest.approx(0.05, abs=0.005)
+
+
+def test_an_object_scaled_to_zero_has_no_solid(sdf):
+    zero = sdf["object scaled to 0"]
+    assert zero["alone_is_none"] and zero["with_another_tris"] == 12
+    # flattened instead: its opposite normals cancel, and points beside it used to read inside
+    assert zero["flat_lid_open"] and zero["flat_lid_inside"] == 0 and zero["flat_lid_depth_mm"] < 1e-3
+
+
+def test_winding_of_a_large_open_part_sums_distant_clusters(sdf):
+    """Exact winding costs every triangle per query; a 29k-triangle capless handle made the
+    grip solver 16x slower than v0.3."""
+    tube = sdf["open tube, clustered winding"]
+    assert tube["open"] and tube["tris"] > 20000 and tube["inside"] > 50
+    assert tube["max_err"] < 0.03 and tube["side_wrong"] == 0
+    assert tube["us_signed1"] < tube["us_exact"] / 4
+
+
 def test_box_pushed_through_a_thin_plate_is_a_penetration(work):
     rep = run_task("report", {"path": str(work / "through.blend")})
     pens = {frozenset((p["a"], p["b"])): p for p in rep["penetrations"]}
@@ -88,7 +130,7 @@ def test_box_pushed_through_a_thin_plate_is_a_penetration(work):
 
 
 def test_parts_that_only_touch_are_not_penetrations(work):
-    rep = run_task("report", {"path": str(work / "touching.blend")})
+    rep = run_task("report", {"path": str(work / "touching.blend")})  # with a lid scaled to 0: no faces, no crash
     assert rep["penetrations"] == []
     touching = {frozenset((c["a"], c["b"])) for c in rep["contacts"] if c["kind"] == "touching"}
     assert {frozenset(("Plate", "Block")), frozenset(("Block", "Side"))} <= touching

@@ -233,8 +233,12 @@ def blind_read_sheet(
     sheet = im.Sheet(title="Blind read", subtitle="What is this?")
     sheet.add_row("Silhouettes", tiles[:3])
     sheet.add_row("Form", tiles[3:])
+    caveat = ""
     if game_size:
         profile = camera_profile(load_bible(path), camera)
+        if profile.fallback:  # never assumed silently: the sheet and the prompt both say so
+            caveat = (f"\n\nNote: the game-size rows use a {profile.label}, so judge their size with care. "
+                      f"For the caller: {profile.note}.")
         shot = _profile_shot(profile)
         turned = dict(shot) if profile.projection == "ortho" else {"azimuth": shot["azimuth"] + 35.0, "elevation": shot["elevation"]}
         g = run_task("readability", {
@@ -248,11 +252,11 @@ def blind_read_sheet(
                 img, how = _fit(Image.open(next(iter(r["files"].values()))).convert("RGB"), 250, 340, smooth=key == "clay")
                 dist = f"{r['distance_m']:g} m" if profile.projection == "persp" else "screen"
                 row.append(im.Tile(img, f"{dist} · {how}"))
-            sheet.add_row(label, row)
+            sheet.add_row(label + (" · FALLBACK camera, not the game's" if profile.fallback else ""), row)
     token = hashlib.sha1(f"{path}{time.time()}".encode()).hexdigest()[:10]
     out = cache_dir("blind", near=path) / f"model_{token}.jpg"
     sheet.render().save(out, quality=90)
-    return out, BLIND_PROMPT.format(path=out)
+    return out, BLIND_PROMPT.format(path=out) + caveat
 
 
 # ---------------------------------------------------------------- readability at game size
@@ -506,6 +510,9 @@ def readability_check(
             level["expected_height_px"] = round(height_m * ppm, 1)
             level["height_ratio"] = round(h_px / max(height_m * ppm, 1e-9), 4)
         where = _level_name(level)
+        if unmatched:
+            rep["warnings"].append(f"{where}: {unmatched} subject pixels match no part color, so the part map did not "
+                                   "render exact ID colors; part sizes and hidden parts here are unreliable")
         if r["clipped"]:
             rep["warnings"].append(f"{where}: the subject overflows the {profile.res_w}x{profile.res_h} frame; sizes are cut")
         if h_px < JOHNSON_PX["identify"]:

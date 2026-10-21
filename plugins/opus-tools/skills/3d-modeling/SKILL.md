@@ -214,8 +214,9 @@ assuming.
 
 **Record provenance** with `ledger_record` for every imported, downloaded or built asset:
 `licence_id` as an SPDX or LicenseRef ID (`licence_check` with `text: "CC BY 4.0"` finds it;
-free text only matches whole licence names, and anything unmatched is unknown and blocks
-export), `inputs` (sources, or `{"asset": "<path in the ledger>"}` so an earlier asset's
+free text only matches whole licence names, restriction phrases beside a name such as
+"non-commercial use only" add their flags, and anything unmatched, including a licence
+version the table lacks, is unknown and blocks export), `inputs` (sources, or `{"asset": "<path in the ledger>"}` so an earlier asset's
 flags carry over), `tools` whose terms reach the output, and `attribution` when the terms
 prescribe the exact credit. Run `licence_check` before a release: the bible's `commercial`
 and `publish_assets` set what blocks. `make_credits` writes CREDITS.md.

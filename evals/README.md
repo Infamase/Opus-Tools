@@ -58,8 +58,9 @@ A check is `{id, tool, args, metric, op, value, class}`, plus `names` for a blin
 `==`, `!=`, `<=`, `>=`, `<`, `>`, `between [low, high]` or `in [...]`. Quote YAML values that
 contain commas inside `{...}`; the validator rejects the stray keys an unquoted comma makes.
 
-Classes follow §2.5: `hard` blocks acceptance; `soft` is recorded (readability floors and other
-uncalibrated heuristics stay soft); `report` is only reported.
+Classes follow §2.5: `hard` blocks acceptance; `soft` is recorded (readability floors,
+`proportion_check` until it is percentile-based in S1, and other uncalibrated heuristics stay
+soft); `report` is only reported.
 
 Checks use only tools that exist in v0.4:
 

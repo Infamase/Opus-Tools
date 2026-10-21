@@ -40,7 +40,7 @@ for the eval suite, and fixes canons and measurements in the v0.3 tools.
 | `lookdev_sheet` | Renders a 3D model from every side in headless Blender: shaded, clay + wireframe, silhouettes, face orientation, UV checker, scale next to a 1.8 m figure | mask mode for silhouettes |
 | `mesh_lint` | Game-readiness check: flipped faces, non-manifold, loose/floating parts, UV problems, unapplied scale, budgets, bone weights | |
 | `project_bible` | Per-game style rules and budgets (`opus.project.yaml`) that every tool reads | camera profiles and view-model camera with derived px/m; licence policy keys |
-| `ledger_record` / `make_credits` | Where each asset came from and its licence; generates CREDITS.md | SPDX / LicenseRef IDs with flags, `inputs` lineage, tools, exact attribution strings; free text never substring-matched |
+| `ledger_record` / `make_credits` | Where each asset came from and its licence; generates CREDITS.md | SPDX / LicenseRef IDs with flags, `inputs` lineage, tools, exact attribution strings; free text matched on whole names only (restriction phrases beside a name add their flags) |
 | `opus_doctor` | Checks Blender, Godot, GPU, ComfyUI (optional, 2D and audio only) and the project bible | |
 
 The 24-task eval suite lives in [evals/](evals/README.md) (`opus eval list | validate |
@@ -100,8 +100,8 @@ extension (`.mcpb`) build for chat is planned.
   show me what the player sees."
 - "Will the goblin read at 15 m in our third-person camera? Check the club and the ears."
 - "Line the chest up against these two Kenney chests at game size and ask two judges."
-- "Record `textures/rock.png` as CC BY 4.0 from ambientCG and tell me if anything blocks a
-  commercial release."
+- "Record `textures/rock.png` as CC0 from ambientCG and `models/cart.glb` as CC BY 4.0 from
+  Poly Pizza, then tell me if anything blocks a commercial release."
 
 ## Development
 

@@ -23,7 +23,8 @@ def test_the_six_misfiring_strings_classify_correctly():
     # blocks until someone records the ID, so it stays unknown. CMU's full sentence, which
     # does identify its terms, is an alias.
     assert classify("research and commercial projects") == (None, ["unknown"])
-    assert classify("Free for use in research and commercial projects worldwide") == ("LicenseRef-CMU-Mocap", [])
+    assert classify("Free for use in research and commercial projects worldwide") == ("LicenseRef-CMU-Mocap",
+                                                                                      ["no-redistribute-as-asset"])
     assert classify("CC BY 4.0 … since 2026") == ("CC-BY-4.0", ["attribution"])
     assert classify("CC BY 4.0, including derived maps since 2026") == ("CC-BY-4.0", ["attribution"])
     assert "nc" not in classify("Royalty-free incl. games")[1]
@@ -50,6 +51,35 @@ def test_several_licences_in_one_text():
     lid, flags = classify("ESA WorldCover CC BY 4.0 and Copernicus DEM")
     assert lid == "CC-BY-4.0 AND LicenseRef-Copernicus" and flags == ["attribution"]
     assert classify("CC BY 4.0 except the textures, which are CC BY-NC-SA")[1] == ["attribution", "nc", "sa"]
+
+
+def test_provenance_words_are_not_licences():
+    """"Original work" or "facts" in third-party terms said nothing about the terms."""
+    for text in ("All rights reserved. Original work by Jane Doe.",
+                 "Free for personal use only. Do not redistribute the original work.",
+                 "Hand-painted, made by hand by Bob; non-commercial use only",
+                 "Standard Unity Asset Store EULA (original work by Synty)", "facts", "own work"):
+        assert classify(text) == (None, ["unknown"]), text
+    assert classify("Original work. CC BY-NC 4.0") == ("CC-BY-NC-4.0", ["attribution", "nc"])
+
+
+def test_restrictions_beside_a_licence_name_add_their_flags():
+    assert classify("CC-BY, non-commercial use only") == ("CC-BY-4.0", ["attribution", "nc"])
+    assert classify("CC BY 4.0 - no derivatives") == ("CC-BY-4.0", ["attribution", "nd"])
+    assert classify("CC-BY 4.0 (no commercial use)")[1] == ["attribution", "nc"]
+    assert classify("MIT, research only")[1] == ["attribution", "nc", "use-restricted"]
+    assert classify("CC BY 4.0, including derived maps since 2026") == ("CC-BY-4.0", ["attribution"])
+
+
+def test_a_version_the_table_lacks_is_never_another_version():
+    for text, lid in (("CC BY-SA 3.0", "CC-BY-SA-3.0"), ("CC-BY-2.0", "CC-BY-2.0"), ("Apache License v2", "Apache-2.0"),
+                      ("CC BY-SA 4", "CC-BY-SA-4.0"), ("MIT License, Copyright 2023", "MIT")):
+        assert classify(text)[0] == lid, text
+    for text in ("CC BY-NC 3.0", "CC BY-SA 2.1", "BSD-4-Clause", "Apache-1.1"):
+        assert classify(text) == (None, ["unknown"]), text
+    assert classify("MIT and CC BY-NC-ND 3.0") == ("MIT", ["attribution", "unknown"])
+    for lid in ("CC-BY-NC-3.0", "BSD-4-Clause", "Apache-1.1", "CC-BY-SA-3.0-IGO"):  # kept exactly as given
+        assert ledger._resolve(lid) == (lid, ["unknown"]), lid
 
 
 def test_licence_table():
@@ -143,6 +173,70 @@ def test_legacy_entries_load_through_the_classifier(project):
     assert "record its licence_id" in rep["blocked"][0]["reasons"][0]
     assert [b["asset"] for b in check(project, commercial=True)["blocked"]] == ["pal.hex", "anim.glb"]
     assert [b["asset"] for b in check(project, publish_assets=True)["blocked"]] == ["base.glb", "pal.hex"]
+
+
+def test_exact_older_ids_reach_the_credits(project):
+    record(str(project / "base.glb"), "Wikimedia Commons photo", author="Jane", licence_id="CC-BY-SA-3.0")
+    record(str(project / "dem.png"), "Flickr photo", author="Ann", licence_id="CC-BY-2.0")
+    e = record(str(project / "kit.glb"), "OGA kit", licence_id="CC-BY-NC-3.0")
+    assert e["licence_id"] == "CC-BY-NC-3.0" and e["flags"] == ["unknown"]
+    assert {x["asset"]: x["licence_id"] for x in ledger.current(project)}["base.glb"] == "CC-BY-SA-3.0"
+    text = write_credits(project).read_text(encoding="utf-8")
+    assert "Jane, licensed under CC-BY-SA-3.0 (https://creativecommons.org/licenses/by-sa/3.0/)" in text
+    assert "Ann, licensed under CC-BY-2.0 (https://creativecommons.org/licenses/by/2.0/)" in text
+    assert "- `base.glb` is licensed under CC-BY-SA-3.0" in text
+    why = {b["asset"]: b["reasons"] for b in check(project)["blocked"]}
+    assert set(why) == {"kit.glb"} and "add it to data/licences.yaml" in why["kit.glb"][0]
+
+
+def test_restriction_text_blocks_and_survives_a_reload(project):
+    record(str(project / "base.glb"), "ArtStation", license="CC-BY, non-commercial use only")
+    record(str(project / "kit.glb"), "kit", inputs=[{"source": "OGA", "license": "CC BY 4.0 - no derivatives"}])
+    cur = {x["asset"]: x for x in ledger.current(project)}  # read back from the jsonl
+    assert cur["base.glb"]["licence_id"] == "CC-BY-4.0" and cur["base.glb"]["flags"] == ["attribution", "nc"]
+    assert cur["kit.glb"]["flags"] == ["attribution", "nd"]
+    sold = check(project, commercial=True)["blocked"]
+    assert [b["asset"] for b in sold] == ["base.glb"]
+    why = "non-commercial terms: its licence CC-BY-4.0 as 'CC-BY, non-commercial use only'; commercial: true blocks it"
+    assert sold[0]["reasons"] == [why]
+    shared = check(project, publish_assets=True)["blocked"]
+    assert [b["asset"] for b in shared] == ["kit.glb"] and "as 'CC BY 4.0 - no derivatives'" in shared[0]["reasons"][0]
+
+
+def test_an_empty_asset_key_is_a_plain_input(project):
+    for asset in ("", None):
+        e = record(str(project / "kit.glb"), "mine", inputs=[{"asset": asset, "source": "OGA rock texture", "author": "Bob",
+                                                               "licence_id": "CC-BY-SA-4.0"}])
+        assert e["flags"] == ["attribution", "sa"] and e["stamp"] == ["CC-BY-SA-4.0"]
+        assert "asset" not in e["inputs"][0]
+        rep = check(project)
+        assert rep["share_alike"] == [{"asset": "kit.glb", "licence": "CC-BY-SA-4.0"}]
+        assert ledger.attributions(ledger.current(project)) == [
+            "OGA rock texture by Bob, licensed under CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)"]
+
+
+def test_unmarked_project_dir_keeps_one_ledger(tmp_path, monkeypatch):
+    """A Unity or Unreal project before `bible init` has no marker: entries still go to the
+    project's ledger, which licence_check and make_credits read."""
+    (tmp_path / "models").mkdir()
+    (tmp_path / "models" / "wolf.png").write_bytes(b"x")
+    (tmp_path / "models" / "fur.png").write_bytes(b"x")
+    monkeypatch.setenv("OPUS_PROJECT_DIR", str(tmp_path))
+    monkeypatch.chdir(tmp_path / "models")
+    record(str(tmp_path / "models" / "fur.png"), "photo", licence_id="CC0-1.0")
+    e = record(str(tmp_path / "models" / "wolf.png"), "OGA", license="CC BY-NC 4.0",
+               inputs=[{"asset": "models/fur.png"}])
+    assert e["asset"] == "models/wolf.png" and e["inputs"][0]["asset"] == "models/fur.png"
+    assert "notes" not in e["inputs"][0]  # found in the same ledger
+    assert (tmp_path / ".opus" / "ledger.jsonl").exists() and not (tmp_path / "models" / ".opus").exists()
+    rep = check(tmp_path, commercial=True)
+    assert rep["assets"] == 2 and [b["asset"] for b in rep["blocked"]] == ["models/wolf.png"]
+
+
+def test_cmu_data_may_not_ship_as_an_asset_pack(project):
+    record(str(project / "clip.fbx"), "retarget", inputs=[{"source": "CMU 02_01.bvh", "licence_id": "LicenseRef-CMU-Mocap"}])
+    assert check(project, commercial=True)["ok"]  # inside a game, sold or not
+    assert [b["asset"] for b in check(project, publish_assets=True)["blocked"]] == ["clip.fbx"]
 
 
 # ---------------------------------------------------------------- export policy

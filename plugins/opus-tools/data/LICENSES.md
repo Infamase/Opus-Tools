@@ -31,7 +31,7 @@ One section per file, or per folder with a trailing slash, with the path relativ
 ### `licences.yaml`
 - **Source:** own work (Opus Tools), compiled from the licence pages each entry links
 - **Licence:** `GPL-3.0-or-later` (the repo's licence)
-- **Derived:** licence IDs, flags, aliases and notes; the facts about each licence come from its linked terms
+- **Derived:** licence IDs, flags, aliases, restriction phrases and notes; the facts about each licence come from its linked terms
 - **Credit:** "Opus Tools contributors, GPL-3.0-or-later" (the repo's notice; keep it with copies)
 
 ### `tables/anthro_ansur2.json`

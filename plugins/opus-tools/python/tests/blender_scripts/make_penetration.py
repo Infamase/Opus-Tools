@@ -4,7 +4,8 @@
 
 through.blend: a 4 cm box pushed right through a 2 mm plate (no vertex of either is inside
 the other), and a pin buried inside the box. touching.blend: a block resting on the plate
-and a second block against the first, faces flush but offset.
+and a second block against the first, faces flush but offset, plus a lid hidden by scaling
+it to 0 (it has no faces left).
 """
 
 import os
@@ -39,4 +40,5 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 box("Plate", (0.1, 0.1, 0.002), (0, 0, 0))
 box("Block", (0.04, 0.04, 0.04), (0, 0, 0.021))  # bottom face on the plate's top face
 box("Side", (0.04, 0.04, 0.04), (0.04, 0.01, 0.029))  # flush against Block, shifted
+box("Lid", (0.04, 0.04, 0.01), (0, 0, 0.046)).scale = (0.0, 0.0, 0.0)
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(out_dir, "touching.blend"))

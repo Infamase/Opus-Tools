@@ -5,8 +5,10 @@ then recomputed in double precision on that triangle, which also says which feat
 on: a vertex, an edge or the face interior. The sign is the side of that feature's
 angle-weighted pseudonormal (Baerentzen & Aanaes 2005), exact for closed, consistently
 oriented meshes; the face normal alone flips near sharp edges and for points in the plane of
-a face. Loose parts that are open or non-manifold use the generalized winding number
-instead (Jacobson et al. 2013). Loose parts are a union: a point inside any of them is inside.
+a face. Faces flipped against their neighbours are turned to agree first. Loose parts that
+are open or non-manifold use the generalized winding number instead (Jacobson et al. 2013),
+with distant clusters of a large part summed as dipoles (Barill et al. 2018). Loose parts
+are a union: a point inside any of them is inside.
 
 Penetration between two parts is BVH triangle overlap plus a depth: how far each surface
 reaches into the other part and, for a thin part (plate, blade, shell), how far the other
@@ -26,6 +28,12 @@ from mathutils.bvhtree import BVHTree
 FACE, VA, VB, VC, EAB, EBC, ECA = range(7)
 CORNERS = ((VA, 0), (VB, 1), (VC, 2))
 EDGES = ((EAB, 0), (EBC, 1), (ECA, 2))
+EXACT_WINDING = 2048  # loose parts with more triangles sum distant clusters as dipoles
+LEAF, BETA = 32, 2.5  # triangles per cluster; a cluster is distant beyond BETA x its radius
+
+
+class NoTriangles(ValueError):
+    """Every face is degenerate (an object scaled to 0, say)."""
 
 
 def world_triangles(obj) -> tuple[np.ndarray, np.ndarray]:
@@ -66,6 +74,58 @@ def _labels(n: int, edges: np.ndarray) -> np.ndarray:
             break
         lab = new
     return np.unique(lab, return_inverse=True)[1].reshape(-1)
+
+
+def _agree(T: np.ndarray, nv: int) -> np.ndarray | None:
+    """Triangles to reverse so faces agree with their neighbours across every edge two of
+    them share (one face flipped in a closed mesh, or a patch imported inside out); the
+    smaller side of each disagreement turns. None when they already agree."""
+    E = np.stack([T[:, [0, 1]], T[:, [1, 2]], T[:, [2, 0]]], axis=1).reshape(-1, 2)
+    key = E.min(axis=1) * nv + E.max(axis=1)
+    order = np.argsort(key, kind="stable")
+    k = key[order]
+    first = np.r_[0, np.nonzero(k[1:] != k[:-1])[0] + 1]
+    two = first[np.diff(np.r_[first, len(k)]) == 2]  # edges with exactly two triangles
+    a, b = order[two], order[two + 1]
+    same = E[a, 0] == E[b, 0]  # both run the edge the same way: they disagree
+    if not same.any():
+        return None
+    src = np.r_[a // 3, b // 3]
+    o = np.argsort(src, kind="stable")
+    dst, par = np.r_[b // 3, a // 3][o].tolist(), np.r_[same, same][o].tolist()
+    ptr = np.searchsorted(src[o], np.arange(len(T) + 1)).tolist()
+    side = [-1] * len(T)
+    for seed in np.unique(np.r_[a[same], b[same]] // 3).tolist():
+        if side[seed] >= 0:
+            continue
+        side[seed], todo, group = 0, [seed], [seed]
+        while todo:
+            t = todo.pop()
+            for i in range(ptr[t], ptr[t + 1]):
+                u = dst[i]
+                if side[u] < 0:
+                    side[u] = side[t] ^ par[i]
+                    todo.append(u)
+                    group.append(u)
+        if 2 * sum(side[t] for t in group) > len(group):
+            for t in group:
+                side[t] ^= 1
+    return np.array(side) == 1
+
+
+def _leaves(cen: np.ndarray, size: int) -> list[np.ndarray]:
+    """Triangle indices split at the median of the longest axis until ``size`` or fewer."""
+    out, todo = [], [np.arange(len(cen))]
+    while todo:
+        idx = todo.pop()
+        if len(idx) <= size:
+            out.append(idx)
+            continue
+        c = cen[idx]
+        half = len(idx) // 2
+        part = np.argpartition(c[:, int(np.ptp(c, axis=0).argmax())], half)
+        todo += [idx[part[:half]], idx[part[half:]]]
+    return out
 
 
 def closest_on_triangles(p, a, b, c):
@@ -131,9 +191,10 @@ class Solid:
 
     ``groups`` (per vertex, e.g. the object index) keeps coincident vertices of different
     objects apart; ``flags`` (per vertex) marks vertices for callers (``tflag`` marks the
-    triangles that use one)."""
+    triangles that use one). ``orient`` turns faces to agree with their neighbours and each
+    loose part outward; a sheet cut from an oriented solid keeps its faces as they are."""
 
-    def __init__(self, co, tris, groups=None, flags=None):
+    def __init__(self, co, tris, groups=None, flags=None, orient: bool = True):
         co = np.asarray(co, dtype=float).reshape(-1, 3)
         tris = np.asarray(tris, dtype=np.int64).reshape(-1, 3)
         span = float(np.ptp(co, axis=0).max()) if len(co) else 1.0
@@ -154,7 +215,12 @@ class Solid:
         keep = (T[:, 0] != T[:, 1]) & (T[:, 1] != T[:, 2]) & (T[:, 2] != T[:, 0]) & (area2 > 1e-14 * self.size**2)
         T, cr, area2 = T[keep], cr[keep], area2[keep]
         if not len(T):
-            raise ValueError("no triangles")
+            raise NoTriangles("no triangles")
+        if orient:
+            turn = _agree(T, len(V))
+            if turn is not None:
+                T[turn] = T[turn][:, ::-1]
+                cr[turn] = -cr[turn]
         # loose parts, with their triangles stored together
         vlab = _labels(len(V), np.concatenate([T[:, :2], T[:, 1:], T[:, ::2]]))
         tcomp = np.unique(vlab[T[:, 0]], return_inverse=True)[1].reshape(-1)
@@ -163,13 +229,15 @@ class Solid:
         self.ncomp = int(tcomp[-1]) + 1
         self.start = np.searchsorted(tcomp, np.arange(self.ncomp + 1))
         # a part whose faces all point inward (negative volume) is turned outward
-        cen = V[T].mean(axis=1)
-        c0 = np.add.reduceat(cen, self.start[:-1]) / np.diff(self.start)[:, None]
-        rel = V[T] - c0[tcomp, None]
-        vol = np.bincount(tcomp, weights=_dot(rel[:, 0], np.cross(rel[:, 1], rel[:, 2])), minlength=self.ncomp)
-        inward = (vol < 0)[tcomp]
-        T[inward] = T[inward][:, ::-1]
-        cr[inward] = -cr[inward]
+        vol = np.ones(self.ncomp)
+        if orient:
+            cen = V[T].mean(axis=1)
+            c0 = np.add.reduceat(cen, self.start[:-1]) / np.diff(self.start)[:, None]
+            rel = V[T] - c0[tcomp, None]
+            vol = np.bincount(tcomp, weights=_dot(rel[:, 0], np.cross(rel[:, 1], rel[:, 2])), minlength=self.ncomp)
+            inward = (vol < 0)[tcomp]
+            T[inward] = T[inward][:, ::-1]
+            cr[inward] = -cr[inward]
         self.V, self.T, self.tcomp = V, T, tcomp
         self.FN = cr / area2[:, None]
         self.area = area2 / 2
@@ -195,6 +263,9 @@ class Solid:
         bad = ~self.good[self.eid]
         self.open = np.zeros(self.ncomp, bool)
         np.logical_or.at(self.open, tcomp, bad.any(axis=1))
+        # closed but no volume (a box flattened to a sheet): its pseudonormals cancel, so let
+        # the winding number (0: nothing inside) decide
+        self.open |= np.abs(vol) <= 1e-7 * self.size * np.bincount(tcomp, weights=self.area, minlength=self.ncomp)
         self.vedge = np.zeros(len(V), bool)  # vertex on an open or non-manifold edge
         for k, (i, j) in enumerate(((0, 1), (1, 2), (2, 0))):
             self.vedge[T[bad[:, k], i]] = True
@@ -215,7 +286,7 @@ class Solid:
         self._shared1 = [(j, tuple(self.lo[j] - pad), tuple(self.hi[j] + pad)) for j in self.shared]
         self.bvh = BVHTree.FromPolygons(V.tolist(), T.tolist(), all_triangles=True)
         self._tcomp1, self._open1 = tcomp.tolist(), self.open.tolist()
-        self._cbvh, self._tri1, self._shell = {}, {}, False
+        self._cbvh, self._tri1, self._shell, self._clusters = {}, {}, False, {}
 
     @classmethod
     def from_objects(cls, objs, flags=None) -> Solid | None:
@@ -236,7 +307,10 @@ class Solid:
             n += len(co)
         if not tris:
             return None
-        return cls(np.concatenate(cos), np.concatenate(tris), np.concatenate(groups), np.concatenate(fl))
+        try:
+            return cls(np.concatenate(cos), np.concatenate(tris), np.concatenate(groups), np.concatenate(fl))
+        except NoTriangles:  # every face degenerate: an object scaled to 0 has no faces either
+            return None
 
     # ------------------------------------------------------------ queries
 
@@ -329,12 +403,47 @@ class Solid:
                     out = min(out, 0.0, -dk)
         return out
 
+    def _cluster(self, j: int):
+        """Loose part ``j``'s triangles in spatial clusters of about LEAF: their corners in
+        cluster order, which cluster each belongs to, and per cluster the center, radius and
+        summed area vector (its dipole)."""
+        if j not in self._clusters:
+            s, e = self.start[j], self.start[j + 1]
+            P = self.V[self.T[s:e]]
+            leaves = _leaves(P.mean(axis=1), LEAF)
+            order = np.concatenate(leaves)
+            P, area, n = P[order], self.area[s:e][order], self.FN[s:e][order]
+            member = np.repeat(np.arange(len(leaves)), [len(x) for x in leaves])
+            starts = np.r_[0, np.cumsum([len(x) for x in leaves])[:-1]]
+            w = np.maximum(np.bincount(member, weights=area), 1e-300)
+            center = np.stack([np.bincount(member, weights=area * P.mean(axis=1)[:, k]) for k in range(3)], axis=1) / w[:, None]
+            radius = np.maximum.reduceat(_norm(P - center[member][:, None]).max(axis=1), starts)
+            dipole = np.stack([np.bincount(member, weights=area * n[:, k]) for k in range(3)], axis=1)
+            self._clusters[j] = (P[:, 0], P[:, 1], P[:, 2], member, center, radius, dipole)
+        return self._clusters[j]
+
     def winding(self, pts, j: int | None = None) -> np.ndarray:
         """Generalized winding number of loose part ``j`` (all parts if None) at points:
-        about 1 inside a closed part, 0 outside, in between near holes."""
+        about 1 inside a closed part, 0 outside, in between near holes. A part with more than
+        EXACT_WINDING triangles sums clusters farther than BETA radii as dipoles (Barill et
+        al. 2018), so a query costs the nearby triangles instead of all of them."""
+        pts = np.asarray(pts, dtype=float).reshape(-1, 3)
+        if j is not None and self.start[j + 1] - self.start[j] > EXACT_WINDING:
+            A, B, C, member, center, radius, dipole = self._cluster(j)
+            out = np.zeros(len(pts))
+            for i, p in enumerate(pts):
+                d = center - p
+                r = _norm(d)
+                far = r > BETA * radius
+                w = float((_dot(d[far], dipole[far]) / r[far] ** 3).sum()) / (4 * np.pi)
+                near = ~far[member]
+                a, b, c = A[near] - p, B[near] - p, C[near] - p
+                la, lb, lc = _norm(a), _norm(b), _norm(c)
+                den = la * lb * lc + _dot(a, b) * lc + _dot(b, c) * la + _dot(c, a) * lb
+                out[i] = w + float(np.arctan2(_dot(a, np.cross(b, c)), den).sum()) / (2 * np.pi)
+            return out
         T = self.T if j is None else self.T[self.start[j] : self.start[j + 1]]
         A, B, C = self.V[T[:, 0]], self.V[T[:, 1]], self.V[T[:, 2]]
-        pts = np.asarray(pts, dtype=float).reshape(-1, 3)
         out = np.zeros(len(pts))
         step = max(1, 200_000 // len(T))
         for i in range(0, len(pts), step):
@@ -362,8 +471,9 @@ class Solid:
 
     def shell(self) -> dict | None:
         """A thin part's wall thickness and sheets (the surfaces either side of the wall, as
-        open meshes); None for a solid part. Measured by casting a ray inward from every
-        triangle to the opposite wall."""
+        open meshes facing out of the wall, and ``tri_side``: each triangle's sheet or -1);
+        None for a solid part. Measured by casting a ray inward from every triangle to the
+        opposite wall."""
         if self._shell is not False:
             return self._shell
         self._shell = None
@@ -392,13 +502,15 @@ class Solid:
         pa, pb, e = te[:-1][same], te[1:][same], ee[:-1][same]
         link = sheet[pa] & sheet[pb] & self.good[e]
         lab = _labels(len(self.T), np.column_stack([pa[link], pb[link]]))
-        sides = []
+        sides, tri_side = [], np.full(len(self.T), -1)
         sheet_area = self.area[sheet].sum()
         for g in np.unique(lab[sheet]):
             m = sheet & (lab == g)
             if self.area[m].sum() >= 0.1 * sheet_area:
-                sides.append(Solid(self.V, self.T[m]))
-        self._shell = {"thickness": thick, "sides": sides} if sides else None
+                tri_side[m] = len(sides)
+                # an open sheet has no volume to orient by: it keeps the solid's outward faces
+                sides.append(Solid(self.V, self.T[m], orient=False))
+        self._shell = {"thickness": thick, "sides": sides, "tri_side": tri_side} if sides else None
         return self._shell
 
 
@@ -533,9 +645,19 @@ def penetration(a: Solid, b: Solid, skip_b: bool = False) -> dict | None:
         cand = np.all((y.V >= x.box[0] - reach) & (y.V <= x.box[1] + reach), axis=1)
         if skip_b and y is b:
             cand &= ~b.vflag
-        seeds = np.zeros(len(y.V), bool)
-        seeds[y.T[ytris].reshape(-1)] = True
-        past = min(_past_sheet(side, y, cand, seeds) for side in sh["sides"])
+        # behind a sheet counts from where the other part crosses THAT sheet: a clamp's far
+        # jaw sits behind the near sheet without having gone through the plate
+        xtris = pairs[:, 0] if name == "a" else pairs[:, 1]
+        pasts = []
+        for k, side in enumerate(sh["sides"]):
+            hit = sh["tri_side"][xtris] == k
+            if hit.any():
+                seeds = np.zeros(len(y.V), bool)
+                seeds[y.T[ytris[hit]].reshape(-1)] = True
+                pasts.append(_past_sheet(side, y, cand, seeds))
+        if not pasts:  # it crosses only the rim
+            continue
+        past = min(pasts)
         if past > out.get("sheet", -1.0):
             out.update(thin=name, thickness=sh["thickness"], sheet=past)
             if past > sh["thickness"]:

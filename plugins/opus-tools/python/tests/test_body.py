@@ -117,7 +117,11 @@ def test_realistic_hand_and_foot_measure_inside_ansur(tmp_path):
 ])
 def test_hind_legs_follow_garland_and_janis(tmp_path, preset, donor, mt_f, digits):
     out, rep = build(tmp_path, archetype="quadruped", preset=preset)
-    L = probe(tmp_path, out)["lengths"]
+    r = probe(tmp_path, out)
+    L = r["lengths"]
+    feet = r["feet_min_z"]  # all four feet stand on the floor; none hovers
+    assert max(feet.values()) < 0.002 * r["height"], feet
+    assert rep["joints_m"]["hpaw_l"][2] == pytest.approx(rep["joints_m"]["fpaw_l"][2], abs=1e-3)
     assert L["foot_l"] / L["thigh_l"] == pytest.approx(mt_f, rel=0.1)  # metatarsal / femur
     assert L["calf_l"] / L["thigh_l"] == pytest.approx(1.0, rel=0.1)  # tibia ~ femur
     assert digits | {d[:-1] + "r" for d in digits} <= set(L)  # phalanges are their own bones

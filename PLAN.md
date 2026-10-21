@@ -541,7 +541,7 @@ in parallel worktrees, each fix with a test that failed on v0.4, and then merged
 
 - **Baseline (v0.4), recorded in `evals/results/v0.4.json`.**
   - Acceptance: the grader accepted 22 of 24 tasks; the builders had accepted 23.
-  - Medians: 2 iterations to a hard pass, 3 to accept, 2 judge rounds and 4 validator
+  - Medians: 2 iterations to a hard pass, 3 to accept, 2 judge rounds and 3.5 validator
     rejections. Wall-clock was 19.1 min, which is noisy because six sessions shared 4 CPUs.
     Tokens were 10.1 M input (cache reads included) and 6.0 k output.
   - The two failures:
@@ -549,7 +549,10 @@ in parallel worktrees, each fix with a test that failed on v0.4, and then merged
       the name list.
     - `peasant_outfit`, garment poke-through: 13 mm against a 1 mm limit, and no tool
       measures it yet.
-  - 65 of the 117 validator rejections were `run_log` calls.
+  - 59 of the 105 validator rejections were `run_log` calls.
+  - The summary comes from a corrected copy of the ledger: events that parallel sessions
+    filed under the wrong run are moved or dropped, and a round logged before its blind
+    read ran counts as failing (the results note lists every change).
 - **CLI and MCP (CLI-1..6).**
   - `--json` on every report command.
   - Axis names (`+Z`, `-X`) and values that start with a dash.
@@ -609,7 +612,26 @@ in parallel worktrees, each fix with a test that failed on v0.4, and then merged
   - `lookdev_sheet` returns the render's warnings.
   - The suite hash goes from `b3208ab30cbd` to `c4c1e134168e`; the check ids are
     unchanged.
-- **Tests.** There are 265 tests, up from 204 in v0.4. With Blender 5.2.2, 264 pass and 1 is
+- **Review fixes.** A review of v0.4.1 against the eval assets and the baseline ledger:
+  - Game-size silhouettes pick the view with the most area in square meters, not the most
+    pixels: each overview tile is framed to its own span, so the rifle and the wolf were
+    seen end-on.
+  - An object resting on the floor no longer floats in `model_report`, as islands already
+    didn't.
+  - Ears, noses and horns on their own bones stay body in grip checks: a mesh on its own
+    bone is a held prop only below a hand or a weapon bone, or on a bone with no parent.
+  - Licence text that names no licence, and an own-work entry that lists its references,
+    say to record `LicenseRef-Own-Work`. Provenance phrases stay out of the aliases.
+  - `run_log` refuses a count where check ids go (`failed=2` from the CLI), `tokens` and
+    `user_rejection` without a run id while another run is open, a grade on an open run or
+    one that contradicts itself or the close, and a round with zero hard failures that
+    lists findings. The protocol counts a hard check not run yet as failing.
+  - `run_stats` takes the grade logged after the final close as the verdict, and a run
+    whose grade failed a hard check has no hard pass.
+  - The baseline summary was rebuilt from a corrected ledger (see above), and its note says
+    which gates measure more in v0.4.1 (floating on knight, goblin and dragon) and that
+    checklist judges could see the file name.
+- **Tests.** There are 272 tests, up from 204 in v0.4. With Blender 5.2.2, 271 pass and 1 is
   skipped (the ANSUR rebuild). The integration run caught one clash between the groups: the
   roof-contact test predated `gap_mm` on contacts. It also caught a ledger test that expected
   an exception where the CLI now prints a one-line error. Both are fixed.

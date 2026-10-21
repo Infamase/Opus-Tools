@@ -9,6 +9,8 @@ float.blend   a 4 cm-radius sphere, 15 cm above the head, as an island of the sk
 tusk.blend    a 1 cm tusk island 7.5 mm in front of the face, weighted to ``head``
 touch.blend   islands that don't float: one sunk 3 mm into the face, one 1 mm off the side of
               the head, one wholly inside the head
+crate.blend   a 40 cm crate on the floor 1.5 m beside the body (it stands, like the body) and a
+              10 cm box 50 cm above the floor 1.5 m on the other side (it floats)
 outfit.blend  a hood skinned 100% to ``head``; a sword parented to the non-deform bone
               ``weapon_r`` (a child of ``hand_r``) with a ``weapon_r`` vertex group, its grip
               through the hand; a shirt tube skinned to ``spine_02`` and ``spine_03`` whose
@@ -115,6 +117,12 @@ add_island(body, front + np.array([0, -(0.01 - 0.003), 0]), 0.01, "head")  # sun
 add_island(body, side + np.array([0.01 + 0.001, 0, 0]), 0.01, "head")  # 1 mm off the side
 add_island(body, (head.min(axis=0) + head.max(axis=0)) / 2, 0.01, "head")  # inside the head
 save("touch.blend")
+
+lowest = float(world_co(body_and_rig()[0])[:, 2].min())
+mesh_object("crate", box((0.4, 0.4, 0.4), (1.5, 0.0, lowest + 0.2)))
+mesh_object("hover", box((0.1, 0.1, 0.1), (-1.5, 0.0, lowest + 0.55)))
+info["crate"] = {"hover_center_m": [-1.5, 0.0, lowest + 0.55]}
+save("crate.blend")
 
 # ---------------------------------------------------------------- outfit: hood, sword, shirt, plate
 

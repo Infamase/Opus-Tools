@@ -236,6 +236,61 @@ def test_game_size_silhouette_turns_to_the_side_that_shows_the_most(plate, monke
     assert shots["clay"]["azimuth"] == pytest.approx(35.0)  # the clay stays turned from the profile's view
 
 
+@pytest.fixture(scope="module")
+def rod(work):
+    """A 10 x 100 x 25 cm bar, long along Y like a rifle: compact muzzle-on from the front."""
+    out = work / "rod.blend"
+    code = ("import bpy; bpy.ops.wm.read_factory_settings(use_empty=True); "
+            "bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, 0.125)); o = bpy.context.object; o.name = 'Rod'; "
+            "o.scale = (0.1, 1.0, 0.25); bpy.ops.object.transform_apply(scale=True); "
+            f"bpy.ops.wm.save_as_mainfile(filepath={str(out)!r})")
+    subprocess.run([BLENDER, "-b", "--factory-startup", "--python-expr", code], check=True, capture_output=True, timeout=300)
+    return out
+
+
+@needs_blender
+def test_game_size_silhouette_of_a_long_subject_is_its_side(rod, monkeypatch):
+    """Each overview tile is framed to its own span, so the muzzle-on view of a rifle (or the
+    head-on view of a wolf) filled more pixels than its side and was taken for the game-size
+    silhouette. Views compare in square meters."""
+    from opus.threed import understand
+
+    seen = {}
+
+    def task(name, args, **k):
+        if name == "readability":
+            seen.update(args)
+            raise Captured
+        res = run_task(name, args, **k)
+        seen["tiles"] = res["tiles"]
+        return res
+
+    monkeypatch.setattr(understand, "run_task", task)
+    with pytest.raises(Captured):
+        understand.blind_read_sheet(rod, game_size=True, camera="ue_tp_1080")
+    front, right = seen["tiles"][:2]
+    assert front["m_per_px"] < right["m_per_px"]  # the front tile is zoomed in on the 25 cm end
+    assert {s["key"]: s for s in seen["shots"]}["sil"]["azimuth"] == pytest.approx(90.0)
+
+
+def test_blind_sheet_compares_views_in_square_meters(tmp_path, monkeypatch, sheets):
+    """A front tile that fills more pixels at a finer scale shows less than the side."""
+    from opus.threed import understand
+
+    views = fake_views(tmp_path, widths=(74, 50, 30))
+    for t, m in zip(views["tiles"], (0.001, 0.004, 0.004, 0.004)):
+        t["m_per_px"] = m
+    calls = {}
+
+    def task(name, args, **k):
+        calls[name] = args
+        return views if name == "views" else fake_game(tmp_path, args, (0.1, 1.0, 0.25))
+
+    monkeypatch.setattr(understand, "run_task", task)
+    understand.blind_read_sheet(tmp_path / "rifle.blend", game_size=True, camera="ue_tp_1080", distances=[15])
+    assert {s["key"]: s["azimuth"] for s in calls["readability"]["shots"]}["sil"] == 90.0
+
+
 def test_blind_sheet_leaves_out_game_sizes_seen_from_inside_or_clipped(tmp_path, monkeypatch, sheets):
     """A 16 x 8 x 8 m house: at 1.5 and 3.5 m the camera stands inside it, and 40 m is set
     clipped here; neither may reach the judge as a game-size tile."""

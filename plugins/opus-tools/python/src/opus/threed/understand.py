@@ -237,7 +237,7 @@ def blind_read_sheet(
     identify the model without being told what it is. ``game_size`` adds the silhouette and a
     clay view at TRUE game pixel size for a camera profile (default: the bible's) at its
     distances, upscaled nearest-neighbor. A perspective camera's silhouette is taken from
-    whichever of front, right and 3/4 fills the most; distances where the frame clips the
+    whichever of front, right and 3/4 shows the most area; distances where the frame clips the
     subject or the camera stands inside it are left out, and the prompt's caveat names them
     for the caller. Returns (sheet, prompt for the reviewer)."""
     import hashlib
@@ -265,8 +265,11 @@ def blind_read_sheet(
         turned = dict(shot) if profile.projection == "ortho" else {"azimuth": shot["azimuth"] + 35.0, "elevation": shot["elevation"]}
         sil = dict(shot)
         if profile.projection == "persp":  # the side that shows the most: an axe seen edge-on from the front is a stick
-            filled = [int((np.asarray(t.image.convert("L")) < 128).sum()) for t in tiles[:3]]
-            sil["azimuth"] = float(res["tiles"][int(np.argmax(filled))]["azimuth"])
+            # in square meters: each tile is framed to its own span, so a rifle's compact muzzle-on
+            # view fills more pixels than its side
+            area = [int((np.asarray(t.image.convert("L")) < 128).sum()) * float(r.get("m_per_px") or 1.0) ** 2
+                    for t, r in zip(tiles[:3], res["tiles"])]
+            sil["azimuth"] = float(res["tiles"][int(np.argmax(area))]["azimuth"])
         g = run_task("readability", {
             "path": str(path), "out_dir": str(work / "game"), "camera": camera_args(profile),
             "levels": _levels(profile, distances), "objects": objects or None,

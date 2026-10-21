@@ -73,11 +73,15 @@ def _check_id(name) -> str:
     name = str(name).strip()
     if not _CHECK_ID.fullmatch(name):
         raise ValueError(f"findings are failing check ids such as 'floating_parts, grip x2', not prose (got {name!r})")
+    if name.isdigit():  # the command line sends every field as text: "2" is a count, not a check
+        raise ValueError(f"findings are failing check ids such as 'floating_parts, grip x2', not a count (got {name!r})")
     return name
 
 
 def parse_checks(checks) -> list[str]:
     """Failing check ids as a list without repeats, from the same inputs as ``parse_findings``."""
+    if isinstance(checks, str) and checks.strip().isdigit():
+        checks = int(checks)
     if _num(checks) and checks == 0:
         return []
     if _num(checks):
@@ -233,30 +237,37 @@ def _is_open(run_events: list[dict]) -> bool:
     return not state or state[-1] == "user_rejection"
 
 
-def _which_run(runs: dict[str, list[dict]], open_runs: list[str]) -> str:
-    """Why an event without a run id can't pick one: the open runs, newest first."""
+def _which_run(runs: dict[str, list[dict]], open_runs: list[str], newest: str = "") -> str:
+    """Why an event without a run id can't pick one: the open runs (and ``newest``, the run a
+    late event would go to), newest first."""
     rows = []
-    for r in sorted(open_runs, key=lambda r: runs[r][0].get("ts", 0), reverse=True):
+    for r in sorted(set(open_runs) | ({newest} - {""}), key=lambda r: runs[r][0].get("ts", 0), reverse=True):
         start = next((e for e in runs[r] if e["event"] == "run_start"), runs[r][0])
         what = f"task {start['task']}" if start.get("task") else f"asset {start.get('asset') or '?'}"
-        rows.append(f"{r} ({what}, started {time.strftime('%H:%M', time.localtime(start.get('ts', 0)))})")
-    return (f"{len(rows)} runs are open: {', '.join(rows)}; pass run=<id> (--run <id> on the command line), "
-            "the id run_start returned")
+        state = "" if _is_open(runs[r]) else ", closed"
+        rows.append(f"{r} ({what}, started {time.strftime('%H:%M', time.localtime(start.get('ts', 0)))}{state})")
+    return (f"{len(open_runs)} runs are open: {', '.join(rows)}; pass run=<id> (--run <id> on the command line), "
+            "the id run_start returned") if not newest else (
+            f"other runs are open, so the latest run may be another session's: {', '.join(rows)}; pass run=<id> "
+            "(--run <id> on the command line), the id run_start returned")
 
 
 def log(event: str, run: str = "", near=None, now: float | None = None, **fields) -> dict:
     """Append one event to the project's ledger and return it.
 
     run_start opens a run and names it (or uses ``run``). Other events go to ``run`` or, when
-    empty, to the one open run (tokens and user_rejection: the most recent run, open or not).
-    With several runs open, ``run`` is required: parallel sessions share one ledger. A grade
-    (an independent grader's verdict, logged after the run closed) needs ``run`` whenever the
-    ledger holds more than one run. accept fills in iterations_to_accept and wall_clock_s from
-    the run unless given.
+    empty, to the one open run (tokens and user_rejection: the run with the latest event, open
+    or not, while no other run is open). With several runs open, ``run`` is required: parallel
+    sessions share one ledger. A grade (an independent grader's verdict, logged after the run
+    closed) needs ``run`` whenever the ledger holds more than one run. accept fills in
+    iterations_to_accept and wall_clock_s from the run unless given.
     """
     if event not in EVENTS:
         raise ValueError(f"unknown event {event!r}; known: {sorted(EVENTS)}")
     data = _clean(event, fields)
+    if event == "iteration" and data["hard_fail_count"] == 0 and data.get("findings"):
+        raise ValueError(f"iteration: hard_fail_count is 0 but findings lists {sorted(data['findings'])}; findings are the "
+                         "failing hard checks, and one that has not run yet (a blind read waiting for its judge) counts as failing")
     folder = runs_dir(near)
     ts = time.time() if now is None else float(now)
     runs = _group(read_events(folder))
@@ -283,11 +294,22 @@ def log(event: str, run: str = "", near=None, now: float | None = None, **fields
                                  "command line), the id of the run being graded")
             if event not in LATE and len(candidates) > 1:
                 raise ValueError(_which_run(runs, candidates))
-            run = max(candidates, key=lambda r: runs[r][0].get("ts", 0))
+            run = max(candidates, key=lambda r: runs[r][-1].get("ts", 0))  # the last one at work
+            others = [r for r in candidates if r != run and _is_open(runs[r])]
+            if others:  # another session is still at work: a late event could land on its run
+                raise ValueError(f"{event}: " + _which_run(runs, others, newest=run))
         elif run not in runs:
             raise ValueError(f"no run {run!r} in {folder}")
         if event not in LATE and not _is_open(runs[run]):
             raise ValueError(f"run {run!r} is closed; start a new run")
+        if event == "grade":  # a verdict on the delivery that closed the run, and consistent with it
+            if _is_open(runs[run]):
+                raise ValueError(f"grade: run {run!r} is open; grade it after the builder's accept or abandon")
+            if data["accepted"] and data.get("failed"):
+                raise ValueError("grade: accepted=true with failed checks; a run that fails a hard check is not accepted")
+            if data["accepted"] and [e for e in runs[run] if e["event"] in CLOSING][-1]["event"] == "abandon":
+                raise ValueError(f"grade: run {run!r} was abandoned, so nothing was delivered to accept; "
+                                 "log accepted=false and the checks it fails")
         if event == "accept":
             its = [e for e in runs[run] if e["event"] == "iteration"]
             data.setdefault("iterations_to_accept", max((e.get("n", 0) for e in its), default=0))
@@ -316,17 +338,21 @@ def _failing(findings: dict) -> dict[str, int]:
 
 
 def summarize_run(evs: list[dict]) -> dict:
-    """One run's numbers. Iterations to a hard pass = the first check round with no hard failure.
-    A run is accepted when it closed with accept and, if it was graded, its last grade accepts it;
-    the checks that grade failed count in its failures."""
+    """One run's numbers. Iterations to a hard pass = the first check round with no hard failure,
+    unless the grade failed a hard check: then the run never reached one. A run is accepted when
+    it closed with accept and, if that close was graded, its last grade accepts it. Only a grade
+    logged after the run's final close is its verdict (one before a user rejection reopened the
+    run judged an earlier delivery), and the checks it failed count in the run's failures."""
     start = next((e for e in evs if e["event"] == "run_start"), evs[0])
     its = [e for e in evs if e["event"] == "iteration"]
     passed = next((e for e in its if e.get("hard_fail_count") == 0), None)
-    closes = [e for e in evs if e["event"] in CLOSING]
-    last = closes[-1] if closes and not _is_open(evs) else None
+    closes = [i for i, e in enumerate(evs) if e["event"] in CLOSING]
+    last = evs[closes[-1]] if closes and not _is_open(evs) else None
     toks = [e for e in evs if e["event"] == "tokens"]
-    grade = next((e for e in reversed(evs) if e["event"] == "grade"), None)
+    grade = next((e for e in reversed(evs[closes[-1] + 1 :]) if e["event"] == "grade"), None) if last else None
     grade_failed = list(grade.get("failed") or []) if grade else []
+    if grade_failed:
+        passed = None
     failures: dict[str, int] = {}
     for e in its:
         for k, v in _failing(e.get("findings")).items():
@@ -339,7 +365,7 @@ def summarize_run(evs: list[dict]) -> dict:
             k = e.get("check") or "?"
             rejections[k] = rejections.get(k, 0) + 1
     self_accepted = last is not None and last["event"] == "accept"
-    accepted = self_accepted and (grade is None or grade.get("accepted") is True)
+    accepted = self_accepted and (grade is None or (grade.get("accepted") is True and not grade_failed))
     end = max(e.get("ts", 0) for e in evs if e["event"] not in LATE or e is start)
     return {
         "run": start["run"],
@@ -742,6 +768,7 @@ Eval protocol (task {spec['id']}; see evals/README.md):
 - Accepted means every hard check passes:
 {chr(10).join(_check_line(c) for c in spec['accept'])}
 - After each change, run the hard checks and log run_log(event="iteration", n=<round>, tier=<cheapest failing tier>, hard_fail_count=<hard checks failing>, findings=<their ids>). A probe is a short Blender script you write to measure what no tool covers yet.
+- Log a round once every hard check in it has run, the blind read included: judge first, then the iteration. A hard check you have not run counts as failing (in hard_fail_count, and its id in findings), so a round only passes when everything passed.
 - Blind reads and checklists go to a fresh art-director subagent that sees only the sheet and the questions, never file names, this brief or this protocol; "unclear" counts as No. Log each as judge_round.
 - Log every rejected tool call (bad arguments, a failed Blender script) as validator_rejection.
 - When every hard check passes, run the soft checks once and log accept with values="{'; '.join(f'{f}=...' for f in extras)}". At 10 rounds, 2 judge rounds without a pass, or 90 minutes, log abandon with the reason and the same values.

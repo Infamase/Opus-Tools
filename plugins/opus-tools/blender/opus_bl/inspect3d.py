@@ -362,6 +362,7 @@ def views(
         else:
             raise ValueError("pass must be shaded, clay, wire, silhouette, normals, parts or focus")
         aim(cam, az, el, frame_pts, zoom=float(shot.get("zoom", 1.0)), ortho=bool(shot.get("ortho", False)))
+        m_per_px = _m_per_px(cam, frame_pts, size)
         clip = _cutaway(scene, cam, frame_pts) if focus and not isolate else None
         if clip:
             cam.data.clip_start = clip
@@ -376,7 +377,7 @@ def views(
         fp = os.path.join(out_dir, f"shot{i:02d}_{pass_name}.png")
         scene.render.filepath = fp
         bpy.ops.render.render(write_still=True)
-        tile = {"path": fp, "pass": pass_name, "azimuth": az, "elevation": el,
+        tile = {"path": fp, "pass": pass_name, "azimuth": az, "elevation": el, "m_per_px": m_per_px,
                 "view": view if isinstance(view, str) else None, "labels": labels}
         if clip:  # say so in the tile's title
             tile.update(cutaway=True, clip_start_m=round(clip, 4),
@@ -384,6 +385,17 @@ def views(
         tiles.append(tile)
     return {"tiles": tiles, "mode": mode, "parts": [p["name"] for p in parts], "target": target or None,
             "focus": sorted(focus) if focus else [], "stats": assets.stats(targets)}
+
+
+def _m_per_px(cam, points: np.ndarray, size: int) -> float:
+    """Meters per pixel of a square render: exact for an orthographic camera, at the framed
+    points' center for a perspective one. Each view is framed to its own span, so pixel counts
+    compare across views only in these units."""
+    if cam.data.type == "ORTHO":
+        return float(cam.data.ortho_scale) / size
+    lo, hi = _bounds(points)
+    depth = (cam.location - (lo + hi) / 2).length
+    return float(2 * depth * math.tan(cam.data.angle / 2)) / size
 
 
 def _subtree(bone) -> set[str]:
@@ -560,7 +572,7 @@ def report(path: str, objects: list[str] | None = None) -> dict:
     # (posed, in world space). Penetration is triangle overlap with a depth (geom.penetration),
     # so faces that only touch stay contacts and a part pushed right through a thin plate is
     # still caught. Then each loose island of a mesh: a tusk or a planted sphere off a skinned
-    # body floats there too.
+    # body floats there too. Nothing that rests on the floor (the asset's lowest point) floats.
     contacts, gaps, penetrations = [], [], []
     mesh_objs = [o for o in targets if o.type == "MESH"]
     solids = {}
@@ -602,9 +614,9 @@ def report(path: str, objects: list[str] | None = None) -> dict:
                 dist[a, b] = dist[b, a] = d
                 if d <= tol:
                     contacts.append({"a": a, "b": b, "kind": "touching", "gap_mm": round(d * 1000, 2)})
-        for a in names:
+        for a in names:  # an object resting on the floor stands, like an island there
             gap, nearest = min((dist[a, b], b) for b in names if b != a)
-            if gap > tol:
+            if gap > tol and float(verts[a][:, 2].min()) - lo.z > tol:
                 gaps.append({"part": a, "nearest": nearest, "gap_m": round(gap, 4),
                              "center_m": [round(float(x), 4) for x in verts[a].mean(axis=0)]})
     gaps += _island_floaters(solids, min(size * 0.002, 0.002), lo.z, skip={g["part"] for g in gaps})

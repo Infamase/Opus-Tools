@@ -42,8 +42,8 @@ def _run_log_fields() -> str:
               'e.g. "blind_read, poke_through". A graded run counts as accepted only when its last grade says so.',
               "run_start fills in tool_version; accept fills in iterations_to_accept and wall_clock_s.",
               "--run <id from run_start> picks the run. Without it an event goes to the one open run",
-              "(tokens and user_rejection: the latest run); with several runs open it is refused, and a",
-              "grade always needs --run once the ledger holds more than one run."]
+              "(tokens and user_rejection: the latest run, if no other run is open); with several runs",
+              "open it is refused, and a grade always needs --run once the ledger holds more than one run."]
     return "\n".join(lines)
 
 
@@ -433,11 +433,11 @@ def _run(a: argparse.Namespace) -> int:
 
         _print(build_tables(a.ansur or None, a.out or None))
     elif a.cmd == "licence-check":
-        from opus.ledger import check, classify
+        from opus.ledger import OWN_WORK_HINT, check, classify
 
         if a.text:
             lid, flags = classify(a.text)
-            _print({"licence_id": lid, "flags": flags})
+            _print({"licence_id": lid, "flags": flags, **({"hint": OWN_WORK_HINT} if lid is None else {})})
             return 0
         flag = {None: None, "true": True, "false": False}
         rep = check(a.dir, commercial=flag[a.commercial], publish_assets=flag[a.publish_assets])

@@ -82,6 +82,35 @@ eye, s = grip._eye(arm, grip.find_hand(arm, "r"), None)
 print("RESULT", json.dumps({"eye": list(eye), "scale": s, "sight": list(bpy.data.objects["SOCKET_sight"].matrix_world.translation)}))
 """
 
+# a horn on its own bone under the head, a knife on its own bone under the right hand and a
+# crate on a parentless bone, each a cube skinned whole to its bone; then the body/prop split
+OWN_BONES = """
+import json, sys, bmesh, bpy
+from mathutils import Matrix
+sys.path.insert(0, sys.argv[sys.argv.index("--") + 1])
+from opus_bl import grip
+arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
+bpy.context.view_layer.objects.active = arm
+bpy.ops.object.mode_set(mode="EDIT")
+eb = arm.data.edit_bones
+for name, parent in (("horn_l", "head"), ("knife_r", "hand_r"), ("crate", None)):
+    b = eb.new(name)
+    b.head, b.tail = (0.0, 0.0, 0.0), (0.0, 0.0, 0.1)
+    b.parent = eb[parent] if parent else None
+bpy.ops.object.mode_set(mode="OBJECT")
+for name in ("horn_l", "knife_r", "crate"):
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=0.02)
+    me = bpy.data.meshes.new(name.title())
+    bm.to_mesh(me)
+    o = bpy.data.objects.new(name.title(), me)
+    bpy.context.scene.collection.objects.link(o)
+    o.vertex_groups.new(name=name).add(range(len(me.vertices)), 1.0, "REPLACE")
+    o.modifiers.new("Armature", "ARMATURE").object = arm
+body, props = grip._skin_split(arm)
+print("RESULT", json.dumps({"body": sorted(o.name for o in body), "props": sorted(o.name for o in props)}))
+"""
+
 # the same material (with an image) on the club and on the rig's body
 SHARE_MATERIAL = """
 import os, sys, bpy
@@ -237,6 +266,16 @@ def test_check_holds_a_prop_skinned_to_the_weapon_bone(work, holding_club):
         assert palm["status"] == palm0["status"] and palm["verts_inside"] == palm0["verts_inside"]
         assert palm["closest_mm"] == pytest.approx(palm0["closest_mm"], abs=0.11)
         assert got["contact"]["body"] == parented["contact"]["body"]
+
+
+def test_body_parts_on_their_own_bones_stay_body(work):
+    """Ears, noses and horns modelled as separate meshes on their own bones counted as held
+    props: grip_check's body test could not see them and they could be picked as the held
+    object. A part on its own bone is a prop only below a hand (or a weapon bone), or on a
+    bone that hangs from nothing."""
+    r = blender_expr(OWN_BONES, work / "human.blend", BLENDER_MODULES)
+    assert r["props"] == ["Crate", "Knife_R"]
+    assert "Horn_L" in r["body"] and len(r["body"]) >= 2
 
 
 def test_body_depth_comes_only_from_what_is_counted(work, holding_club):

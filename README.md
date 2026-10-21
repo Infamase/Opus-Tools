@@ -60,21 +60,23 @@ a hard pass.
 - **Floating parts and contacts on skinned and imported assets.** `model_report` and
   `mesh_lint` now find floating islands and gaps on skinned meshes, giving the gap in mm and
   the nearest part. Penetrations are reported but no longer gate a check, and faces that
-  only touch count as contacts.
+  only touch count as contacts. Anything resting on the floor stands.
 - **Lint on shipped files.** glTF, FBX, OBJ and STL imports are welded before lint runs, so
   exports no longer raise false "faces point inward" errors. Rotated objects no longer raise
   false flipped normals, and props parented to a bone count as rigid.
 - **Readability.** `readability_check` matches defining names in any case or by prefix,
   and names that match nothing count against the check. A camera inside the subject is
   flagged, and blind sheets leave those views out. Game-size silhouettes turn to the side
-  that shows the most.
-- **Grips and look.** `grip_check` accepts props skinned to the weapon bone. A `look_at`
+  that shows the most area, so a rifle or a wolf is seen side-on.
+- **Grips and look.** `grip_check` accepts props skinned to the weapon bone, while ears,
+  noses and horns on their own bones stay part of the body. A `look_at`
   bone target includes the bone's fingers, and a hidden one gets a cutaway. The normals and
   vertex-colour passes are correct.
 - **Command line and run ledger.** Every report command takes `--json`. Values that start
   with a dash and axis names such as `+Z` work. Errors are one line instead of a traceback.
   `run-log --help` lists every field. An event without a run id is refused when several
-  runs are open, and a `grade` event records an independent grader's verdict.
+  runs are open (`tokens` and `user_rejection` while any other run is open), and a `grade`
+  event records an independent grader's verdict on the close it follows.
 - **Output paths.** Each call gets its own output path, so parallel calls never share files.
 
 ## Install (Windows, Claude desktop app → Code tab)

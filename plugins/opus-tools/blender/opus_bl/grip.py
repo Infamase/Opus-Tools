@@ -61,6 +61,13 @@ def _finger_names(finger: str, i: int, side: str) -> list[str]:
     return names
 
 
+def _hand_bone(arm, side: str) -> str | None:
+    """The hand bone of one side, by Unreal, Mixamo, Rigify or humanoid name."""
+    s, word = SIDE_WORDS[side]
+    by_norm = {_norm(b.name): b.name for b in arm.data.bones}
+    return next((by_norm[c] for c in (f"hand{s}", f"{word}hand") if c in by_norm), None)
+
+
 def find_hand(arm, side: str) -> dict:
     """Bone names of one arm and hand, matched across Unreal, Mixamo, Rigify and the
     Unity/Godot humanoid naming."""
@@ -72,7 +79,7 @@ def find_hand(arm, side: str) -> dict:
 
     info = {
         "side": side,
-        "hand": pick(f"hand{s}", f"{word}hand"),
+        "hand": _hand_bone(arm, side),
         "lowerarm": pick(f"lowerarm{s}", f"forearm{s}", f"{word}forearm", f"{word}lowerarm"),
         "upperarm": pick(f"upperarm{s}", f"{word}arm", f"{word}upperarm"),
         "head": pick("head"),
@@ -114,13 +121,16 @@ _SPLIT: dict = {}
 def _skin_split(arm) -> tuple[list, list]:
     """The meshes ``arm`` deforms, as (body, held props). A prop is skinned rigidly: 99% or
     more of its vertices led by one bone that is weapon_r or weapon_l or below one, or that
-    leads no vertex of the body's other meshes (a sword skinned whole to its own bone)."""
+    leads no vertex of the body's other meshes and hangs from a hand or from nothing (a sword
+    skinned whole to its own bone). Ears, noses and horns on their own bones under the head
+    stay body."""
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH" and o.find_armature() == arm]
     key = (arm.as_pointer(), tuple((o.as_pointer(), len(o.data.vertices), len(o.vertex_groups)) for o in meshes))
     if key not in _SPLIT:
         lead = {o: _lead_bone(o) for o in meshes}
         rigid = {o for o in meshes if lead[o][0] is not None and lead[o][1] >= 0.99}
         body_bones = set().union(*(lead[o][2] for o in meshes if o not in rigid))
+        hands = {_hand_bone(arm, sd) for sd in SIDE_WORDS} - {None}
 
         def prop(o):
             b = arm.data.bones.get(lead[o][0])
@@ -128,7 +138,9 @@ def _skin_split(arm) -> tuple[list, list]:
                 return False
             if any(x.name in WEAPON_BONES for x in (b, *b.parent_recursive)):
                 return True
-            return bool(body_bones) and b.name not in body_bones
+            if not body_bones or b.name in body_bones:
+                return False
+            return b.parent is None or any(x.name in hands for x in b.parent_recursive)
 
         props = [o for o in meshes if o in rigid and prop(o)]
         _SPLIT.clear()

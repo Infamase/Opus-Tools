@@ -271,6 +271,15 @@ def test_an_unlicensed_build_points_at_own_work(project):
     assert why["pal.hex"] == ["licence not classified: its licence LicenseRef-Proprietary; add it to data/licences.yaml; "
                               "if it was made in this project, record licence_id LicenseRef-Own-Work"]
     assert not any("Own-Work" in r for r in why["base.glb"])  # made from inputs: their licences decide
+    # own-work prose with its references listed as inputs, as the skill advises
+    (project / "axe.blend").write_bytes(b"x")
+    record(str(project / "axe.blend"), "built here", license="my own work",
+           inputs=[{"source": "axe photo", "licence_id": "CC0-1.0"}])
+    why = {b["asset"]: b["reasons"] for b in check(project)["blocked"]}
+    assert why["axe.blend"] == ["licence not classified: its licence text 'my own work'; record its licence_id; "
+                                "if it was made in this project, record licence_id LicenseRef-Own-Work"]
+    record(str(project / "axe.blend"), "built here", licence_id="LicenseRef-Own-Work",
+           inputs=[{"source": "axe photo", "licence_id": "CC0-1.0"}])
     record(str(project / "kit.glb"), "built here", licence_id="LicenseRef-Own-Work")
     assert {b["asset"] for b in check(project)["blocked"]} == {"pal.hex", "base.glb"}
 
@@ -393,6 +402,10 @@ def test_licence_tools_over_mcp(project):
 def test_licence_check_cli(project, capsys):
     assert cli(["licence-check", "--text", "NVIDIA Source Code License"]) == 0
     assert json.loads(capsys.readouterr().out) == {"licence_id": "LicenseRef-NVIDIA-SCL", "flags": ["nc"]}
+    for text in ("own work", "made by me", "Own-Work"):  # provenance prose names no licence: say what to record
+        assert cli(["licence-check", "--text", text]) == 0
+        out = json.loads(capsys.readouterr().out)
+        assert out["licence_id"] is None and out["flags"] == ["unknown"] and "LicenseRef-Own-Work" in out["hint"]
     record(str(project / "kit.glb"), "Quaternius pack", licence_id="LicenseRef-QAL-1.0")
     assert cli(["licence-check", "--dir", str(project)]) == 0
     capsys.readouterr()

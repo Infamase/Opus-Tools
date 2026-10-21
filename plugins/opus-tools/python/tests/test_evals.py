@@ -3,6 +3,8 @@
 import copy
 import importlib.util
 import inspect
+import json
+import re
 import shutil
 import subprocess
 
@@ -186,6 +188,9 @@ def test_prompt_carries_brief_and_protocol(tasks):
     assert 'values="blind_read_top1=...; grip_verdict=...; tris=..."' in p
     assert "https://www.metmuseum.org/art/collection/search/23232" in p
     assert "names: knight | armored knight | man-at-arms" in p
+    # a round logged before its blind read ran was credited as a hard pass in v0.4, while a
+    # builder who counted the pending read as failing was not: one convention for everyone
+    assert "judge first, then the iteration. A hard check you have not run counts as failing" in p
 
 
 def test_suite_hash_ignores_line_endings(tmp_path):
@@ -217,3 +222,22 @@ def test_cli_lists_and_validates(capsys):
     assert len(lines) == 24 and lines[0].startswith("knight") and "regression" in lines[0]
     assert cli([group, "prompt", "wolf_trot"]) == 0
     assert "LH 0, RF 0, RH 0.5, LF 0.5" in capsys.readouterr().out
+
+
+def test_the_baseline_note_matches_its_summary():
+    """v0.4.md's per-task table is v0.4.json, and the record follows the run rules later sets
+    are summarized with: a run whose grade failed a hard check has no hard pass."""
+    data = json.loads((EVALS / "results" / "v0.4.json").read_text(encoding="utf-8"))
+    note = (EVALS / "results" / "v0.4.md").read_text(encoding="utf-8")
+    rows = {m.group(1): m.group(2).split(" | ") for m in re.finditer(r"^\| `(\w+)` \| (.+) \|$", note, re.M)}
+    assert set(rows) >= set(data["by_task"]) and len(data["by_task"]) == 24
+    for task, agg in data["by_task"].items():
+        hard, accept = agg["median_iterations_to_hard_pass"], agg["median_iterations_to_accept"]
+        cells = rows[task]
+        assert cells[1] == ("–" if hard is None else f"{hard:g}"), task
+        assert cells[2] == ("–" if accept is None else f"{accept:g}"), task
+        assert cells[4] == f"{agg['median_validator_rejections']:g}", task
+        if agg["grade_failure_histogram"]:
+            assert hard is None, task
+    total = sum(data["overall"]["rejection_histogram"].values())
+    assert f"{data['overall']['median_validator_rejections']:g} ({total} in total)" in note

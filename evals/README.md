@@ -86,7 +86,9 @@ Checks use only tools that exist in v0.4:
    Claude Code session in the eval project and paste `opus eval prompt <id>`, adding the label
    ("label v0.4"). The prompt is the brief followed by the protocol: Claude logs `run_start`,
    an `iteration` after every round of hard checks, each `judge_round` and
-   `validator_rejection`, and `accept` or `abandon`.
+   `validator_rejection`, and `accept` or `abandon`. A round is logged once all its hard
+   checks ran, the blind read included; a hard check not run yet counts as failing, and
+   `run_log` refuses `hard_fail_count=0` with findings listed.
 3. Don't steer. If Claude asks something the brief doesn't answer, reply "your call".
 4. Judges (blind reads, checklists) are fresh `art-director` subagents that see only the sheet
    and the questions, never file names or the brief. "Unclear" counts as No.
@@ -127,8 +129,8 @@ Per run, from the ledger (`<project>/.opus/runs/<date>.jsonl`):
 
 | Field | Meaning |
 |---|---|
-| `accepted` | Every hard check passed within the caps: the run closed with `accept` and, when it has a `grade`, the last grade accepts it (`self_accepted` is the builder's own accept) |
-| `iterations_to_hard_pass` | The first check round with no hard failure |
+| `accepted` | Every hard check passed within the caps: the run closed with `accept` and, when it has a `grade`, the last grade accepts it (`self_accepted` is the builder's own accept). A grade is logged after the run closed and judges that close; `run_log` refuses one on an open run, `accepted=true` with failed checks, and `accepted=true` on an abandoned run |
+| `iterations_to_hard_pass` | The first check round with no hard failure; none when the grade failed a hard check |
 | `iterations_to_accept` | Check rounds when accepted |
 | `hard_fail_count_first` | Hard failures in the first round |
 | `validator_rejections` | Rejected tool calls in v0.4; `spec_validate` rejections from S0b on |

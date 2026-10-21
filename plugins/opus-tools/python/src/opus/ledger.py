@@ -33,6 +33,10 @@ BLOCKS = {
 }
 
 MISSING = "not in the ledger"  # note on a lineage input whose asset has no entry yet
+# what to record when licence text names no licence ("own work", "made by me"): provenance
+# phrases are never aliases (licences.yaml), so the text stays unknown and this says what to do
+OWN_WORK_HINT = ("the text names no licence. If the asset was made in this project, record licence_id "
+                 "LicenseRef-Own-Work (list its references as inputs); otherwise record its source's licence ID")
 
 _TOKEN = re.compile(r"[a-z0-9]+|\+")
 _SPELLING = {"licence": "license", "licences": "licenses", "licenced": "licensed"}
@@ -439,7 +443,7 @@ def reasons(entry: dict, commercial: bool = False, publish_assets: bool = False)
             if key is None:
                 missing = lid and not all(_canon(i) for i in _ids(lid))
                 fix = "add it to data/licences.yaml" if missing else "record its licence_id"
-                if n == 0 and not entry.get("inputs"):  # its own licence, and nothing it was made from
+                if n == 0:  # its own licence; the references it was made from keep their own
                     fix += "; if it was made in this project, record licence_id LicenseRef-Own-Work"
                 why.append(f"{what}: {label}; {fix}")
             elif pol[key]:

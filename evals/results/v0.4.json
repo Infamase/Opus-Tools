@@ -21,7 +21,7 @@
   "median_iterations_to_accept": 3.0,
   "median_hard_fail_count_first": 1.0,
   "median_judge_rounds": 2.0,
-  "median_validator_rejections": 4.0,
+  "median_validator_rejections": 3.5,
   "median_user_rejections": 0.0,
   "median_wall_clock_s": 1146.55,
   "median_tokens_input": 10120593.5,
@@ -33,14 +33,14 @@
    "lint_tris_25188_over_25000": 3,
    "blind_read_not_run_yet": 2,
    "blind_read_not_yet_run": 2,
-   "contacts": 2,
-   "floating": 2,
    "grip": 2,
    "lint": 2,
    "lint:sword_inward_faces": 2,
    "none_numeric": 2,
    "skate": 2,
    "body_clipping": 1,
+   "contacts": 1,
+   "floating": 1,
    "grip:no_object_near_hand": 1,
    "grip_l_cant_reach": 1,
    "grip_not_built": 1,
@@ -62,17 +62,15 @@
    "poke_through": 1
   },
   "rejection_histogram": {
-   "run_log": 60,
-   "grip_define": 10,
+   "run_log": 54,
+   "grip_define": 9,
    "grip_check": 8,
-   "?": 5,
-   "lookdev_sheet": 5,
    "run-log": 5,
-   "body_blockout": 3,
+   "?": 4,
+   "lookdev_sheet": 4,
    "lookdev": 3,
    "bible": 2,
-   "mesh_lint": 2,
-   "model_report": 2,
+   "body_blockout": 2,
    "probe": 2,
    "project_bible": 2,
    "blender_probe": 1,
@@ -81,6 +79,8 @@
    "grip_hold": 1,
    "judge_checklist": 1,
    "look_at": 1,
+   "mesh_lint": 1,
+   "model_report": 1,
    "readability_check": 1,
    "sdf_build_script": 1
   },
@@ -206,9 +206,9 @@
    "accepted": 1,
    "self_accepted": 1,
    "graded": 1,
-   "median_iterations_to_hard_pass": null,
+   "median_iterations_to_hard_pass": 1,
    "median_iterations_to_accept": 1,
-   "median_hard_fail_count_first": 1,
+   "median_hard_fail_count_first": 0,
    "median_judge_rounds": 2,
    "median_validator_rejections": 4,
    "median_user_rejections": 0,
@@ -263,9 +263,9 @@
    "accepted": 1,
    "self_accepted": 1,
    "graded": 1,
-   "median_iterations_to_hard_pass": 1,
+   "median_iterations_to_hard_pass": 3,
    "median_iterations_to_accept": 6,
-   "median_hard_fail_count_first": 0,
+   "median_hard_fail_count_first": 1,
    "median_judge_rounds": 5,
    "median_validator_rejections": 5,
    "median_user_rejections": 0,
@@ -292,11 +292,11 @@
    "accepted": 1,
    "self_accepted": 1,
    "graded": 1,
-   "median_iterations_to_hard_pass": 1,
+   "median_iterations_to_hard_pass": 3,
    "median_iterations_to_accept": 3,
-   "median_hard_fail_count_first": 0,
+   "median_hard_fail_count_first": 1,
    "median_judge_rounds": 2,
-   "median_validator_rejections": 2,
+   "median_validator_rejections": 4,
    "median_user_rejections": 0,
    "median_wall_clock_s": 1181.17,
    "median_tokens_input": 10162118,
@@ -306,8 +306,8 @@
    },
    "grade_failure_histogram": {},
    "rejection_histogram": {
-    "lookdev_sheet": 1,
-    "run_log": 1
+    "run_log": 3,
+    "lookdev_sheet": 1
    },
    "values": {
     "blind_read_top1": {
@@ -321,7 +321,7 @@
    "accepted": 1,
    "self_accepted": 1,
    "graded": 1,
-   "median_iterations_to_hard_pass": 2,
+   "median_iterations_to_hard_pass": 3,
    "median_iterations_to_accept": 3,
    "median_hard_fail_count_first": 2,
    "median_judge_rounds": 1,
@@ -355,7 +355,7 @@
    "median_iterations_to_accept": 3,
    "median_hard_fail_count_first": 1,
    "median_judge_rounds": 2,
-   "median_validator_rejections": 6,
+   "median_validator_rejections": 4,
    "median_user_rejections": 0,
    "median_wall_clock_s": 1360.87,
    "median_tokens_input": 8977432,
@@ -365,9 +365,8 @@
    },
    "grade_failure_histogram": {},
    "rejection_histogram": {
-    "run_log": 3,
+    "run_log": 2,
     "blender_script": 1,
-    "grip_define": 1,
     "readability_check": 1
    },
    "values": {
@@ -388,7 +387,7 @@
    "median_iterations_to_accept": 2,
    "median_hard_fail_count_first": 0,
    "median_judge_rounds": 3,
-   "median_validator_rejections": 6,
+   "median_validator_rejections": 3,
    "median_user_rejections": 0,
    "median_wall_clock_s": 993.16,
    "median_tokens_input": 12519131,
@@ -396,9 +395,8 @@
    "failure_histogram": {},
    "grade_failure_histogram": {},
    "rejection_histogram": {
-    "run_log": 4,
-    "grip_define": 1,
-    "lookdev_sheet": 1
+    "run_log": 2,
+    "grip_define": 1
    },
    "values": {
     "blind_read_top1": {
@@ -416,11 +414,11 @@
    "accepted": 1,
    "self_accepted": 1,
    "graded": 1,
-   "median_iterations_to_hard_pass": 1,
+   "median_iterations_to_hard_pass": 2,
    "median_iterations_to_accept": 2,
-   "median_hard_fail_count_first": 0,
+   "median_hard_fail_count_first": 1,
    "median_judge_rounds": 2,
-   "median_validator_rejections": 4,
+   "median_validator_rejections": 3,
    "median_user_rejections": 0,
    "median_wall_clock_s": 1132.68,
    "median_tokens_input": 9313620,
@@ -428,7 +426,7 @@
    "failure_histogram": {},
    "grade_failure_histogram": {},
    "rejection_histogram": {
-    "run_log": 3,
+    "run_log": 2,
     "body_blockout": 1
    },
    "values": {
@@ -456,7 +454,7 @@
    "accepted": 0,
    "self_accepted": 1,
    "graded": 1,
-   "median_iterations_to_hard_pass": 1,
+   "median_iterations_to_hard_pass": null,
    "median_iterations_to_accept": null,
    "median_hard_fail_count_first": 0,
    "median_judge_rounds": 4,
@@ -506,19 +504,17 @@
    "accepted": 0,
    "self_accepted": 0,
    "graded": 1,
-   "median_iterations_to_hard_pass": 9,
+   "median_iterations_to_hard_pass": null,
    "median_iterations_to_accept": null,
-   "median_hard_fail_count_first": 2,
+   "median_hard_fail_count_first": 1,
    "median_judge_rounds": 1,
-   "median_validator_rejections": 5,
+   "median_validator_rejections": 3,
    "median_user_rejections": 0,
    "median_wall_clock_s": 2096.51,
    "median_tokens_input": 15001961,
    "median_tokens_output": 5814,
    "failure_histogram": {
     "(prose)": 25,
-    "contacts": 1,
-    "floating": 1,
     "poke_through": 1,
     "rest": 1
    },
@@ -526,9 +522,7 @@
     "poke_through": 1
    },
    "rejection_histogram": {
-    "?": 3,
-    "probe": 1,
-    "run-log": 1
+    "?": 3
    },
    "values": {
     "blind_read_top1": {
@@ -543,11 +537,11 @@
    "accepted": 1,
    "self_accepted": 1,
    "graded": 1,
-   "median_iterations_to_hard_pass": 5,
+   "median_iterations_to_hard_pass": 8,
    "median_iterations_to_accept": 8,
    "median_hard_fail_count_first": 2,
    "median_judge_rounds": 2,
-   "median_validator_rejections": 10,
+   "median_validator_rejections": 3,
    "median_user_rejections": 0,
    "median_wall_clock_s": 1409.24,
    "median_tokens_input": 10079069,
@@ -564,11 +558,7 @@
    },
    "grade_failure_histogram": {},
    "rejection_histogram": {
-    "run_log": 6,
-    "?": 1,
-    "body_blockout": 1,
-    "mesh_lint": 1,
-    "model_report": 1
+    "run_log": 3
    },
    "values": {
     "blind_read_top1": {
@@ -621,7 +611,7 @@
    "median_iterations_to_accept": 4,
    "median_hard_fail_count_first": 5,
    "median_judge_rounds": 2,
-   "median_validator_rejections": 9,
+   "median_validator_rejections": 8,
    "median_user_rejections": 0,
    "median_wall_clock_s": 1876.53,
    "median_tokens_input": 19540794,
@@ -635,8 +625,8 @@
    },
    "grade_failure_histogram": {},
    "rejection_histogram": {
-    "run_log": 3,
     "grip_define": 2,
+    "run_log": 2,
     "grip_hold": 1,
     "lookdev_sheet": 1,
     "mesh_lint": 1,
@@ -692,11 +682,11 @@
    "accepted": 1,
    "self_accepted": 1,
    "graded": 1,
-   "median_iterations_to_hard_pass": 1,
+   "median_iterations_to_hard_pass": 2,
    "median_iterations_to_accept": 2,
-   "median_hard_fail_count_first": 0,
+   "median_hard_fail_count_first": 1,
    "median_judge_rounds": 2,
-   "median_validator_rejections": 4,
+   "median_validator_rejections": 6,
    "median_user_rejections": 0,
    "median_wall_clock_s": 1105.57,
    "median_tokens_input": 11422985,
@@ -704,9 +694,9 @@
    "failure_histogram": {},
    "grade_failure_histogram": {},
    "rejection_histogram": {
-    "run-log": 2,
-    "lookdev": 1,
-    "probe": 1
+    "run-log": 3,
+    "probe": 2,
+    "lookdev": 1
    },
    "values": {
     "blind_read_top1": {
@@ -814,7 +804,7 @@
    "median_iterations_to_accept": 2,
    "median_hard_fail_count_first": 0,
    "median_judge_rounds": 3,
-   "median_validator_rejections": 1,
+   "median_validator_rejections": 3,
    "median_user_rejections": 0,
    "median_wall_clock_s": 522.81,
    "median_tokens_input": 5162602,
@@ -822,7 +812,8 @@
    "failure_histogram": {},
    "grade_failure_histogram": {},
    "rejection_histogram": {
-    "run_log": 1
+    "run_log": 2,
+    "bible": 1
    },
    "values": {
     "blind_read_top1": {
@@ -869,7 +860,7 @@
    "median_iterations_to_accept": 9,
    "median_hard_fail_count_first": 1,
    "median_judge_rounds": 2,
-   "median_validator_rejections": 15,
+   "median_validator_rejections": 13,
    "median_user_rejections": 0,
    "median_wall_clock_s": 2216.88,
    "median_tokens_input": 19687143,
@@ -882,9 +873,8 @@
    "grade_failure_histogram": {},
    "rejection_histogram": {
     "grip_check": 7,
-    "run_log": 5,
-    "grip_define": 2,
-    "bible": 1
+    "run_log": 4,
+    "grip_define": 2
    },
    "values": {
     "anticipation_frames": 13,

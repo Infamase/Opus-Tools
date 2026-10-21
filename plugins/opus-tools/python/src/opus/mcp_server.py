@@ -19,7 +19,7 @@ from opus import imaging as im
 from opus.bible import init_bible, load_bible, resolve_palette_spec
 from opus.doctor import doctor, format_report
 from opus.ledger import check as licence_policy_check
-from opus.ledger import classify, licences, record, write_credits
+from opus.ledger import OWN_WORK_HINT, classify, licences, record, write_credits
 from opus.paths import find_project_root, output_path
 
 INSTRUCTIONS = """\
@@ -701,13 +701,14 @@ def licence_check(
     unknown always blocks; the bible's commercial: true blocks nc and use-restricted;
     publish_assets: true blocks nd and no-redistribute-as-asset; sa assets list the licence
     the output must carry. commercial/publish_assets override the bible for a what-if.
-    text: classify a licence string instead and return its ID, flags, name and URL.
+    text: classify a licence string instead and return its ID, flags, name and URL; text that
+    names no licence ("own work") gets a hint saying what to record.
     """
     if text:
         lid, flags = classify(text)
         info = licences().get(lid or "") or {}
         return _json({"licence_id": lid, "flags": flags, "name": info.get("name"), "url": info.get("url"),
-                      "notes": info.get("notes")})
+                      "notes": info.get("notes"), **({"hint": OWN_WORK_HINT} if lid is None else {})})
     base = project_dir or os.environ.get("OPUS_PROJECT_DIR") or os.getcwd()
     return _json(licence_policy_check(base, commercial=commercial, publish_assets=publish_assets))
 
@@ -768,8 +769,8 @@ def run_log(
     hard check ids it failed, e.g. "blind_read, poke_through", note; a graded run counts as
     accepted only when its last grade says so).
     Pass run=<id from run_start>; it is required when several runs are open (an empty run goes
-    to the one open run; tokens and user_rejection: the latest run), and a grade needs it once
-    the ledger holds more than one run. Returns the entry.
+    to the one open run; tokens and user_rejection: the latest run, if no other run is open),
+    and a grade needs it once the ledger holds more than one run. Returns the entry.
     """
     from opus.runs import log
 

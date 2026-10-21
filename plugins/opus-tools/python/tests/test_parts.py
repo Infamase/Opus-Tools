@@ -81,6 +81,16 @@ def test_islands_that_touch_or_sit_inside_do_not_float(cases):
     assert rep["gaps"] == []
 
 
+def test_objects_resting_on_the_floor_do_not_float(cases):
+    """With skinned meshes in the contact graph, a body standing on the floor and a crate
+    beside it were each 'floating' 1.1 m from the other. Only the box in the air floats."""
+    d, info = cases
+    rep = run_task("report", {"path": str(d / "crate.blend")})
+    (g,) = rep["gaps"]
+    assert g["part"] == "hover" and "island" not in g
+    assert g["center_m"] == pytest.approx(info["crate"]["hover_center_m"], abs=0.005)
+
+
 def test_skinned_objects_are_in_the_contact_graph_with_a_3_mm_tolerance(outfit):
     """A plate skinned to the thigh, 5 mm off it, floats; the bounding-diagonal tolerance alone
     (0.4% of 2.5 m) would have called it touching."""

@@ -48,7 +48,7 @@ def test_circle_segments_of_a_grip():
     assert c.circle_segments(r, UE.px_per_m(1.5)) == 11
     assert c.circle_segments(r, UE.px_per_m(3.0)) == 8
     assert c.circle_segments(r, UE.px_per_m(0.45)) == 20  # first person
-    assert c.circle_segments(0.025, UE.px_per_m(0.35)) == 26  # handguard: π/acos = 25.999 (§6(c) says 27)
+    assert c.circle_segments(0.025, UE.px_per_m(0.35)) == 26  # handguard: π/acos = 25.999 (§6(c))
     assert c.circle_segments(0.001, UE.px_per_m(40)) == 3  # smaller than a pixel
 
 

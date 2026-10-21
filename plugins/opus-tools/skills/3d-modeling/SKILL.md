@@ -1,6 +1,6 @@
 ---
 name: 3d-modeling
-description: Build, check and fix 3D models for games (Unreal, Godot, Unity) in Blender 5.x, low-poly and HD, with the Opus 3D tools. Characters and creatures start from canon-proportioned rigged blockouts (body_blockout) and are verified with proportion_check, reference_match and a blind read; look_at and model_report show any angle and the part structure; grip_define, grip_hold and grip_check put weapons, tools and props in hands correctly (first-person views included); lookdev_sheet and mesh_lint check the result. Reviews go numbers first, then yes/no checklist questions for a fresh judge, a blind read, a lineup_sheet beside human-made exemplars at game size, and ab_sheet in both orders to choose between versions. Use whenever creating, editing, importing or reviewing 3D models, props, environments, characters, creatures, or anything a character holds.
+description: Build, check and fix 3D models for games (Unreal, Godot, Unity) in Blender 5.x, low-poly and HD, with the Opus 3D tools. Characters and creatures start from canon-proportioned rigged blockouts (body_blockout) and are verified with proportion_check, reference_match and a blind read; look_at and model_report show any angle and the part structure; grip_define, grip_hold and grip_check put weapons, tools and props in hands correctly (first-person views included); lookdev_sheet and mesh_lint check the result; readability_check and blind_read_sheet's game-size mode show what survives at the game camera's real pixel size. Reviews go numbers first, then yes/no checklist questions for a fresh judge, a blind read, a lineup_sheet beside human-made exemplars at game size, and ab_sheet in both orders to choose between versions. Use whenever creating, editing, importing or reviewing 3D models, props, environments, characters, creatures, or anything a character holds.
 ---
 
 # 3D modeling with Opus Tools
@@ -12,8 +12,15 @@ memory. Start bodies from data, measure them, and look at them. Every time.
 
 Write it down (to the user or in your notes) before touching Blender:
 
-1. **Subject and use:** what it is, game camera (first person, third person, top-down,
-   side-scroller), how big it appears on screen, target engine.
+1. **Subject and use:** what it is, target engine, and the **game camera**: the bible's
+   camera profile and the close / typical / far distances it is seen from. `project_bible`
+   shows `camera_active` with px per meter and the smallest feature worth modelling at each
+   distance. Presets: `ue_tp_1080`, `ue_fp_1080`, `godot_tp`, `unity_tp`, `topdown`,
+   `sidescroller`; put the project's real FOV and resolution under `camera.overrides`.
+   First-person arms and weapons use the `viewmodel` camera: copy its FOV, near plane and
+   scale from the project into `camera.viewmodel` (without it checks run on a labelled
+   FALLBACK). Detail rule at the closest distance: 3 px or more, model it; 1–3 px, normal
+   map or trim; under 1 px, leave it out.
 2. **5–7 defining features**, the ones a stranger needs to recognize it. A western
    dragon: long S-curved neck, horned wedge head, bat wings with finger spars, membranes,
    four legs, long tapering tail, back spines. A knight: helmet with visor slit, pauldrons,
@@ -33,7 +40,12 @@ size (see Conventions).
    western. Other creatures start from the nearest one (wolf, bear → dog; deer, unicorn →
    horse; wyvern, griffin → dragon) and you move joints from there. It returns a rigged,
    watertight body plus `landmarks_m` (chin, shoulder, waist, crotch, knee heights, limb
-   lengths, widths). Model to those numbers.
+   lengths, widths). Model to those numbers. The canons come from measured tables: hands
+   0.82 and feet 1.15 head-units on the realistic human (inside ANSUR II p5–p95, other
+   presets keep the same fractions of stature); dog, cat and horse hind legs use the
+   metatarsal/femur ratio of wolf, lion and horse (Garland & Janis 1993; the report's
+   `hindlimb` entry), with a separate toe bone and, on the horse, fetlock, pastern and hoof.
+   A blockout is a target to model over, never the final mesh.
 2. **Build on it.**
    - HD: sculpt or shrinkwrap over the blockout, or replace parts with refined meshes,
      keeping joint positions. Keep the rig; bind your mesh to it (`ARMATURE_AUTO`).
@@ -51,8 +63,24 @@ size (see Conventions).
    region highlighted, `"parts"` for a labeled map.
 6. **`model_report`**: parts that should touch must be in contact, nothing floating by
    accident, symmetric where intended, center of mass over the feet.
-7. **`lookdev_sheet`** and **`mesh_lint`** (category `character` or `hero_character`).
-8. **Review** with the protocol below: checklist, blind read, lineup.
+7. **`readability_check`** at the game camera (next section).
+8. **`lookdev_sheet`** and **`mesh_lint`** (category `character` or `hero_character`).
+9. **Review** with the protocol below: checklist, blind read, lineup.
+
+## Will it read in the game?
+
+`readability_check` renders the part map with the profile's real FOV and resolution at each
+distance, so every pixel is a game pixel. Pass `defining` = the brief's defining parts (part,
+bone or object names), and `camera` / `distances` only to differ from the bible.
+- The subject's height in px against Johnson's criteria: about 8 px recognizes the class,
+  13 px identifies it. Per part: visible px and min width. A defining part under `floor_px`
+  (2 px) or `vanished` (under a pixel) gets a soft warning; `hidden` means another part
+  covers it in this view (try `view`, e.g. `"right"` or `"45,20"`).
+- Fix by exaggerating the part: thicker, longer, more contrast. Detail that ends up under
+  a pixel is wasted.
+- Held items in first person: `camera: "viewmodel"`.
+- `blind_read_sheet` with `game_size: true` adds the silhouette and clay at those true
+  sizes for the blind judge.
 
 ## Hands that hold things (first person especially)
 
@@ -120,13 +148,15 @@ first, then ask narrow questions, then compare with human-made work.
    working files by subject, `knight.blend`, not `knight_v3_fixed.blend`). It reasons before
    each answer, and "unclear" counts as No. Fix what failed, then ask only the failed
    questions again.
-3. **Blind read.** `blind_read_sheet` in its game-size mode; give its prompt to a fresh
+3. **Blind read.** `blind_read_sheet` with `game_size: true`; give its prompt to a fresh
    `art-director` **without saying what the model is**. Its top guess must name the subject.
    If not, `readability_check` shows which defining features vanish at the game camera:
    exaggerate them (bigger, clearer in silhouette, more contrast), then test again.
 4. **Lineup.** `lineup_sheet` puts the asset beside 2–3 human-made exemplars of the same
-   style and camera, all at true game size: `height_px` is the asset's on-screen height,
-   height_m × screen_px / (2 · distance · tan(vfov / 2)). Exemplars, never generated images:
+   style and camera, all at true game size. Pass `distance_m` (and `camera` unless it is the
+   bible's): the height comes from the profile, height_m × screen_px / (2 · distance ·
+   tan(vfov / 2)), with height_m measured from a .blend (`size_m` for images). Or give
+   `height_px` directly. Exemplars, never generated images:
    - the user's references and screenshots of games they like (private, never committed);
    - downloaded CC0 packs such as Kenney and KayKit; pass their .glb next to your .blend
      and both are rendered alike. Quaternius packs too, kept local (no redistribution);
@@ -151,7 +181,7 @@ Without subagents, skip the judge steps and say so; never answer your own checkl
 ## Making it look intentional, not generic
 
 - **Silhouette first, then secondary forms, then detail.** Check silhouettes at the size
-  the asset appears in the game camera (the blind-read sheet has a small view).
+  the asset appears in the game camera (`readability_check`, game-size blind read).
 - **Big, medium, small.** Vary the size of shapes. Uniform sizes and spacing read as
   procedural.
 - **Exaggerate the defining features** 10–30% in stylized work, never the incidental ones.
@@ -174,12 +204,21 @@ Without subagents, skip the judge steps and say so; never answer your own checkl
   Apply scale and rotation before export.
 - **Rig names:** blockouts use Unreal mannequin names (root, pelvis, spine_01..03,
   neck_01, head, clavicle_l, upperarm_l, lowerarm_l, hand_l, thigh_l, calf_l, foot_l,
-  ball_l). Keep them.
+  ball_l). Dogs and cats add a hind toe `ball_l`; horses add `pastern_l` and `hoof_l`
+  (front: `fpastern_l`, `fhoof_l`). Keep them.
 
 ## Export per engine
 
 Verify every import in the engine with its MCP (bounds, facing, skeleton) rather than
-assuming. Record library or AI-sourced assets with `ledger_record`.
+assuming.
+
+**Record provenance** with `ledger_record` for every imported, downloaded or built asset:
+`licence_id` as an SPDX or LicenseRef ID (`licence_check` with `text: "CC BY 4.0"` finds it;
+free text only matches whole licence names, and anything unmatched is unknown and blocks
+export), `inputs` (sources, or `{"asset": "<path in the ledger>"}` so an earlier asset's
+flags carry over), `tools` whose terms reach the output, and `attribution` when the terms
+prescribe the exact credit. Run `licence_check` before a release: the bible's `commercial`
+and `publish_assets` set what blocks. `make_credits` writes CREDITS.md.
 
 - **Unreal (preferred):** FBX with scale applied, Add Leaf Bones off, smoothing set to
   Face. Keep the armature object named `Armature` (blockouts already are): Unreal's

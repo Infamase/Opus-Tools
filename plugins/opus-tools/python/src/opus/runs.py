@@ -24,7 +24,8 @@ from pathlib import Path
 
 import yaml
 
-from opus.paths import find_project_root, opus_dir, plugin_root
+from opus import camera as _camera
+from opus.paths import opus_dir, plugin_root, project_base
 
 # ---------------------------------------------------------------- run ledger
 
@@ -43,12 +44,8 @@ CLOSING = ("accept", "abandon")
 LATE = ("tokens", "user_rejection")  # arrive after a run closed: usage is read at the end, the user judges last
 
 
-def _root(near) -> Path:
-    return find_project_root(near) or Path(near or os.getcwd()).expanduser().resolve()
-
-
 def runs_dir(near=None) -> Path:
-    d = opus_dir(_root(near)) / "runs"
+    d = opus_dir(project_base(near)) / "runs"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -142,7 +139,7 @@ def _sources(src=None) -> list[Path]:
         return [p]
     if p.is_dir() and (any(p.glob("*.jsonl")) or (p.name == "runs" and p.parent.name == ".opus")):
         return sorted(p.glob("*.jsonl"))
-    d = _root(p) / ".opus" / "runs"
+    d = project_base(p) / ".opus" / "runs"
     return sorted(d.glob("*.jsonl")) if d.is_dir() else []
 
 
@@ -370,8 +367,9 @@ REGRESSION = ("knight", "goblin", "wolf", "dragon", "chest", "barrel", "house", 
 CATEGORIES = ("character", "clothing", "armor", "weapon", "prop", "building", "creature", "landscape", "foliage", "animation")
 STYLES = ("lowpoly", "hd", "pixel")
 ENGINES = ("unreal", "godot", "unity")
-CAMERAS = ("ue_tp_1080", "ue_fp_1080", "godot_tp", "unity_tp", "topdown", "sidescroller", "viewmodel")  # opus.camera
-ORTHO_CAMERAS = ("sidescroller",)
+# camera profile ids are opus.camera's presets plus the first-person view-model camera
+CAMERAS = (*_camera.PRESETS, "viewmodel")
+ORTHO_CAMERAS = tuple(n for n, p in _camera.PRESETS.items() if p.projection == "ortho")
 # what the 16 category tasks must cover between them (§9, S0a), by category
 COVERAGE = {
     "character": ("hd_human", "stylized", "lowpoly", "chibi"),
@@ -382,8 +380,8 @@ COVERAGE = {
 # checks use v0.4 tools only; a probe is a short measuring script for what no tool covers yet
 METRICS: dict[str, tuple | None] = {
     "mesh_lint": ("errors", "findings", "tris"),
-    "model_report": ("floating_parts", "missing_contacts", "on_floor", "com_over_footprint", "symmetric", "rig_style",
-                     "width_m", "length_m", "height_m", "longest_m"),
+    "model_report": ("floating_parts", "missing_contacts", "penetrations", "on_floor", "com_over_footprint", "symmetric",
+                     "rig_style", "width_m", "length_m", "height_m", "longest_m"),
     "proportion_check": ("closest_canon", "unintended_findings"),
     "reference_match": ("iou",),
     "readability_check": ("defining_under_floor", "subject_px"),

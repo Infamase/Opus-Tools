@@ -1,6 +1,7 @@
 """The 24-task eval suite: every spec loads and validates, and the suite covers what §9 asks."""
 
 import copy
+import inspect
 import shutil
 import subprocess
 
@@ -63,6 +64,21 @@ def test_every_task_has_the_required_fields(tasks):
     for t in tasks:
         tools = {c["tool"] for c in t["accept"] if c["class"] == "hard"}
         assert "blind_read_sheet" in tools or t["category"] == "animation", t["id"]
+
+
+def test_check_args_are_real_tool_parameters(tasks):
+    """Every check's args name parameters the MCP tool really has (camera ids come from opus.camera)."""
+    from opus import mcp_server
+
+    for t in tasks:
+        for c in t["accept"]:
+            fn = getattr(mcp_server, c["tool"], None)
+            if fn is None:  # probe and art_director checks are not tools
+                continue
+            extra = set(c.get("args") or {}) - set(inspect.signature(fn).parameters)
+            assert not extra, f"{t['id']}/{c['id']}: {c['tool']} has no parameter(s) {sorted(extra)}"
+            cam = (c.get("args") or {}).get("camera")
+            assert not cam or cam in runs.CAMERAS, f"{t['id']}/{c['id']}: unknown camera {cam}"
 
 
 def test_validator_catches_broken_specs(tasks):

@@ -14,7 +14,8 @@ EXPECTED = {
     "sprite_inspect", "pixel_cleanup", "palette_ramp", "palette_apply", "palette_swap",
     "lookdev_sheet", "mesh_lint", "project_bible", "ledger_record", "make_credits", "opus_doctor",
     "body_blockout", "look_at", "model_report", "proportion_check", "reference_match", "blind_read_sheet",
-    "grip_define", "grip_hold", "grip_check", "readability_check",
+    "grip_define", "grip_hold", "grip_check", "readability_check", "lineup_sheet", "ab_sheet",
+    "licence_check", "run_log", "run_stats",
 }
 
 
@@ -45,7 +46,7 @@ def test_server_lists_tools_and_returns_images(tmp_path):
             ("project_bible", {}),
         ],
     )
-    assert EXPECTED <= names
+    assert EXPECTED == names  # every tool, so a new one is documented here and in the README
     inspect_result = results[0]
     assert not inspect_result.is_error
     kinds = [c.type for c in inspect_result.content]

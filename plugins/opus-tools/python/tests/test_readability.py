@@ -133,7 +133,10 @@ def test_readability_heights_match_px_per_m_on_a_body(human, work):
         assert x["johnson"] == "identify"
     head = {d["part"]: d for d in lv["typical"]["defining"]}["head"]
     assert head["status"] == "ok" and 30 < head["min_width_px"] < 60
-    assert {d["part"]: d for d in lv["far"]["defining"]}["index_03_l"]["status"] == "vanished"
+    # the fingertip falls under the 2 px floor at 15 m: 1 px wide since the 0.82 HU hand, gone with the old 0.75
+    tip = {d["part"]: d for d in lv["far"]["defining"]}["index_03_l"]
+    assert tip["status"] in ("thin", "vanished") and tip["min_width_px"] < 2
+    assert any("defining part index_03_l" in w for w in rep["warnings"])
     assert any("tentacle" in w for w in rep["warnings"])
     assert any("40 m: defining part hand_l" in w for w in rep["warnings"])
     assert "SOFT" in rep["text"] and "soft" in rep

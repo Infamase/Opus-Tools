@@ -14,7 +14,6 @@ import bpy
 import numpy as np
 from bpy_extras.object_utils import world_to_camera_view
 from mathutils import Vector, geometry
-from mathutils.bvhtree import BVHTree
 from mathutils.kdtree import KDTree
 
 from opus_bl import assets, body

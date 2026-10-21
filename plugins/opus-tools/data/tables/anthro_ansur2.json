@@ -4,7 +4,7 @@
  "description": "Adult body landmarks and segments as fractions of stature: value = p50, min = p5, max = p95 of the per-subject ratio. Unit 'stature' means a fraction of standing height.",
  "source": {
   "citation": "Gordon CC, Blackwell CL, Bradtmiller B, et al. (2014). 2012 Anthropometric Survey of U.S. Army Personnel: Methods and Summary Statistics. Technical Report NATICK/TR-15/007, U.S. Army Natick Soldier Research, Development and Engineering Center. Public working databases described in the NSRDEC Memorandum for Record RDNS-SEW-THA, 14 April 2017.",
-  "licence_id": "LicenseRef-USGov-Unlimited-Public-Release",
+  "licence_id": "LicenseRef-US-Gov-Public-Release",
   "licence_url": "https://www.openlab.psu.edu/ansur2/",
   "licence_text": "\"These databases and this memorandum have been reviewed and cleared for UNLIMITED PUBLIC RELEASE.\" (NSRDEC Memorandum for Record, 14 April 2017). U.S. Government work; no other licence is stated.",
   "url": "https://www.openlab.psu.edu/ansur2/",

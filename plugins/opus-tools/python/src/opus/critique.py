@@ -166,6 +166,35 @@ def _subjects(sources: list[tuple[str, str]], view: str, render_pass: str, rende
     return out
 
 
+# ---------------------------------------------------------------- game camera
+
+def subject_size_m(path, fit: str = "height", timeout: int = 900) -> float:
+    """A 3D file's real height (or long edge with ``fit="long_edge"``) in meters, from its bounds."""
+    from opus.blender.runner import run_task
+
+    size = run_task("stats", {"path": str(path)}, timeout=timeout)["bounds"]["size_m"]
+    return float(size[2] if fit == "height" else max(size))
+
+
+def game_height_px(size_m: float, camera: str = "", distance_m: float = 0.0, near=None) -> tuple[int, dict]:
+    """How many screen pixels a subject ``size_m`` tall covers in the game: ``size_m`` x the camera
+    profile's px_per_m at ``distance_m`` (opus.camera; default camera: the bible's, default
+    distance: the profile's typical one). Returns (height_px, what it was derived from)."""
+    from opus.bible import camera_profile, load_bible
+
+    if size_m <= 0:
+        raise ValueError("size_m is the subject's real height in meters (> 0)")
+    profile = camera_profile(load_bible(near or Path.cwd()), camera)
+    d = None
+    if profile.projection == "persp":
+        d = float(distance_m or profile.distances.get("typical") or 0)
+        if d <= 0:
+            raise ValueError(f"camera {profile.name} has no typical distance; give distance_m")
+    ppm = profile.px_per_m(d)
+    return max(4, round(size_m * ppm)), {"camera": profile.name, "distance_m": d, "px_per_m": round(ppm, 2),
+                                          "size_m": round(size_m, 4), "fallback": profile.fallback}
+
+
 # ---------------------------------------------------------------- sheets
 
 def _strip(cells: list[np.ndarray], background: tuple, gap: int) -> tuple[np.ndarray, list[float]]:
@@ -279,9 +308,17 @@ def lineup_sheet(
     zoom: int = 0,
     near=None,
     timeout: int = 900,
+    camera: str | None = None,
+    distance_m: float = 0.0,
+    size_m: float = 0.0,
 ) -> dict:
     """The asset render(s) beside 2-3 human-made exemplars at true game size, for "which one
     doesn't belong / looks least professionally made".
+
+    With ``camera`` (a profile name, "" for the bible's) or ``distance_m``, ``height_px`` comes
+    from the game camera instead: ``size_m`` (the subject's real height, or long edge with
+    ``fit="long_edge"``; measured from the first asset when it is a 3D file and 0) times the
+    profile's px_per_m at ``distance_m`` (default: its typical distance).
 
     Every subject is cut out (transparent or flat-background margins), scaled nearest-neighbour
     to ``height_px`` on-screen pixels (the long edge with ``fit="long_edge"``), placed in a
@@ -299,6 +336,14 @@ def lineup_sheet(
         raise ValueError(f"at most {len(LETTERS)} subjects per lineup")
     if fit not in FITS:
         raise ValueError(f"fit must be one of {FITS}")
+    from_camera = None
+    if camera is not None or distance_m:
+        first = Path(images[0]).expanduser()
+        if not size_m:
+            if first.suffix.lower() not in MODEL_SUFFIXES:
+                raise ValueError("give size_m (the subject's real height in meters) to size an image from the camera")
+            size_m = subject_size_m(first.resolve(), fit, timeout)
+        height_px, from_camera = game_height_px(size_m, camera or "", distance_m, near or first)
     if height_px < 4:
         raise ValueError("height_px is the subject's on-screen height in game pixels (at least 4)")
     seed = _pick_seed(seed)
@@ -313,12 +358,16 @@ def lineup_sheet(
     paths, keys, zoom = _both_orders(subjects, cells, order, background, gap, zoom, caption, "lineup", near or images[0])
     rep = _report(subjects, paths, keys, seed, zoom)
     rep["height_px"] = height_px
+    if from_camera:
+        rep["height_from_camera"] = from_camera
     rep["prompts"] = [LINEUP_PROMPT.format(n=len(cells), first="A", last=LETTERS[len(cells) - 1], zoom=zoom, path=p)
                       for p in paths]
     width = sum(c.shape[1] for c in cells) + gap * (len(cells) + 1)
     rep["warnings"] = _warnings(subjects, width, zoom)
     if not 2 <= len(exemplars) <= 3:
         rep["warnings"].append(f"{len(exemplars)} exemplar(s): the protocol lines an asset up against 2-3.")
+    if from_camera and from_camera["fallback"]:
+        rep["warnings"].append("height_px uses a FALLBACK camera: set camera.viewmodel in opus.project.yaml.")
     return rep
 
 

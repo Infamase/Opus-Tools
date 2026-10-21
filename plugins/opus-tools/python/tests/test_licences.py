@@ -4,10 +4,11 @@ The CI check: every ported module (a ``ported-from:`` header) has a notice entry
 porting rule, and every committed table or profile has a LICENSES.md entry.
 """
 
+import json
 import re
 from pathlib import Path
 
-from opus.ledger import flags_for
+from opus.ledger import flags_for, licences
 from opus.paths import data_dir, plugin_root
 
 REPO = plugin_root().parents[1]
@@ -90,6 +91,19 @@ def test_every_data_table_has_a_licences_entry():
     text = (data_dir() / "LICENSES.md").read_text(encoding="utf-8")
     assert "licences.yaml" in _sections(text)
     assert table_problems(data_dir(), text) == []
+
+
+def test_each_table_names_the_licence_its_entry_names():
+    """A table's own source.licence_id is a licences.yaml ID and matches its LICENSES.md entry."""
+    sections = _sections((data_dir() / "LICENSES.md").read_text(encoding="utf-8"))
+    known = licences()
+    tables = sorted((data_dir() / "tables").glob("*.json"))
+    assert tables
+    for p in tables:
+        lid = json.loads(p.read_text(encoding="utf-8"))["source"]["licence_id"]
+        assert lid in known, f"{p.name}: {lid} is not in licences.yaml"
+        m = re.search(r"\*\*Licence:\*\*\s*`([^`]+)`", sections[f"tables/{p.name}"])
+        assert m and m.group(1) == lid, f"{p.name}: LICENSES.md says {m and m.group(1)}, the table says {lid}"
 
 
 def test_the_checks_catch_planted_problems(tmp_path):

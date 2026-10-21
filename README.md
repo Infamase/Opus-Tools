@@ -12,30 +12,44 @@ fix its own work before handing it over.
 See [PLAN.md](PLAN.md) for the full game plan and [DOWNLOADS.md](DOWNLOADS.md) for
 optional large downloads. The repo holds code only.
 
-## What's in v0.3
+## What's in v0.4
 
-| Tool | What it does |
-|---|---|
-| `body_blockout` | Rigged, canon-proportioned starting bodies: humanoid (realistic, heroic, stylized, chibi), quadruped (dog, horse, cat), western dragon. Unreal mannequin bone names; reports landmark heights and limb lengths to model to |
-| `proportion_check` | Overlays a model's front and side silhouettes on canon bodies built at its height; reports leg length, heads tall, shoulder/waist/hip widths and limb bone ratios |
-| `reference_match` | Silhouette match against a concept or reference image: IoU plus where the model is too wide or narrow |
-| `look_at` | Any angle, zoom and render pass, framed on an object or a bone region such as `hand_l` |
-| `model_report` | Labeled part map plus measurements: shapes, contacts, floating parts, symmetry, balance, rig style |
-| `blind_read_sheet` | Unlabeled silhouettes for a fresh reviewer to identify, to test whether a model reads as what it should be |
-| `grip_define` | Marks how an object is held: handle axis, palm side, thumb end, trigger point (a `SOCKET_grip_*` empty that becomes an Unreal socket) |
-| `grip_hold` | Puts the object in a rigged hand: handle seated on the palm skin, every finger closed until it touches, thumb wrapped, index on the trigger; first-person poses and two-handed holds; adds a `weapon_r` bone and a grip pose action |
-| `grip_check` | Measures any hand holding anything: palm and each finger touching, gap or depth inside in mm, and where the object clips the body |
-| `sprite_inspect` | Zoomed pixels with grid, issue overlay, 1x readability on light/mid/dark, silhouette, value, palette ramps, tile and animation views, plus a critique (strays, jaggies, partial alpha, off-palette colors, pillow shading, seams, flicker) |
-| `pixel_cleanup` | Turns AI or painted "fake pixel art" into true pixel art: finds the real grid, removes the background, locks the palette, removes noise |
-| `palette_ramp` / `palette_apply` / `palette_swap` | Hue-shifted ramps, palette locking (incl. Lospec palettes), recolors |
-| `lookdev_sheet` | Renders a 3D model from every side in headless Blender: shaded, clay + wireframe, silhouettes, face orientation, UV checker, scale next to a 1.8 m figure |
-| `mesh_lint` | Game-readiness check: flipped faces, non-manifold, loose/floating parts, UV problems, unapplied scale, budgets, bone weights |
-| `project_bible` | Per-game style rules and budgets (`opus.project.yaml`) that every tool reads |
-| `ledger_record` / `make_credits` | Where each asset came from and its license; generates CREDITS.md |
-| `opus_doctor` | Checks Blender, Godot, GPU, ComfyUI and the project bible |
+v0.4 (sprint S0a of the [overhaul](docs/OVERHAUL.md)) adds game-camera readability, judge
+sheets for a blind review protocol, licence IDs in the provenance ledger and a run ledger
+for the eval suite, and fixes canons and measurements in the v0.3 tools.
+
+| Tool | What it does | v0.4 |
+|---|---|---|
+| `readability_check` | Renders the part map at the game camera's true pixel size (profile FOV and resolution, close / typical / far distances, no anti-aliasing): subject height against Johnson's criteria, min width per part, warnings for defining parts under 2 px or gone, a squint view; `viewmodel` camera for first person | new |
+| `lineup_sheet` | The asset beside 2–3 human-made exemplars, cut out and scaled to the same game height (or the height the camera profile gives at a distance), letters only, in both orders for two fresh judges | new |
+| `ab_sheet` | Blind A/B pair of two versions in both orders, at game size or large; a candidate wins only when both orders pick it | new |
+| `licence_check` | What in the ledger blocks export under the bible's policy (`commercial`, `publish_assets`), with the reason and the input responsible; classifies a licence string to its ID | new |
+| `run_log` / `run_stats` | Run ledger per asset (check rounds, judge rounds, rejections, tokens, accept) and its stats: iterations to a hard pass, wall-clock, failing checks | new |
+| `body_blockout` | Rigged, canon-proportioned starting bodies: humanoid (realistic, heroic, stylized, chibi), quadruped (dog, horse, cat), western dragon. Unreal mannequin bone names; reports landmark heights and limb lengths to model to | hand 0.82 and foot 1.15 head-units from ANSUR II; dog, cat and horse hind legs from Garland & Janis MT/F; horse fetlock, pastern and hoof |
+| `proportion_check` | Overlays a model's front and side silhouettes on canon bodies built at its height; reports leg length, heads tall, shoulder/waist/hip widths and limb bone ratios | hand bone compared |
+| `reference_match` | Silhouette match against a concept or reference image: IoU plus where the model is too wide or narrow | |
+| `look_at` | Any angle, zoom and render pass, framed on an object or a bone region such as `hand_l` | mask mode: exact part colours, no blended edges |
+| `model_report` | Labeled part map plus measurements: shapes, contacts, floating parts, penetrations, symmetry, balance, rig style | penetrations with depth, including parts pushed through thin plates; touching faces stay contacts |
+| `blind_read_sheet` | Unlabeled silhouettes for a fresh reviewer to identify, to test whether a model reads as what it should be | `game_size`: silhouette and clay at true game pixel size |
+| `grip_define` | Marks how an object is held: handle axis, palm side, thumb end, trigger point (a `SOCKET_grip_*` empty that becomes an Unreal socket) | |
+| `grip_hold` | Puts the object in a rigged hand: handle seated on the palm skin, every finger closed until it touches, thumb wrapped, index on the trigger; first-person poses and two-handed holds; adds a `weapon_r` bone and a grip pose action | robust signed distance |
+| `grip_check` | Measures any hand holding anything: palm and each finger touching, gap or depth inside in mm, and where the object clips the body | also catches the object crossing the body between vertices |
+| `sprite_inspect` | Zoomed pixels with grid, issue overlay, 1x readability on light/mid/dark, silhouette, value, palette ramps, tile and animation views, plus a critique (strays, jaggies, partial alpha, off-palette colors, pillow shading, seams, flicker) | |
+| `pixel_cleanup` | Turns AI or painted "fake pixel art" into true pixel art: finds the real grid, removes the background, locks the palette, removes noise | |
+| `palette_ramp` / `palette_apply` / `palette_swap` | Hue-shifted ramps, palette locking (incl. Lospec palettes), recolors | |
+| `lookdev_sheet` | Renders a 3D model from every side in headless Blender: shaded, clay + wireframe, silhouettes, face orientation, UV checker, scale next to a 1.8 m figure | mask mode for silhouettes |
+| `mesh_lint` | Game-readiness check: flipped faces, non-manifold, loose/floating parts, UV problems, unapplied scale, budgets, bone weights | |
+| `project_bible` | Per-game style rules and budgets (`opus.project.yaml`) that every tool reads | camera profiles and view-model camera with derived px/m; licence policy keys |
+| `ledger_record` / `make_credits` | Where each asset came from and its licence; generates CREDITS.md | SPDX / LicenseRef IDs with flags, `inputs` lineage, tools, exact attribution strings; free text never substring-matched |
+| `opus_doctor` | Checks Blender, Godot, GPU, ComfyUI (optional, 2D and audio only) and the project bible | |
+
+The 24-task eval suite lives in [evals/](evals/README.md) (`opus eval list | validate |
+prompt | summarize | compare`), and [docs/PC_CHECKS.md](docs/PC_CHECKS.md) is the
+10-minute check to run on the game-dev PC after an update. Data tables under
+`plugins/opus-tools/data/` are listed with their sources in its `LICENSES.md`.
 
 Plus skills (`pixel-art`, `3d-modeling`, `project-bible`) and an `art-director` reviewer
-subagent.
+subagent that reviews 3D work by yes/no checklist, blind read, lineup and both-order A/B.
 
 ## Install (Windows, Claude desktop app → Code tab)
 
@@ -84,6 +98,10 @@ extension (`.mcpb`) build for chat is planned.
 - "Compare `dragon.blend` with `concept/dragon_side.png` from the side."
 - "Put `pistol.blend` in the hero's right hand for first person, index on the trigger, and
   show me what the player sees."
+- "Will the goblin read at 15 m in our third-person camera? Check the club and the ears."
+- "Line the chest up against these two Kenney chests at game size and ask two judges."
+- "Record `textures/rock.png` as CC BY 4.0 from ambientCG and tell me if anything blocks a
+  commercial release."
 
 ## Development
 
@@ -91,5 +109,6 @@ extension (`.mcpb`) build for chat is planned.
 cd plugins/opus-tools/python
 uv run --group dev pytest           # Blender tests run when Blender is found (OPUS_BLENDER)
 uv run opus doctor
+uv run opus eval validate           # the 24 eval task specs
 claude plugin validate ../../..     # marketplace + plugin manifests
 ```

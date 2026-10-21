@@ -37,6 +37,16 @@ def find_project_root(start: str | os.PathLike | None = None) -> Path | None:
     return None
 
 
+def project_base(near: str | os.PathLike | None = None) -> Path:
+    """Where a project's ledgers live: the project root containing ``near``, else ``near``
+    itself (its folder when it is a file), else the cwd."""
+    root = find_project_root(near)
+    if root is not None:
+        return root
+    p = Path(near or os.getcwd()).expanduser().resolve()
+    return p.parent if p.is_file() else p
+
+
 def opus_dir(base: Path) -> Path:
     d = base / ".opus"
     d.mkdir(parents=True, exist_ok=True)

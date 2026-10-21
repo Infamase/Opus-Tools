@@ -1,7 +1,7 @@
 {
   "name": "opus-tools",
   "displayName": "Opus Tools",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Gives Claude eyes for game assets: inspect and clean pixel art, lock palettes, render 3D models from every side, and lint meshes for game-readiness (Blender + Godot)",
   "author": {
     "name": "Infamase"

@@ -30,11 +30,14 @@ it with an inspector, fix what the report and image show, and repeat before show
   recognizability with blind_read_sheet. look_at shows any angle or part up close;
   model_report labels parts and measures them; lookdev_sheet shows every side; mesh_lint
   before calling anything game-ready.
-- readability_check renders the part map at the game camera's true pixel size and flags thin defining parts.
+- Game camera (project_bible camera section): readability_check renders the part map at its
+  true pixel size and flags thin defining parts; blind_read_sheet game_size=true adds the
+  silhouette and clay at that size.
 - Hands holding things (first person especially): grip_define marks the handle, grip_hold
   puts it in the hand and closes the fingers on it, grip_check measures any held object.
   Never place held objects by eye.
-- lineup_sheet / ab_sheet: letter-only sheets in both orders for a fresh art-director judge.
+- lineup_sheet / ab_sheet: letter-only sheets in both orders for a fresh art-director judge;
+  lineup_sheet takes its height from the game camera with distance_m.
 - project_bible holds the project's style rules and budgets; read it before making assets.
 - ledger_record every imported or built asset with its licence_id, inputs and tools;
   licence_check lists what blocks export under the bible's policy (or classifies a text).
@@ -277,8 +280,9 @@ def body_blockout(
     1.0 m chibi, the animal's real size). pose: A or T. Returns a Look Dev Sheet and a report
     with landmarks_m (chin, shoulder, waist, crotch, knee heights, limb lengths, widths) and
     joints_m; quadrupeds add hindlimb (donor species and the built MT/F, from measured data;
-    the horse has fetlock, pastern and hoof bones). The rig uses Unreal mannequin bone names (pelvis, spine_01, upperarm_l, thigh_l)
-    so it retargets in Unreal's IK Retargeter and maps to Godot/Unity humanoid profiles.
+    the horse has fetlock, pastern and hoof bones). The rig uses Unreal mannequin bone names
+    (pelvis, spine_01, upperarm_l, thigh_l) so it retargets in Unreal's IK Retargeter and maps
+    to Godot/Unity humanoid profiles.
     Sculpt, kitbash or shrinkwrap the final model over it, then run proportion_check.
     """
     from opus.threed.body import body_blockout as run
@@ -543,6 +547,9 @@ def lineup_sheet(
     fit: str = "height",
     view: str = "three_quarter",
     render_pass: str = "shaded",
+    camera: str = "",
+    distance_m: float = 0.0,
+    size_m: float = 0.0,
 ) -> list:
     """Line the asset up beside 2-3 human-made exemplars at true game size, for the question
     "which one doesn't belong / looks least professionally made?".
@@ -557,13 +564,17 @@ def lineup_sheet(
     Give prompts[0] and prompts[1] each to its own fresh art-director subagent, with nothing
     else; map each answer through that sheet's key and count a pick only when both name the
     same source. The key is for you only. background defaults to the bible's game background.
+    camera/distance_m: take height_px from the game camera instead (opus.camera): size_m (the
+    subject's real height in m; measured when the first image is a 3D file) x the profile's
+    px/m at distance_m (default: its typical distance). camera "" with distance_m uses the bible's.
     """
     from opus.critique import lineup_sheet as run
 
     imgs = _paths(images)
     if not imgs:
         raise ValueError("give at least one asset image")
-    rep = run(imgs, _paths(exemplars), height_px, seed, _judge_bg(background, imgs[0]), fit, view, render_pass)
+    rep = run(imgs, _paths(exemplars), height_px, seed, _judge_bg(background, imgs[0]), fit, view, render_pass,
+              camera=camera if camera or distance_m else None, distance_m=distance_m, size_m=size_m)
     return [Image(path=rep["sheets"][0]), _json(rep)]
 
 

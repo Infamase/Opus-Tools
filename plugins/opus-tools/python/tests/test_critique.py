@@ -76,6 +76,22 @@ def test_lineup_order_is_deterministic_by_seed(subjects):
     assert lineup_sheet(imgs, ex, height_px=48)["seed"] >= 0  # random seed, reported for replay
 
 
+def test_lineup_height_comes_from_the_game_camera(subjects):
+    """height_px = real size x the camera profile's px/m at a distance (opus.camera, via the bible)."""
+    from opus import camera
+
+    imgs, ex = [subjects["asset"]], [subjects["ex1"], subjects["ex2"]]
+    rep = lineup_sheet(imgs, ex, seed=1, camera="", distance_m=20.0, size_m=1.8)  # project.godot: godot_tp
+    want = round(1.8 * camera.px_per_m(20.0, 75.0, 1080))
+    assert rep["height_px"] == want and rep["height_from_camera"]["camera"] == "godot_tp"
+    for sheet in rep["sheets"]:
+        assert {round(h) for _, h, _ in _blobs(sheet, {"asset": RED}, rep["zoom"]).values()} == {want}
+    ue = lineup_sheet(imgs, ex, seed=1, camera="ue_tp_1080", size_m=0.25)  # its typical distance, 3.5 m
+    assert ue["height_px"] == round(0.25 * camera.preset("ue_tp_1080").px_per_m(3.5)) == 69
+    with pytest.raises(ValueError, match="size_m"):
+        lineup_sheet(imgs, ex, camera="ue_tp_1080")  # an image has no real size to read
+
+
 def test_lineup_subjects_share_one_height_on_one_ground_line(subjects):
     rep = lineup_sheet([subjects["asset"]], [subjects["ex1"], subjects["ex2"], subjects["ex3"]], height_px=64, seed=3)
     assert rep["zoom"] > 1
@@ -259,3 +275,13 @@ def test_lineup_renders_3d_files_alike(subjects, tmp_path):
         other |= np.abs(rows - c).sum(-1) <= 30
     ys = np.nonzero((bg & ~other).any(axis=1))[0]  # rows that hold the rendered barrel
     assert abs((ys.max() - ys.min() + 1) / rep["zoom"] - 48) <= 1
+
+    # sized from the game camera instead: the barrel's measured height x px/m at 3.5 m
+    from opus import camera
+    from opus.critique import subject_size_m
+
+    h = subject_size_m(barrel)
+    cam = lineup_sheet([barrel], [subjects["ex1"], subjects["ex2"]], seed=6, render_pass="clay", camera="ue_tp_1080",
+                       distance_m=3.5)
+    assert 0.3 < h < 2 and cam["height_from_camera"]["size_m"] == pytest.approx(h, abs=1e-3)
+    assert cam["height_px"] == round(h * camera.preset("ue_tp_1080").px_per_m(3.5))

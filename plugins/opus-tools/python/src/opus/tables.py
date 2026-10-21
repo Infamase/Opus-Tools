@@ -128,7 +128,7 @@ ANSUR_SOURCE = {
                 "Personnel: Methods and Summary Statistics. Technical Report NATICK/TR-15/007, U.S. Army Natick "
                 "Soldier Research, Development and Engineering Center. Public working databases described in the "
                 "NSRDEC Memorandum for Record RDNS-SEW-THA, 14 April 2017.",
-    "licence_id": "LicenseRef-USGov-Unlimited-Public-Release",
+    "licence_id": "LicenseRef-US-Gov-Public-Release",
     "licence_url": ANSUR_URL,
     "licence_text": "\"These databases and this memorandum have been reviewed and cleared for UNLIMITED PUBLIC "
                     "RELEASE.\" (NSRDEC Memorandum for Record, 14 April 2017). U.S. Government work; no other "

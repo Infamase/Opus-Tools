@@ -10,7 +10,6 @@ CREDITS.md with the exact attribution strings.
 from __future__ import annotations
 
 import json
-import os
 import re
 import time
 from functools import lru_cache
@@ -19,7 +18,7 @@ from pathlib import Path
 import yaml
 
 from opus.bible import load_bible
-from opus.paths import data_dir, find_project_root, opus_dir
+from opus.paths import data_dir, opus_dir, project_base
 
 FLAGS = ("attribution", "nc", "sa", "nd", "no-redistribute-as-asset", "use-restricted", "unknown")
 
@@ -36,10 +35,6 @@ MISSING = "not in the ledger"  # note on a lineage input whose asset has no entr
 
 _TOKEN = re.compile(r"[a-z0-9]+|\+")
 _SPELLING = {"licence": "license", "licences": "licenses", "licenced": "licensed"}
-
-
-def _root(near) -> Path:
-    return find_project_root(near) or Path(near or os.getcwd()).expanduser().resolve()
 
 
 # ---------------------------------------------------------------- licence table
@@ -263,12 +258,12 @@ def _read(root: Path) -> list[dict]:
 
 def entries(near=None) -> list[dict]:
     """Every ledger entry in the current schema, oldest first."""
-    return _read(_root(near))
+    return _read(project_base(near))
 
 
 def current(near=None) -> list[dict]:
     """The latest entry per asset: recording an asset again replaces its earlier entry."""
-    return list({e["asset"]: e for e in _read(_root(near))}.values())
+    return list({e["asset"]: e for e in _read(project_base(near))}.values())
 
 
 def record(
@@ -293,7 +288,7 @@ def record(
     whose flags carry over. ``tools`` are ``{name, licence_id}``. ``attribution`` is the
     exact credit line, when the terms prescribe one.
     """
-    root = _root(asset)
+    root = project_base(asset)
     latest = {e["asset"]: e for e in _read(root)}
     ins = []
     for p in inputs or []:
@@ -443,7 +438,7 @@ def _licence_label(e: dict) -> str:
 
 
 def write_credits(near=None, out: str | Path | None = None) -> Path:
-    root = _root(near)
+    root = project_base(near)
     items = current(root)
     lines = ["# Credits", "", "Assets, tools and models used in this game.", ""]
     credits = attributions(items)

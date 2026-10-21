@@ -1138,7 +1138,7 @@ Shared opening: `project_bible(show)` → `spec_new` → Claude fills the spec �
 
 1. **Camera:** the view-model profile `ue_fp_vm` is read from the project. In this example it matches the world camera (hfov 90), so px_per_m = 960/d. The viewmodel sits at d 0.35–0.7 m → 2,743–1,371 px/m.
    - TD 2,048 px/m (log-nearest power of two).
-   - Grip (19 mm radius): 20 sides at 0.45 m. Handguard (25 mm): 27 sides at 0.35 m.
+   - Grip (19 mm radius): 20 sides at 0.45 m. Handguard (25 mm): 26 sides at 0.35 m.
    - Bevel cap 1.5/2,743 = 0.55 mm.
 2. **`spec_new(assembly, firearm/rifle_carbine)`** → `dims_resolve` from the Wikidata psn table, with anchors such as AK-47 (OAL 880 mm, barrel 415 mm = 0.47·OAL, 3.47 kg) and M4 (838/756 mm, barrel 368 mm, 2.92 kg).
    - Length of pull and grip angle come from a `recalled` ergonomics table, so they only warn.
@@ -1540,7 +1540,7 @@ Reviewers: **A** = feasibility and architecture, **B** = licences and provenance
 | A-m10 | Text lip sync has no audio timing | Separate text and audio paths; onset gate only on the audio path |
 | A-m11 | Road A* and ROM batteries too slow | Roads planned at ≤512²; T3 split into iterate and sign-off budgets |
 | A-m12 | No CI; Godot can't be downloaded in the cloud | CI workflow is an S0b deliverable; Workbench/CPU only; Godot import on the PC |
-| A-m13 | Wrong numbers and labels | 11 sides (handguard 27); Johnson recognition 8 px and identification 13 px; the socket now uses the slot anchor at 0.625; promote rule re-sourced; `defect_inject` added to §8; descriptors on analytic outlines |
+| A-m13 | Wrong numbers and labels | 11 sides (handguard 26); Johnson recognition 8 px and identification 13 px; the socket now uses the slot anchor at 0.625; promote rule re-sourced; `defect_inject` added to §8; descriptors on analytic outlines |
 | B-m1 | CDC, NHANES and Muybridge licence labels | Relabelled; Enlyte marked recalled; Muybridge source named |
 | B-m2 | Quaternius licence contradiction | Per-download snapshot; `no-redistribute-as-asset` by default; UAL ranked after CMU until a CC0 snapshot is recorded |
 | B-m3 | FABDEM share-alike | Flags `nc, sa`; `base` mode stamps outputs; `stats` mode by default |

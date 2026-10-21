@@ -17,7 +17,11 @@ DEFAULTS: dict = {
     "project": "",
     "styles": [],  # any of: pixel, lowpoly, hd
     "cameras": [],  # any of: first-person, third-person, top-down, side-scroller
-    "commercial": False,  # personal/non-commercial by default; True blocks NC assets
+    # licence policy (opus.ledger, licence_check): commercial True blocks nc and use-restricted
+    # inputs; publish_assets True (shipping assets as assets, e.g. a store pack) blocks nd and
+    # no-redistribute-as-asset ones. Unknown licences always block.
+    "commercial": False,
+    "publish_assets": False,
     "pixel": {
         "palette": "",  # file path (relative to the project), lospec:<slug>, or hex list
         "max_colors": 32,
@@ -56,7 +60,10 @@ TEMPLATE = """\
 project: {project}
 styles: [{styles}]          # pixel, lowpoly, hd
 cameras: [{cameras}]        # first-person, third-person, top-down, side-scroller
-commercial: false           # true = block non-commercial models and assets
+# Licence policy for licence_check and make_credits (unknown licences always block):
+commercial: false           # true = a paid release: blocks non-commercial and use-restricted inputs
+publish_assets: false       # true = assets shipped as assets (store pack, open source): blocks
+                            # no-derivatives and no-redistribute-as-asset inputs
 
 pixel:
   palette: ""               # e.g. palettes/game.hex or lospec:endesga-32

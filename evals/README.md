@@ -66,7 +66,7 @@ Checks use only tools that exist in v0.4:
 | Tool | Metrics |
 |---|---|
 | `mesh_lint` | `errors` (error findings), `findings` (one code's count, `args.code`), `tris` |
-| `model_report` | `floating_parts`, `missing_contacts` (parts that should touch and don't), `on_floor`, `com_over_footprint`, `symmetric`, `rig_style`, `width_m` (X), `length_m` (Y), `height_m` (Z), `longest_m` |
+| `model_report` | `floating_parts`, `missing_contacts` (parts that should touch and don't), `penetrations` (entries in its penetrations list), `on_floor`, `com_over_footprint`, `symmetric`, `rig_style`, `width_m` (X), `length_m` (Y), `height_m` (Z), `longest_m` |
 | `proportion_check` | `closest_canon`, `unintended_findings` (findings the brief does not declare as stylization) |
 | `reference_match` | `iou`, against the task's first reference |
 | `readability_check` | `defining_under_floor` (defining parts under the pixel floor, or gone), `subject_px` |

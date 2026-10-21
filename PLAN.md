@@ -5,9 +5,10 @@ needs to produce good **3D models**, **pixel art**, **animation** and **sound** 
 games made with Blender and Unreal, Godot or Unity, packaged as one small install on the
 game-dev PC that works in every project.
 
-Status: plan v0.6 (2026-10-21). **v0.3 of the toolkit is built:** the Phase 0 core, the
+Status: plan v0.6 (2026-10-21). **v0.4 of the toolkit is built:** the Phase 0 core, the
 Phase 1 "see it" tools for pixel art and 3D, Sprint 2's proportion and recognizability
-tools, and hands that hold things properly (see §7).
+tools, hands that hold things properly, and the overhaul's S0a quick wins (see §7). The
+PC checks and the v0.4 baseline on the 24 eval tasks are still to run.
 
 **3D models and animation now follow [docs/OVERHAUL.md](docs/OVERHAUL.md)** (design v1.1,
 from 9 research digests, 4 competing proposals and 6 reviews). It replaces every 3D and
@@ -460,13 +461,67 @@ table, a profile traced from human-made work, a solver or the user; numeric chec
 before any opinion; fixes edit the spec instead of regenerating; the camera sets the
 detail level; and results are compared against human-made exemplars at game size.
 
+**v0.4 (S0a): quick wins on v0.3 (2026-10-21)**
+
+Six work packages, built in parallel and merged; numbers are from their test runs and the
+integration run.
+
+- **Game camera.** `opus.camera` holds the §2.2 formulas and six presets (Unreal third and
+  first person at 1080p, Godot, Unity, top-down, orthographic side-scroller); the bible's
+  `camera` section overrides them and holds the first-person view-model camera, which is
+  never assumed (a labelled FALLBACK stands in). The tests reproduce every worked example in
+  §2.2: hfov 90° → vfov 58.7°, 274 px/m at 3.5 m, 4 px = 14.6 mm there, a 1 cm LOD error
+  switches at 12.8 m at 1440p.
+- **`readability_check` v0** renders the part map at true game pixel size. A 1.8 m body
+  with 52 bone parts at Unreal third person: 498 px tall at 3.5 m (493.7 expected), 115 at
+  15 m (115.2), 43 at 40 m (43.2), all within 2%, with 0 unmatched part-map pixels; about 6 s
+  per run. Floors stay soft until S3 calibrates them. `blind_read_sheet` gained `game_size`.
+- **Mask mode** (AA off, FLAT, Standard, dither 0) for every silhouette, part-ID and focus
+  pass: 0 blended pixels of 40,000 on the planted two-box test (old FLAT + AA: 843; old part
+  map: 10,923).
+- **Canon fixes from committed tables** (`data/tables/`: ANSUR II and Garland & Janis 1993,
+  with `opus data build --tables`). Realistic foot 0.151 of stature (was 0.130; ANSUR male
+  p5–p95 0.146–0.163), hand 0.105 (was 0.096; 0.103–0.117). MT/F measured on the rigs: dog
+  0.437, cat 0.348, horse 0.806, equal to wolf, lion and horse (was 0.642, 0.530, 1.315);
+  the horse has fetlock, pastern and hoof bones that bend the skin. Every preset is still
+  its own closest canon, and the grip tests pass with the longer hand.
+- **Signed distance and penetration** (`opus_bl/geom.py`): pseudonormal sign for closed
+  meshes, winding number for open ones, welded seams and flipped or mirrored parts handled.
+  Wrong signs: rotated cube 0 of 2,658 points (old 144), 30° wedge 0 (old 270), open box 0
+  (old 45), inverted or mirrored cube 0 of 400 (old 400). A box pushed right through a 2 mm
+  plate, invisible to vertex tests, is reported as "through", 11 mm deep. `model_report`
+  lists penetrations; grip results are unchanged.
+- **Critique protocol.** The `art-director` agent and the `3d-modeling` skill use 2–5
+  yes/no checklist questions, both-order A/B with the incumbent, and a lineup beside
+  human-made exemplars. `lineup_sheet` (height from the camera profile at a distance, or
+  given) and `ab_sheet` make letter-only sheets in both orders with seeded order and no key
+  in names or metadata.
+- **Licences.** `data/licences.yaml` (40 SPDX and LicenseRef IDs with flags); the ledger
+  records `licence_id`, `inputs` lineage, tools and exact attribution; `licence_check`
+  enforces the bible's `commercial` and `publish_assets` policy. The six misfiring strings
+  classify correctly (QAL → no-redistribute-as-asset, Copernicus → attribution, both
+  "CC BY 4.0 … since 2026" → CC-BY-4.0, NVIDIA SCL → nc, the two permission phrases →
+  unknown instead of nc). `LICENSE` (GPL-3.0), `THIRD_PARTY_NOTICES.md` and
+  `data/LICENSES.md`, with a test that every table has an entry naming its licence.
+- **Evals and run ledger.** 24 task specs in `evals/tasks/` (the 8 regression subjects plus
+  16 category tasks) that validate against the v0.4 tools; `run_log` / `run_stats` and
+  `opus eval list | validate | prompt | summarize | compare | tokens`.
+- **Tests.** 181 tests (67 in v0.3), Blender 5.2.2 integration included: 180 pass
+  and 1 is skipped (the ANSUR rebuild, which passes when `OPUS_ANSUR_DIR` points at the CSVs).
+  Integration added checks that every eval check's arguments exist on its MCP tool and that
+  each table's licence ID matches its `data/LICENSES.md` entry.
+
+**Not done yet (needs the PC):** the [PC checks](docs/PC_CHECKS.md) (install, doctor
+green, every tool on Windows, a 1.8 m blockout 180 units tall in Unreal) and the v0.4
+baseline: each of the 24 tasks in a fresh session from `opus eval prompt <id>`, then
+`opus eval summarize v0.4` and commit `evals/results/v0.4.json`.
+
 **Next:** the overhaul's sprints, in order (docs/OVERHAUL.md §9):
 
-1. **S0a (v0.4 quick wins):** PC smoke test of v0.3; camera profiles and a game-size
-   readability check; canon fixes (human foot and hand, dog, cat and horse hind legs);
-   hygiene fixes; checklist and lineup critique; licence IDs and flags; the 24-task eval
-   baseline.
-2. **S0b:** the spec compiler core, kept only if it beats v0.4 in a measured A/B test.
+1. **Finish S0a on the PC:** the PC checks, then the v0.4 baseline run on all 24 eval
+   tasks (iterations to accept, tokens, wall-clock).
+2. **S0b:** the spec compiler core, kept only if it beats the v0.4 baseline in a measured
+   A/B test.
 3. **S1–S11:** HD humans, creatures, design lock and appeal, weapons and first-person,
    motion, creature gaits and pixel rendering, clothing and armor, surfaces, landscapes
    and trees, then buildings, faces, hair and vehicles.

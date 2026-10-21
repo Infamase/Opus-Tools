@@ -132,6 +132,9 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("images", nargs="+")
     s.add_argument("--exemplars", nargs="+", required=True)
     s.add_argument("--height", type=int, default=96)
+    s.add_argument("--camera", default=None, help="size from this camera profile instead ('' = the bible's)")
+    s.add_argument("--distance", type=float, default=0.0, help="meters from the camera (default: typical)")
+    s.add_argument("--size-m", type=float, default=0.0, help="subject's real height in m (3D files: measured)")
     s.add_argument("--seed", type=int, default=-1)
     s.add_argument("--background", default="#808080")
     s.add_argument("--fit", default="height", choices=["height", "long_edge"])
@@ -300,7 +303,8 @@ def main(argv: list[str] | None = None) -> int:
         from opus import critique
 
         if a.cmd == "lineup":
-            rep = critique.lineup_sheet(a.images, a.exemplars, a.height, a.seed, a.background, a.fit, a.view, a.render_pass)
+            rep = critique.lineup_sheet(a.images, a.exemplars, a.height, a.seed, a.background, a.fit, a.view, a.render_pass,
+                                        camera=a.camera, distance_m=a.distance, size_m=a.size_m)
         else:
             rep = critique.ab_sheet(a.first, a.second, a.height, a.seed, a.background, a.question or critique.AB_QUESTION,
                                     view=a.view, render_pass=a.render_pass)

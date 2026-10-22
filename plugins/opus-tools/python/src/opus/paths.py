@@ -63,6 +63,25 @@ def opus_dir(base: Path) -> Path:
     return d
 
 
+WINDOWS_DEVICES = frozenset({"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)),
+                             *(f"LPT{i}" for i in range(1, 10))})
+
+
+def safe_name(id: str) -> str:
+    """A file or folder name made from an id, safe on Windows: characters outside
+    ``[A-Za-z0-9._-]`` become ``_`` (``met:23367`` -> ``met_23367``; a ``:`` in a Windows file name
+    silently writes an NTFS alternate stream), trailing dots and spaces are dropped, and Windows
+    device names (CON, PRN, AUX, NUL, COM1-9, LPT1-9, also with an extension) get a ``_`` suffix.
+    Every path built from an id uses it."""
+    s = re.sub(r"[^A-Za-z0-9._-]", "_", str(id).rstrip(". ")).rstrip(".")
+    if not s:
+        return "_"
+    stem, dot, ext = s.partition(".")
+    if stem.upper() in WINDOWS_DEVICES:
+        s = f"{stem}_{dot}{ext}"
+    return s
+
+
 def _slug(text: str) -> str:
     s = re.sub(r"[^A-Za-z0-9._-]+", "_", text).strip("_")
     return s[:60] or "out"

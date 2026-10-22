@@ -1,0 +1,461 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://github.com/Infamase/Opus-Tools/plugins/opus-tools/data/schema/opus.profile.1.schema.json",
+ "title": "Profile family file data/profiles/<family>.json (docs/S0B_DESIGN.md §14.2)",
+ "type": "object",
+ "required": [
+  "profile",
+  "version",
+  "kind",
+  "ref",
+  "frame",
+  "default",
+  "variants",
+  "params",
+  "licence_id",
+  "tag"
+ ],
+ "properties": {
+  "profile": {
+   "type": "string",
+   "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+  },
+  "version": {
+   "const": 1
+  },
+  "kind": {
+   "enum": [
+    "outline",
+    "width_curve",
+    "radius_curve",
+    "radius_loop"
+   ]
+  },
+  "ref": {
+   "type": "object",
+   "required": [
+    "name",
+    "def"
+   ],
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "def": {
+     "type": "string"
+    }
+   }
+  },
+  "frame": {
+   "type": "object",
+   "required": [
+    "u",
+    "v"
+   ],
+   "properties": {
+    "u": {
+     "type": "string"
+    },
+    "v": {
+     "type": "string"
+    }
+   }
+  },
+  "default": {
+   "type": "string"
+  },
+  "variants": {
+   "type": "object",
+   "minProperties": 1,
+   "additionalProperties": {
+    "$ref": "#/$defs/variant"
+   }
+  },
+  "params": {
+   "type": "object",
+   "additionalProperties": {
+    "$ref": "#/$defs/fact"
+   }
+  },
+  "licence_id": {
+   "type": "string"
+  },
+  "tag": {
+   "enum": [
+    "measured",
+    "derived",
+    "recalled"
+   ]
+  }
+ },
+ "allOf": [
+  {
+   "if": {
+    "properties": {
+     "kind": {
+      "enum": [
+       "outline",
+       "radius_loop"
+      ]
+     }
+    }
+   },
+   "then": {
+    "properties": {
+     "variants": {
+      "additionalProperties": {
+       "required": [
+        "loops"
+       ]
+      }
+     }
+    }
+   }
+  },
+  {
+   "if": {
+    "properties": {
+     "kind": {
+      "enum": [
+       "width_curve",
+       "radius_curve"
+      ]
+     }
+    }
+   },
+   "then": {
+    "properties": {
+     "variants": {
+      "additionalProperties": {
+       "required": [
+        "curve"
+       ]
+      }
+     }
+    }
+   }
+  }
+ ],
+ "$defs": {
+  "segment": {
+   "oneOf": [
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "type",
+      "p0",
+      "p1"
+     ],
+     "properties": {
+      "type": {
+       "const": "line"
+      },
+      "p0": {
+       "type": "array",
+       "items": {
+        "type": "number"
+       },
+       "minItems": 2,
+       "maxItems": 2
+      },
+      "p1": {
+       "type": "array",
+       "items": {
+        "type": "number"
+       },
+       "minItems": 2,
+       "maxItems": 2
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "type",
+      "p0",
+      "p1",
+      "c",
+      "ccw"
+     ],
+     "properties": {
+      "type": {
+       "const": "arc"
+      },
+      "p0": {
+       "type": "array",
+       "items": {
+        "type": "number"
+       },
+       "minItems": 2,
+       "maxItems": 2
+      },
+      "p1": {
+       "type": "array",
+       "items": {
+        "type": "number"
+       },
+       "minItems": 2,
+       "maxItems": 2
+      },
+      "c": {
+       "type": "array",
+       "items": {
+        "type": "number"
+       },
+       "minItems": 2,
+       "maxItems": 2
+      },
+      "ccw": {
+       "type": "boolean"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "type",
+      "p0",
+      "c0",
+      "c1",
+      "p1"
+     ],
+     "properties": {
+      "type": {
+       "const": "cubic"
+      },
+      "p0": {
+       "type": "array",
+       "items": {
+        "type": "number"
+       },
+       "minItems": 2,
+       "maxItems": 2
+      },
+      "c0": {
+       "type": "array",
+       "items": {
+        "type": "number"
+       },
+       "minItems": 2,
+       "maxItems": 2
+      },
+      "c1": {
+       "type": "array",
+       "items": {
+        "type": "number"
+       },
+       "minItems": 2,
+       "maxItems": 2
+      },
+      "p1": {
+       "type": "array",
+       "items": {
+        "type": "number"
+       },
+       "minItems": 2,
+       "maxItems": 2
+      }
+     }
+    }
+   ]
+  },
+  "chain": {
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/segment"
+   },
+   "minItems": 1
+  },
+  "fact": {
+   "type": "object",
+   "required": [
+    "value",
+    "min",
+    "max",
+    "unit",
+    "src",
+    "tag"
+   ],
+   "properties": {
+    "value": {
+     "type": "number"
+    },
+    "min": {
+     "type": "number"
+    },
+    "max": {
+     "type": "number"
+    },
+    "unit": {
+     "type": "string"
+    },
+    "src": {
+     "type": "string"
+    },
+    "tag": {
+     "enum": [
+      "measured",
+      "derived",
+      "recalled"
+     ]
+    }
+   }
+  },
+  "variant": {
+   "type": "object",
+   "required": [
+    "anchors",
+    "params",
+    "specimen"
+   ],
+   "properties": {
+    "curve": {
+     "$ref": "#/$defs/chain"
+    },
+    "loops": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/chain"
+     },
+     "minItems": 1
+    },
+    "anchors": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "p",
+       "n"
+      ],
+      "properties": {
+       "p": {
+        "type": "array",
+        "items": {
+         "type": "number"
+        },
+        "minItems": 2,
+        "maxItems": 2
+       },
+       "n": {
+        "type": "array",
+        "items": {
+         "type": "number"
+        },
+        "minItems": 2,
+        "maxItems": 2
+       }
+      }
+     }
+    },
+    "params": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "number"
+     }
+    },
+    "fit_rms": {
+     "type": "number",
+     "minimum": 0
+    },
+    "cross_check": {
+     "type": [
+      "object",
+      "null"
+     ],
+     "required": [
+      "measure",
+      "predicted_m",
+      "recorded_m",
+      "error"
+     ],
+     "properties": {
+      "measure": {
+       "type": "string"
+      },
+      "predicted_m": {
+       "type": "number"
+      },
+      "recorded_m": {
+       "type": "number"
+      },
+      "error": {
+       "type": "number"
+      }
+     }
+    },
+    "bridged": {
+     "type": "array",
+     "items": {
+      "type": "array",
+      "items": {
+       "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2
+     }
+    },
+    "tag": {
+     "enum": [
+      "measured",
+      "derived",
+      "recalled"
+     ]
+    },
+    "specimen": {
+     "type": "object",
+     "required": [
+      "id",
+      "image",
+      "image_sha256",
+      "known_dim",
+      "licence_id",
+      "traced",
+      "method"
+     ],
+     "properties": {
+      "id": {
+       "type": "string"
+      },
+      "image": {
+       "type": "string"
+      },
+      "image_sha256": {
+       "type": "string"
+      },
+      "known_dim": {
+       "type": "object",
+       "additionalProperties": {
+        "type": "number"
+       }
+      },
+      "licence_id": {
+       "type": "string"
+      },
+      "traced": {
+       "type": "string"
+      },
+      "method": {
+       "type": "string"
+      }
+     }
+    }
+   },
+   "oneOf": [
+    {
+     "required": [
+      "curve"
+     ]
+    },
+    {
+     "required": [
+      "loops"
+     ]
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,974 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://github.com/Infamase/Opus-Tools/plugins/opus-tools/data/schema/opus.resolved.1.schema.json",
+ "title": "Resolved spec (docs/S0B_DESIGN.md §4.8; opus/compile/resolved.py)",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "resolved",
+  "id",
+  "rev",
+  "kind",
+  "category",
+  "style",
+  "seed",
+  "tables_version",
+  "camera",
+  "origin",
+  "wielder",
+  "features",
+  "dims",
+  "profiles",
+  "parts",
+  "relations",
+  "sockets",
+  "joints",
+  "gates",
+  "provenance"
+ ],
+ "properties": {
+  "resolved": {
+   "const": "opus.resolved/1"
+  },
+  "id": {
+   "type": "string",
+   "pattern": "^[a-z][a-z0-9_]{1,63}$"
+  },
+  "rev": {
+   "type": "integer",
+   "minimum": 1
+  },
+  "kind": {
+   "enum": [
+    "assembly",
+    "body.human",
+    "body.creature",
+    "garment",
+    "harness",
+    "terrain",
+    "tree",
+    "building",
+    "kit",
+    "layout",
+    "motion",
+    "face",
+    "hair"
+   ]
+  },
+  "category": {
+   "type": "string"
+  },
+  "style": {
+   "enum": [
+    "lowpoly",
+    "stylized",
+    "hd",
+    "pixel3d"
+   ]
+  },
+  "seed": {
+   "type": "integer",
+   "minimum": 0
+  },
+  "tables_version": {
+   "type": "string",
+   "pattern": "^t-[0-9a-f]{12}$"
+  },
+  "camera": {
+   "$ref": "#/$defs/RCamera"
+  },
+  "origin": {
+   "type": "string",
+   "pattern": "^(bottom_center|none|socket:.+)$"
+  },
+  "wielder": {
+   "type": "object",
+   "propertyNames": {
+    "pattern": "^wielder\\.[a-z][a-z0-9_]*$"
+   },
+   "additionalProperties": {
+    "type": "number"
+   }
+  },
+  "features": {
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/RFeature"
+   }
+  },
+  "dims": {
+   "type": "object",
+   "propertyNames": {
+    "pattern": "^[a-z_][a-z0-9_]*$"
+   },
+   "additionalProperties": {
+    "$ref": "#/$defs/RDim"
+   }
+  },
+  "profiles": {
+   "type": "object",
+   "additionalProperties": {
+    "$ref": "#/$defs/RProfile"
+   }
+  },
+  "parts": {
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/RPart"
+   },
+   "minItems": 1
+  },
+  "relations": {
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/Relation"
+   }
+  },
+  "sockets": {
+   "type": "object",
+   "propertyNames": {
+    "pattern": "^[a-z][a-z0-9_]*$"
+   },
+   "additionalProperties": {
+    "$ref": "#/$defs/Socket"
+   }
+  },
+  "joints": {
+   "type": "object",
+   "additionalProperties": {
+    "$ref": "#/$defs/Joint"
+   }
+  },
+  "gates": {
+   "type": "object",
+   "required": [
+    "profile"
+   ],
+   "properties": {
+    "profile": {
+     "enum": [
+      "cad_clean",
+      "kitbash",
+      "organic"
+     ]
+    }
+   }
+  },
+  "provenance": {
+   "type": "object"
+  }
+ },
+ "$defs": {
+  "RDim": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "value",
+    "min",
+    "max",
+    "unit",
+    "src",
+    "tag",
+    "kind",
+    "path",
+    "licence_id"
+   ],
+   "properties": {
+    "value": {
+     "type": "number"
+    },
+    "min": {
+     "type": "number"
+    },
+    "max": {
+     "type": "number"
+    },
+    "unit": {
+     "enum": [
+      "m",
+      "ratio",
+      "deg",
+      "count",
+      "kg"
+     ]
+    },
+    "src": {
+     "type": "string"
+    },
+    "tag": {
+     "enum": [
+      "measured",
+      "derived",
+      "recalled",
+      "user",
+      "design"
+     ]
+    },
+    "kind": {
+     "enum": [
+      "table",
+      "record",
+      "range",
+      "expr",
+      "profile",
+      "user",
+      "design"
+     ]
+    },
+    "path": {
+     "type": "string",
+     "pattern": "^/dims/[a-z_][a-z0-9_]*$"
+    },
+    "licence_id": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "measure": {
+     "type": "string",
+     "pattern": "^[^:]+:.+$"
+    },
+    "tol": {
+     "type": "number",
+     "exclusiveMinimum": 0
+    },
+    "int": {
+     "type": "boolean"
+    },
+    "sanity": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     },
+     "minItems": 2,
+     "maxItems": 2
+    }
+   }
+  },
+  "RCamera": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "name",
+    "projection",
+    "vfov_deg",
+    "ortho_h",
+    "res_w",
+    "res_h",
+    "d_close",
+    "d_typical",
+    "d_far",
+    "near_m",
+    "scale",
+    "view",
+    "elevation_deg",
+    "viewmodel"
+   ],
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "projection": {
+     "enum": [
+      "persp",
+      "ortho"
+     ]
+    },
+    "vfov_deg": {
+     "type": "number"
+    },
+    "ortho_h": {
+     "type": "number"
+    },
+    "res_w": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "res_h": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "d_close": {
+     "type": "number"
+    },
+    "d_typical": {
+     "type": "number"
+    },
+    "d_far": {
+     "type": "number"
+    },
+    "near_m": {
+     "type": "number"
+    },
+    "scale": {
+     "type": "number"
+    },
+    "view": {
+     "type": "string"
+    },
+    "elevation_deg": {
+     "type": "number"
+    },
+    "viewmodel": {
+     "type": "boolean"
+    }
+   }
+  },
+  "RFeature": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "rank",
+    "id",
+    "parts",
+    "views",
+    "min_px"
+   ],
+   "properties": {
+    "rank": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "id": {
+     "type": "string"
+    },
+    "parts": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     },
+     "minItems": 1
+    },
+    "views": {
+     "type": "array",
+     "items": {
+      "enum": [
+       "front",
+       "right",
+       "back",
+       "left",
+       "top",
+       "bottom",
+       "three_quarter",
+       "three_quarter_back",
+       "game"
+      ]
+     }
+    },
+    "min_px": {
+     "type": "number"
+    }
+   }
+  },
+  "RPart": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "name",
+    "src",
+    "place",
+    "array",
+    "material",
+    "edges",
+    "post_eval"
+   ],
+   "properties": {
+    "name": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9]*(?:_[a-z][a-z0-9]*)*_[LRCFB](?:\\d{2})?$"
+    },
+    "src": {
+     "type": "string",
+     "pattern": "^/parts/\\d+$"
+    },
+    "builder": {
+     "enum": [
+      "box",
+      "superquadric",
+      "extrude",
+      "lathe",
+      "station_loft"
+     ]
+    },
+    "params": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "string"
+     }
+    },
+    "place": {
+     "oneOf": [
+      {
+       "type": "null"
+      },
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "attach"
+       ],
+       "properties": {
+        "attach": {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "to",
+          "at",
+          "self"
+         ],
+         "properties": {
+          "to": {
+           "type": "string"
+          },
+          "at": {
+           "type": "string"
+          },
+          "self": {
+           "type": "string"
+          },
+          "mode": {
+           "enum": [
+            "face",
+            "point"
+           ]
+          },
+          "spin": {
+           "type": "integer",
+           "minimum": 0,
+           "maximum": 3
+          },
+          "offset": {
+           "type": "string",
+           "minLength": 1
+          },
+          "clearance": {
+           "type": "string",
+           "minLength": 1
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "squeeze"
+       ],
+       "properties": {
+        "squeeze": {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "from",
+          "to",
+          "self"
+         ],
+         "properties": {
+          "from": {
+           "type": "string",
+           "pattern": "^[^:]+:.+$"
+          },
+          "to": {
+           "type": "string",
+           "pattern": "^[^:]+:.+$"
+          },
+          "self": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "minItems": 2,
+           "maxItems": 2
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "translate"
+       ],
+       "properties": {
+        "translate": {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "from",
+          "self",
+          "by"
+         ],
+         "properties": {
+          "from": {
+           "type": "string",
+           "pattern": "^[^:]+:.+$"
+          },
+          "self": {
+           "type": "string"
+          },
+          "by": {
+           "type": "array",
+           "minItems": 3,
+           "maxItems": 3,
+           "items": {
+            "oneOf": [
+             {
+              "type": "string",
+              "minLength": 1
+             },
+             {
+              "const": 0
+             }
+            ]
+           }
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "reflect"
+       ],
+       "properties": {
+        "reflect": {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "of",
+          "plane"
+         ],
+         "properties": {
+          "of": {
+           "type": "string"
+          },
+          "plane": {
+           "enum": [
+            "yz",
+            "xz",
+            "xy"
+           ]
+          },
+          "through": {
+           "type": "string",
+           "pattern": "^[^:]+:.+$"
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "orient"
+       ],
+       "properties": {
+        "orient": {
+         "enum": [
+          "up",
+          "front",
+          "back",
+          "left",
+          "right",
+          "down"
+         ]
+        }
+       }
+      }
+     ]
+    },
+    "array": {
+     "oneOf": [
+      {
+       "type": "null"
+      },
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "radial"
+       ],
+       "properties": {
+        "radial": {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "n"
+         ],
+         "properties": {
+          "n": {
+           "type": "string",
+           "minLength": 1
+          },
+          "phase": {
+           "type": "string",
+           "minLength": 1
+          }
+         }
+        }
+       }
+      },
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "linear"
+       ],
+       "properties": {
+        "linear": {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "n",
+          "axis",
+          "span"
+         ],
+         "properties": {
+          "n": {
+           "type": "string",
+           "minLength": 1
+          },
+          "axis": {
+           "enum": [
+            "x",
+            "y",
+            "z"
+           ]
+          },
+          "span": {
+           "type": "string",
+           "minLength": 1
+          }
+         }
+        }
+       }
+      }
+     ]
+    },
+    "material": {
+     "type": "string"
+    },
+    "edges": {
+     "type": "object",
+     "additionalProperties": {
+      "enum": [
+       "sharp",
+       "bevel",
+       "smooth"
+      ]
+     }
+    },
+    "post_eval": {
+     "type": "boolean"
+    }
+   },
+   "allOf": [
+    {
+     "if": {
+      "properties": {
+       "place": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+         "reflect"
+        ],
+        "properties": {
+         "reflect": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+           "of",
+           "plane"
+          ],
+          "properties": {
+           "of": {
+            "type": "string"
+           },
+           "plane": {
+            "enum": [
+             "yz",
+             "xz",
+             "xy"
+            ]
+           },
+           "through": {
+            "type": "string",
+            "pattern": "^[^:]+:.+$"
+           }
+          }
+         }
+        }
+       }
+      },
+      "required": [
+       "place"
+      ]
+     },
+     "then": {
+      "not": {
+       "anyOf": [
+        {
+         "required": [
+          "builder"
+         ]
+        },
+        {
+         "required": [
+          "params"
+         ]
+        }
+       ]
+      }
+     },
+     "else": {
+      "required": [
+       "builder",
+       "params"
+      ]
+     }
+    }
+   ]
+  },
+  "Relation": {
+   "type": "object",
+   "required": [
+    "type",
+    "a",
+    "b"
+   ],
+   "properties": {
+    "type": {
+     "enum": [
+      "coaxial",
+      "parallel",
+      "perpendicular",
+      "symmetric",
+      "embedded",
+      "contact"
+     ]
+    },
+    "a": {
+     "type": "string"
+    },
+    "b": {
+     "type": "string"
+    },
+    "tol_deg": {
+     "type": "number"
+    }
+   }
+  },
+  "Socket": {
+   "oneOf": [
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "ref"
+     ],
+     "properties": {
+      "ref": {
+       "type": "string",
+       "pattern": "^[^:]+:.+$"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "grip",
+      "center",
+      "palm",
+      "up",
+      "hand"
+     ],
+     "properties": {
+      "grip": {
+       "type": "string"
+      },
+      "center": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 1
+      },
+      "palm": {
+       "enum": [
+        "+x",
+        "-x",
+        "+y",
+        "-y",
+        "+z",
+        "-z"
+       ]
+      },
+      "up": {
+       "enum": [
+        "+x",
+        "-x",
+        "+y",
+        "-y",
+        "+z",
+        "-z"
+       ]
+      },
+      "hand": {
+       "enum": [
+        "r",
+        "l"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  "Joint": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "part",
+    "type",
+    "anchor",
+    "axis"
+   ],
+   "properties": {
+    "part": {
+     "type": "string"
+    },
+    "type": {
+     "enum": [
+      "revolute",
+      "prismatic"
+     ]
+    },
+    "anchor": {
+     "type": "string",
+     "pattern": "^[^:]+:.+$"
+    },
+    "axis": {
+     "type": "string"
+    },
+    "limits_deg": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     },
+     "minItems": 2,
+     "maxItems": 2
+    },
+    "limits_m": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     },
+     "minItems": 2,
+     "maxItems": 2
+    }
+   },
+   "oneOf": [
+    {
+     "properties": {
+      "type": {
+       "const": "revolute"
+      }
+     },
+     "required": [
+      "limits_deg"
+     ]
+    },
+    {
+     "properties": {
+      "type": {
+       "const": "prismatic"
+      }
+     },
+     "required": [
+      "limits_m"
+     ]
+    }
+   ]
+  },
+  "RProfile": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "family",
+    "variant",
+    "kind",
+    "ref",
+    "frame",
+    "anchors",
+    "params",
+    "licence_id",
+    "tag",
+    "sha256"
+   ],
+   "properties": {
+    "family": {
+     "type": "string"
+    },
+    "variant": {
+     "type": "string"
+    },
+    "kind": {
+     "enum": [
+      "outline",
+      "width_curve",
+      "radius_curve",
+      "radius_loop"
+     ]
+    },
+    "ref": {
+     "type": "object"
+    },
+    "frame": {
+     "type": "object"
+    },
+    "loops": {
+     "type": "array"
+    },
+    "curve": {
+     "type": "array"
+    },
+    "anchors": {
+     "type": "object"
+    },
+    "params": {
+     "type": "object"
+    },
+    "licence_id": {
+     "type": "string"
+    },
+    "tag": {
+     "enum": [
+      "measured",
+      "derived",
+      "recalled"
+     ]
+    },
+    "sha256": {
+     "type": "string",
+     "pattern": "^[0-9a-f]{64}$"
+    }
+   },
+   "oneOf": [
+    {
+     "required": [
+      "loops"
+     ]
+    },
+    {
+     "required": [
+      "curve"
+     ]
+    }
+   ]
+  }
+ }
+}

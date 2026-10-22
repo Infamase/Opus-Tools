@@ -1,0 +1,9 @@
+# Line endings: LF in the repository and in every checkout (Windows included), so hashes over
+# text files (tables_version, golden JSON) match across machines (docs/S0B_DESIGN.md §4.10).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.npz binary
+*.glb binary
+*.fbx binary
+*.blend binary

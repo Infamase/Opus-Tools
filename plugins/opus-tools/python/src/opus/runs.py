@@ -41,8 +41,15 @@ EVENTS: dict[str, dict[str, type]] = {
     "accept": {"iterations_to_accept": int, "wall_clock_s": float, "values": dict},
     "abandon": {"reason": str, "values": dict},
     "grade": {"accepted": bool, "failed": list, "note": str},
+    # spec compiler (S0b): one per spec_check / spec_edit / spec_build call; a design value picked
+    "spec_round": {"n": int, "tier": str, "hard_fail_count": int, "findings": dict, "outcome": str, "rev": int,
+                   "tool": str},
+    "design_pick": {"dim": str, "value": float, "finding": str, "rev": int},
 }
-REQUIRED = {"iteration": ("n", "hard_fail_count"), "tokens": ("input", "output"), "grade": ("accepted",)}
+REQUIRED = {"iteration": ("n", "hard_fail_count"), "tokens": ("input", "output"), "grade": ("accepted",),
+            "spec_round": ("hard_fail_count", "outcome"), "design_pick": ("dim", "value")}
+SPEC_ROUND_OUTCOMES = ("checked", "accepted", "rejected", "built")
+ROUNDED = ("wall_clock_s",)  # float fields kept to 3 decimals; others (a design value) keep every digit
 CLOSING = ("accept", "abandon")
 # arrive after a run closed: usage is read at the end, the grader and the user judge last
 LATE = ("tokens", "user_rejection", "grade")
@@ -186,7 +193,7 @@ def _clean(event: str, fields: dict) -> dict:
             elif kind is int:
                 data[k] = int(v)
             elif kind is float:
-                data[k] = round(float(v), 3)
+                data[k] = round(float(v), 3) if k in ROUNDED else float(v)
             else:
                 data[k] = str(v)
         except (TypeError, ValueError) as e:
@@ -268,6 +275,8 @@ def log(event: str, run: str = "", near=None, now: float | None = None, **fields
     if event == "iteration" and data["hard_fail_count"] == 0 and data.get("findings"):
         raise ValueError(f"iteration: hard_fail_count is 0 but findings lists {sorted(data['findings'])}; findings are the "
                          "failing hard checks, and one that has not run yet (a blind read waiting for its judge) counts as failing")
+    if event == "spec_round" and data["outcome"] not in SPEC_ROUND_OUTCOMES:
+        raise ValueError(f"spec_round: outcome must be one of {SPEC_ROUND_OUTCOMES}; got {data['outcome']!r}")
     folder = runs_dir(near)
     ts = time.time() if now is None else float(now)
     runs = _group(read_events(folder))
@@ -310,6 +319,8 @@ def log(event: str, run: str = "", near=None, now: float | None = None, **fields
             if data["accepted"] and [e for e in runs[run] if e["event"] in CLOSING][-1]["event"] == "abandon":
                 raise ValueError(f"grade: run {run!r} was abandoned, so nothing was delivered to accept; "
                                  "log accepted=false and the checks it fails")
+        if event == "spec_round" and "n" not in data:  # numbered within the run
+            data["n"] = sum(e["event"] == "spec_round" for e in runs[run]) + 1
         if event == "accept":
             its = [e for e in runs[run] if e["event"] == "iteration"]
             data.setdefault("iterations_to_accept", max((e.get("n", 0) for e in its), default=0))
@@ -319,6 +330,37 @@ def log(event: str, run: str = "", near=None, now: float | None = None, **fields
     with open(folder / f"{time.strftime('%Y-%m-%d', time.localtime(ts))}.jsonl", "a", encoding="utf-8") as f:
         f.write(json.dumps(entry) + "\n")
     return entry
+
+
+def log_if_open(event: str, near=None, run: str = "", **fields) -> dict | None:
+    """Log into the open run, or return None when there is none, so tools never fail for lack
+    of a run (docs/S0B_DESIGN.md §4.9). The run is ``run``, else $OPUS_RUN, else the one open run
+    of the project; with no ledger, no open run, several open runs or a closed named run nothing
+    is written (and no .opus folder is created). spec_round gets ``n`` = the run's previous
+    spec_round count + 1 when not given. Bad fields still raise ValueError."""
+    run = run or os.environ.get("OPUS_RUN", "")
+    folder = project_base(near) / ".opus" / "runs"
+    if not folder.is_dir():
+        return None
+    runs = _group(read_events(folder))
+    if run:
+        if run not in runs or not _is_open(runs[run]):
+            return None
+    else:
+        open_runs = [r for r, evs in runs.items() if _is_open(evs)]
+        if len(open_runs) != 1:
+            return None
+        run = open_runs[0]
+    return log(event, run=run, near=near, **fields)
+
+
+def findings_counts(findings: list[dict]) -> dict[str, int]:
+    """Failing blocking findings (finding-contract JSON: class hard, armed, not pass) counted by check."""
+    out: dict[str, int] = {}
+    for f in findings or []:
+        if f.get("class") == "hard" and f.get("armed", True) and not f.get("pass"):
+            out[f["check"]] = out.get(f["check"], 0) + 1
+    return dict(sorted(out.items()))
 
 
 PROSE = "(prose)"
@@ -814,17 +856,28 @@ def sign_test(wins: int, losses: int) -> float:
     return round(sum(math.comb(n, k) for k in range(wins, n + 1)) / 2 ** n, 4) if n else 1.0
 
 
-def compare(base, new, evals=None, metric: str = "median_iterations_to_hard_pass") -> dict:
+def compare(base, new, evals=None, metric: str = "median_iterations_to_hard_pass",
+            tasks: list[str] | None = None) -> dict:
     """Per task, ``metric`` (lower is better; a task never passed counts as worst) in two result
-    files, with the tasks where ``new`` is lower and a one-sided sign test (§9 cut rule)."""
+    files, with the tasks where ``new`` is lower and a one-sided sign test (§9 cut rule).
+    ``metric`` names a per-task field; "iterations_to_accept" reads "median_iterations_to_accept".
+    ``tasks`` limits the comparison (tasks missing from either file are listed)."""
     folder = Path(evals) if evals else evals_dir()
     a, b = _load_result(base, folder), _load_result(new, folder)
+    rows_a = list(a["by_task"].values()) + list(b["by_task"].values())
+    if not any(metric in r for r in rows_a) and any(f"median_{metric}" in r for r in rows_a):
+        metric = f"median_{metric}"
+    common = set(a["by_task"]) & set(b["by_task"])
+    wanted = sorted(common) if tasks is None else [t for t in tasks if t in common]
     rows, lower, higher, ties = {}, 0, 0, 0
-    for tid in sorted(set(a["by_task"]) & set(b["by_task"])):
+    for tid in wanted:
         x, y = a["by_task"][tid].get(metric), b["by_task"][tid].get(metric)
         xi, yi = (math.inf if v is None else v for v in (x, y))
         lower, higher, ties = lower + (yi < xi), higher + (yi > xi), ties + (yi == xi)
         rows[tid] = [x, y]
-    return {"metric": metric, "base": a.get("label"), "new": b.get("label"), "tasks_compared": len(rows),
-            "lower_on": lower, "higher_on": higher, "ties": ties, "p_sign_one_sided": sign_test(lower, higher),
-            "by_task": rows}
+    out = {"metric": metric, "base": a.get("label"), "new": b.get("label"), "tasks_compared": len(rows),
+           "lower_on": lower, "higher_on": higher, "ties": ties, "p_sign_one_sided": sign_test(lower, higher),
+           "by_task": rows}
+    if tasks is not None:
+        out["missing_tasks"] = [t for t in tasks if t not in common]
+    return out

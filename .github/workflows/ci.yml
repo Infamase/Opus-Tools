@@ -1,0 +1,36 @@
+# Opus Tools CI. WP0 stub (docs/S0B_DESIGN.md §4.10, §16): one host job on Linux. WP-H adds the
+# Windows host job, the Blender job (Workbench, CPU), the Godot import job and the licence job.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  host:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: plugins/opus-tools/python
+    env:
+      UV_PYTHON: "3.13"
+      OPUS_OFFLINE: "1"
+      OPUS_LIBRARY_DIR: ${{ github.workspace }}/.ci-library
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990  # v8.3.2
+        with:
+          version: "0.11.32"
+          enable-cache: true
+          cache-dependency-glob: plugins/opus-tools/python/uv.lock
+      - name: Install (locked)
+        run: uv sync --frozen
+      - name: Lint (ruff, pinned in uv.lock)
+        run: uv run --frozen ruff check --config pyproject.toml . ../blender
+      - name: Tests without Blender, network or perf asserts (empty library folder)
+        run: |
+          mkdir -p "$OPUS_LIBRARY_DIR"
+          uv run --frozen pytest -q -m "not blender and not network and not perf"

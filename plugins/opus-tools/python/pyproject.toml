@@ -1,6 +1,6 @@
 [project]
 name = "opus-tools"
-version = "0.4.1"
+version = "0.5.0"
 description = "Senses and building blocks that help Claude make game assets for Blender + Godot"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -9,15 +9,28 @@ dependencies = [
     "mcp>=1.10",
     "numpy>=1.26",
     "pillow>=10.0",
+    "pydantic>=2.11,<3",
     "pyyaml>=6.0",
 ]
+
+# Heavy libraries used only by some tools, imported lazily through opus.extras.require
+# (docs/S0B_DESIGN.md §4.10, §16). numba and cupy cap numpy below 2.6, and the universal lock
+# applies that cap to the core environment too.
+[project.optional-dependencies]
+feq = ["PyGEL3D"]
+terrain = ["fastscapelib", "pydelatin", "numba"]
+hulls = ["coacd"]
+uv = ["xatlas"]
+ref = ["opencv-python-headless"]
+gpu = ["cupy-cuda12x"]
+lod = ["pyfqmr"]
 
 [project.scripts]
 opus = "opus.cli:main"
 opus-mcp = "opus.mcp_server:main"
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "jsonschema>=4.20", "ruff==0.17.1"]
 
 [build-system]
 requires = ["hatchling"]
@@ -28,3 +41,22 @@ packages = ["src/opus"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "blender: needs a headless Blender (OPUS_BLENDER); added automatically to Blender-skipif tests",
+    "perf: throughput and timing; asserted only with OPUS_PERF_ASSERT=1",
+    "network: reaches the internet; never run in CI",
+    "integration: needs every S0b work package; skipped until all are present",
+]
+
+# ruff's classic default rules (E4, E7, E9, F) written out, so a ruff upgrade cannot change
+# them, plus unspecified-encoding (a preview rule, enabled alone). CI runs
+# `ruff check --config pyproject.toml . ../blender` from this folder.
+[tool.ruff]
+target-version = "py313"
+line-length = 120
+extend-exclude = ["tests/fixtures"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "PLW1514"]
+preview = true
+explicit-preview-rules = true

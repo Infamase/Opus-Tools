@@ -16,6 +16,7 @@ from mcp.server.mcpserver import Image, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
 from opus import imaging as im
+from opus.tools import register_all as register_compiler_tools
 from opus.bible import init_bible, load_bible, resolve_palette_spec
 from opus.doctor import doctor, format_report
 from opus.ledger import check as licence_policy_check
@@ -46,6 +47,11 @@ it with an inspector, fix what the report and image show, and repeat before show
 - run_log records each asset run (start, every check round, judge rounds, rejections, accept,
   and an independent grader's grade); run_stats summarizes iterations to a hard pass,
   wall-clock, tokens and the checks that fail.
+- Spec compiler (v0.5): spec_new starts a spec from a template; spec_validate and dims_resolve
+  check it and resolve its dims; spec_preview draws the blueprint without Blender; spec_check
+  runs the gates; spec_edit changes the spec and keeps only improvements; spec_build makes the
+  .blend and exports; export_asset writes engine files. data_fetch fetches data packs;
+  defect_inject and gate_calibrate are maintainer tools.
 Paths may be absolute or relative to the project folder.
 """
 
@@ -801,6 +807,11 @@ def run_stats(task: str = "", label: str = "", project_dir: str = "") -> str:
 
     base = project_dir or os.environ.get("OPUS_PROJECT_DIR") or os.getcwd()
     return json.dumps(stats(base, task=task, label=label), separators=(",", ":"), default=str)
+
+
+# ---------------------------------------------------------------- spec compiler (opus/tools/*)
+
+register_compiler_tools(_tool)
 
 
 def main() -> None:

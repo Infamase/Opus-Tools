@@ -17,6 +17,7 @@ from pathlib import Path
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[4]
 BLENDER_MODULES = Path(os.environ.get("OPUS_BLENDER_MODULES", PLUGIN_ROOT / "blender"))
+HOST_SRC = PLUGIN_ROOT / "python" / "src"  # entry.py appends $OPUS_HOST_SRC to sys.path: Blender imports opus.compile
 
 
 class BlenderNotFound(RuntimeError):
@@ -76,7 +77,8 @@ def run_task(task: str, args: dict, timeout: int = 900) -> dict:
             blender, "-b", "--factory-startup", "--python-exit-code", "1",
             "--python", str(entry), "--", str(args_path), str(result_path),
         ]
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, errors="replace")
+        env = {**os.environ, "OPUS_HOST_SRC": os.environ.get("OPUS_HOST_SRC") or str(HOST_SRC)}
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, errors="replace", env=env)
         if not result_path.exists():
             tail = "\n".join((proc.stdout + proc.stderr).strip().splitlines()[-25:])
             raise BlenderTaskError(f"Blender exited with code {proc.returncode} before writing a result:\n{tail}")

@@ -1,0 +1,52 @@
+{
+ "version": 1,
+ "doc": "Gate profiles (docs/S0B_DESIGN.md §9.2). resolved['gates'] = defaults < profiles[name] < bible gates.profiles[name] < spec gates, plus 'profile' (opus.gates.registry.profile_thresholds). Lengths in m, angles in degrees, pixels in px.",
+ "defaults": {
+  "anchor_m": 1e-06,
+  "consistency": {
+   "iou_min": 0.99,
+   "boundary_p95_px": 0.5,
+   "depth_p95_game_px": 1.0,
+   "min_part_px": 10,
+   "score_px": 20,
+   "absent_px": 5,
+   "finish_delta_px": 1.0
+  }
+ },
+ "profiles": {
+  "cad_clean": {
+   "contact_m": 0.002,
+   "contact_fp_m": 0.0005,
+   "overlap_m": 0.0005,
+   "overlap_class": "hard",
+   "sheet_rel": 0.02,
+   "sheet_abs_m": 0.001,
+   "angle_tol_deg": 0.5,
+   "grounded_m": 0.0005,
+   "manifold": "per_part"
+  },
+  "kitbash": {
+   "contact_m": 0.004,
+   "contact_fp_m": 0.001,
+   "overlap_m": 0.0005,
+   "overlap_class": "soft",
+   "sheet_rel": 0.05,
+   "sheet_abs_m": 0.002,
+   "angle_tol_deg": 1.0,
+   "grounded_m": 0.001,
+   "manifold": "per_part"
+  },
+  "organic": {
+   "contact_m": 0.002,
+   "contact_fp_m": 0.0005,
+   "overlap_m": null,
+   "overlap_class": null,
+   "self_overlap": "S2",
+   "sheet_rel": 0.02,
+   "sheet_abs_m": 0.001,
+   "angle_tol_deg": 0.5,
+   "grounded_m": 0.0005,
+   "manifold": "single_skin"
+  }
+ }
+}

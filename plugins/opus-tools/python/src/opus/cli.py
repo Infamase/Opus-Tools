@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 
+from opus import tools
 from opus.blender.runner import BlenderNotFound, BlenderTaskError
 
 ERRORS = (ValueError, FileNotFoundError, FileExistsError, BlenderNotFound, BlenderTaskError)
@@ -73,9 +74,10 @@ def main(argv: list[str] | None = None) -> int:
     ap = _parser()
     a = ap.parse_args(_dash_values(ap, sys.argv[1:] if argv is None else list(argv)))
     try:
-        return _run(a)
+        code = tools.run_cli(a)  # the spec compiler's commands (opus/tools/*), then v0.4's own
+        return code if code is not None else _run(a)
     except ERRORS as e:  # a one-line message the call can be corrected from, not a traceback
-        print(f"opus {a.cmd}: error: {e}", file=sys.stderr)
+        print(f"opus {tools.verb(a)}: error: {e}", file=sys.stderr)
         return 2
 
 
@@ -248,12 +250,6 @@ def _parser() -> argparse.ArgumentParser:
     s = sub.add_parser("credits", help="write CREDITS.md from the provenance ledger")
     s.add_argument("--dir", default=".")
 
-    s = sub.add_parser("data", help="rebuild the committed fact tables (maintainers)")
-    s.add_argument("action", choices=["build"])
-    s.add_argument("--tables", action="store_true", required=True)
-    s.add_argument("--ansur", default="", help="folder with ANSUR_II_MALE/FEMALE_Public.csv")
-    s.add_argument("--out", default="", help="write here instead of data/tables")
-
     s = sub.add_parser("licence-check", help="what in the provenance ledger blocks export")
     s.add_argument("--dir", default=".")
     s.add_argument("--text", default="", help="classify this licence text instead")
@@ -292,15 +288,21 @@ def _parser() -> argparse.ArgumentParser:
     e.add_argument("--all", action="store_true", help="every run, not only runs started with this label")
     e.add_argument("--evals", default="")
     e.add_argument("-o", "--out", default="")
-    e = ev.add_parser("compare", help="per-task median iterations to a hard pass, new vs base, with a sign test")
+    e = ev.add_parser("compare", help="per-task median iterations to a hard pass (or --metric), new vs base, "
+                                      "with a sign test")
     e.add_argument("base", help="a results label (e.g. v0.4) or a results .json")
     e.add_argument("new")
+    e.add_argument("--tasks", default="", help="compare only these tasks, comma-separated")
+    e.add_argument("--metric", default="median_iterations_to_hard_pass",
+                   help="a per-task result field, e.g. iterations_to_accept (median_ is added when needed)")
     e.add_argument("--evals", default="")
     e = ev.add_parser("tokens", help="sum the token use in Claude Code session transcripts")
     e.add_argument("transcripts", nargs="+", help="session .jsonl files or folders")
     e.add_argument("--log", action="store_true", help="also log it as a tokens event")
     e.add_argument("--run", default="")
     e.add_argument("--dir", default=".")
+
+    tools.add_cli_all(sub)  # groups spec, gates, data and the commands dims, export (opus/tools/*)
     return ap
 
 
@@ -428,10 +430,6 @@ def _run(a: argparse.Namespace) -> int:
         from opus.ledger import write_credits
 
         _print(str(write_credits(a.dir)))
-    elif a.cmd == "data":
-        from opus.tables import build_tables
-
-        _print(build_tables(a.ansur or None, a.out or None))
     elif a.cmd == "licence-check":
         from opus.ledger import OWN_WORK_HINT, check, classify
 
@@ -493,7 +491,7 @@ def _run(a: argparse.Namespace) -> int:
             path, data = runs.summarize(a.label, a.runs, evals, all_runs=a.all, out=a.out or None)
             _print({"written": str(path), "overall": data["overall"], "missing_tasks": data["missing_tasks"]})
         elif a.eval_cmd == "compare":
-            _print(runs.compare(a.base, a.new, evals))
+            _print(runs.compare(a.base, a.new, evals, metric=a.metric, tasks=_names(a.tasks)))
         elif a.eval_cmd == "tokens":
             used = runs.transcript_tokens(*a.transcripts)
             if a.log:

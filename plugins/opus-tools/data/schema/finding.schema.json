@@ -1,0 +1,212 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://github.com/Infamase/Opus-Tools/plugins/opus-tools/data/schema/finding.schema.json",
+ "title": "Opus finding (docs/S0B_DESIGN.md §4.7)",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "gate",
+  "check",
+  "class",
+  "tier",
+  "target",
+  "value",
+  "expected",
+  "unit",
+  "noise_tol",
+  "pass",
+  "family",
+  "armed",
+  "evidence",
+  "fix",
+  "message"
+ ],
+ "properties": {
+  "gate": {
+   "type": "string",
+   "minLength": 1
+  },
+  "check": {
+   "type": "string",
+   "pattern": "^[a-z][a-z0-9_]*$"
+  },
+  "class": {
+   "enum": [
+    "hard",
+    "soft",
+    "report"
+   ]
+  },
+  "tier": {
+   "enum": [
+    "T0",
+    "T1",
+    "T2",
+    "T2b",
+    "T3",
+    "T4",
+    "T5",
+    "T6"
+   ]
+  },
+  "target": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "part",
+    "other",
+    "view",
+    "path",
+    "bone",
+    "frames",
+    "pose",
+    "cell"
+   ],
+   "properties": {
+    "part": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "other": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "view": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "path": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "bone": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "frames": {
+     "type": [
+      "array",
+      "null"
+     ]
+    },
+    "pose": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "cell": {
+     "type": [
+      "array",
+      "null"
+     ]
+    }
+   }
+  },
+  "value": {
+   "type": [
+    "number",
+    "string",
+    "boolean",
+    "null"
+   ]
+  },
+  "expected": {
+   "type": "string",
+   "minLength": 1
+  },
+  "unit": {
+   "enum": [
+    "m",
+    "px",
+    "deg",
+    "count",
+    "ratio",
+    ""
+   ]
+  },
+  "noise_tol": {
+   "type": [
+    "number",
+    "null"
+   ],
+   "minimum": 0
+  },
+  "pass": {
+   "type": "boolean"
+  },
+  "family": {
+   "enum": [
+    "contact",
+    "floating",
+    "manifold",
+    "sheet",
+    "naming",
+    "relation",
+    "overlap",
+    "consistency",
+    null
+   ]
+  },
+  "armed": {
+   "type": "boolean"
+  },
+  "evidence": {
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "fix": {
+   "oneOf": [
+    {
+     "type": "null"
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "spec_path",
+      "suggest",
+      "dial_unit"
+     ],
+     "properties": {
+      "spec_path": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "suggest": {
+       "type": "string"
+      },
+      "dial_unit": {
+       "enum": [
+        "m",
+        "ratio",
+        "deg",
+        "count",
+        "anchor",
+        "name",
+        null
+       ]
+      }
+     }
+    }
+   ]
+  },
+  "message": {
+   "type": "string"
+  }
+ }
+}

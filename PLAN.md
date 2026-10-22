@@ -648,6 +648,9 @@ in parallel worktrees, each fix with a test that failed on v0.4, and then merged
 **Not done yet (needs the PC):** the [PC checks](docs/PC_CHECKS.md): install, doctor green,
 every tool on Windows, and a 1.8 m blockout coming into Unreal 180 units tall.
 
+**Paused on 2026-10-22, during S0b WP0.** [docs/RESUME.md](docs/RESUME.md) says what is done, what
+is in progress, how to resume, and which decisions wait on the user.
+
 **Next:** the overhaul's sprints, in order (docs/OVERHAUL.md §9):
 
 1. **Finish S0a on the PC:** the PC checks. The v0.4 baseline is recorded (v0.4.1 above).

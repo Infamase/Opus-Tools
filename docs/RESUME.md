@@ -18,6 +18,12 @@ It contains the `compile/`, `gates/`, `spec/`, `tools/` packages, `extras.py`, t
 `data/gates/profiles.json`, the CI stub, `.gitattributes`, and edits to `cli.py`, `mcp_server.py`,
 `runner.py`, `runs.py`, `entry.py`, `paths.py`, `pyproject.toml` and `uv.lock`.
 
+Test status of the draft: the full suite gives **270 passed, 1 failed, 1 skipped** (the skip is the
+ANSUR rebuild, as before). Every v0.4.1 tool still passes its tests. The one failure is
+`test_mcp.py::test_server_lists_tools_and_returns_images`: the server now also lists the new S0b
+tool stubs (`spec_build`, `dims_resolve`, `export_asset`, ...), and the test's `EXPECTED` set has
+not been updated yet. That update is part of WP0's unfinished test work.
+
 Still missing from WP0 (S0B_DESIGN §17):
 - the fixtures in `tests/fixtures/s0b/` and WP0's tests (`test_contracts`, `test_import_rules`,
   `test_tools_s0b`, the `EXPECTED` update in `test_mcp`, the Blender hash script);
@@ -56,8 +62,6 @@ files) does not survive. To set it up again:
    PixelLab, and AI sprite animation)? Until answered, those stay in the plan but are not built.
 2. A/B size: 3 runs per prop per arm as designed (about 42 builder sessions plus graders), or 2 to
    save usage (a noisier comparison).
-3. If pushing `.github/workflows/ci.yml` is refused for lack of the `workflow` permission, the user
-   adds that file through the GitHub web UI.
 
 ## Usage note
 
